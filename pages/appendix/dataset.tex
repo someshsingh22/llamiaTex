@@ -1,0 +1,66 @@
+\section{Dataset}
+\label{app:data_stats}
+\vspace{-2mm}
+In this section, we describe the datasets and on which we train LLAMIA. Extensive research from Flan, LLaVA, QLora \cite{longpre2023flan,dettmers2024qlora,liu2024improved,liu2023visual} demonstrate that joint training across diverse tasks, modalities, and instructions enhances model generalization and zero-shot reasoning. Motivated by this, we train LLAMIA on interleaved datasets that combine agent states, actions, and language instructions. Our approach integrates three objectives: (1) aligning pretrained agents with LLM representations, (2) cloning diverse decision making behaviors, and (3) predicting human explanations. Below we outline the datasets used.
+
+\subsection{Agent-Projector Pretraining}
+The pretraining phase aligns the agent’s latent state representations with the LLM’s embedding space. We extract the \textbf{top moves} and their \textbf{pawn evaluations} from the lichess evaluation database \footnote{\url{https://database.lichess.org/\#evals}}. We filter out weaker evaluations to obtain 50 million evaluations. Further, we augment these with positional features such as legal moves, tactical motifs (e.g., pins, forks), and strategic annotations (e.g., king safety, pawn structure) extracted from Chevy\footnote{\url{https://github.com/int8/chevy}}. Listing \ref{listing:pretraining_instruction_format} shows the exact conversation format.
+
+\subsection{Language-Action Fine-Tuning}
+\label{subsec:language_action }
+\subsubsection{Behavior Cloning}
+Behavior cloning is the process of learning policies by mimicking demonstrations. In chess it is used to replicate human-like playstyles, engine strategies, and grandmaster tactics making gameplay more relatable, instructive, and diverse. This dataset is crucial for training LLAMIA to adapt its internal agent’s policy across varying expertise level.
+
+We curate chess games from diverse sources, spanning human and engine play across skill levels. The Lichess dataset includes 12 million rapid and blitz games with Elo ratings between 1000 and 2500. For superhuman play, we incorporate 3 million CCRL games sourced from \cite{feng2024chessgpt},  played by engines like Stockfish and Leela Zero, which have Elo ratings between 2800 and 3700. Additionally, we include 158,000 elite grandmaster tournament games \cite{gmchessgames2022}, providing insights into expert human strategy. Where available, metadata such as player Elo, time control, and annotations are included. Listing \ref{listing:lichess_instruction_format} shows the exact conversation formats. 
+During testing, we evaluate behavior cloning on the MAIA-KDD test set \cite{mcilroy2020aligning}.
+
+\subsubsection{Commentary Prediction}
+\label{sec:commentary}
+While chess engines surpass human play, they lack the ability to provide meaningful, human-like commentary or rationales. Most engines offer numerical evaluations (e.g., `+0.39') but fail to contextualize these values in strategic or positional terms. In contrast, expert commentators interpret engine outputs to articulate insights such as, ``Your isolated pawns outweigh the advantage of a bishop pair and safer king'' transforming raw evaluations into actionable knowledge. Commentary not only enhances understanding but also democratizes learning, making high-level insights accessible to a broader audience. To train LLAMIA in explanatory reasoning over decisions we collect:
+
+\paragraph{State Commentary}: We include 90k annotated games, primarily sourced from Lichess, filtered to include only English annotations \cite{jhamtani-etal-2018-learning}. These annotations provide insights into
+various aspects of the game, including move explanations,
+game summaries, alternative lines, thematic insights, in-
+structional content, and evaluative comments (Listing~\ref{listing:state_annotation_format}).
+
+\paragraph{Game Commentary:} We introduce the first large-scale dataset for game-level commentary with time- and move-stamped explanations, comprised of 2000 narrated games from Agadmator’s YouTube channel. We extract paired commentary from the transcripts by aligning video clips with natural language transcripts based on timestamps. Listing \ref{listing:commentary_format}. Since move segmented commentary is not available we detail our algorithm for creating this, we maintain a move by move buffer over segments of moves to track the commentated game so far. Then for each segment of the game we ask GPT-4o to annotate the moves that are in the PGN of the game as well as transcript (extracted using whisper-v3-large) in square brackets. Next we match the moves in PGN and eliminate retry where the move order is not same as PGN and annotated commentary. 
+
+\subsubsection{Puzzle Understanding}
+Chess puzzles have long been used to assess understanding in both humans and engines. These puzzles consist of specific board positions with an objectively winning sequence of moves (typically only one solution) and are characterized by themes, difficulty, and interestingness.
+
+We curate a dataset of 4 million puzzles from Lichess \footnote{\url{https://database.lichess.org/lichess_db_puzzle.csv.zst}}, each sourced from real gameplay and enriched with metadata such as popularity, opening tags (for puzzles within the first 20 moves), and difficulty ratings. The interestingness score, ranging from -100 (worst) to 100 (best), is computed from upvotes and downvotes, weighted by solver performance. Puzzle difficulty is determined using a Glicko-2 rating system, where each solving attempt is treated as a rated match between the solver and the puzzle. 
+
+\subsection{Language and Conversational Data}
+Recent work by \citet{feng2024chessgpt} attempts bridging language and policy by fine-tuning solely on language data. Additionally, training on diverse web-scale content has improved generalization in prior foundation models \cite{liu2024improved}. Since curating high-quality action fine-tuning datasets is challenging, we also incorporate diverse chess-related language-only datasets from the web, including
+
+\textbf{Chess Stack Exchange}: Expert discussions and Q\&A threads sourced from \cite{feng2024chessgpt}.We use 9k StackExchange questions.
+
+\textbf{Web}: Extracted chess-related content from the RedPajama-v2 dataset \cite{weber2024redpajama} .To extract chess-related language corpus, we filter using the header for the keyword ’chess’.
+
+\textbf{Transcripts}: 100 hours of chess commentary from Chess24 and chess.com streams. \cite{feng2024chessgpt} also uses books, chessable forums, and transcripts that are not publicly available. To ensure fair experimental comparisons, we exclude these.
+
+\textbf{Chat Dataset}:
+To preserve the multi-turn conversational structure and general textual reasoning capabilities, we augment our fine-tuning dataset with 70k ShareGPT conversations, aligning with the dataset used in the base chat model Vicuna \cite{zheng2023judging}.
+
+
+% \begin{enumerate}
+%     \item Results and Discussion: Baselines and Ablations are not clear \somesh{Summary Table?}, due to which people did not understand ChessGPT and other baselines. SFT without TC, SFT with TC, Verbalization \somesh{Results added in individual tables}
+%     \item Add baseline for SFT + Tool-Calling \somesh{Added}
+%     \item Results and Discussion: Table in main paper\somesh{Summary Table?}, Figure 6 Janus label is wrong and unreferenced \somesh{XXX}
+%     \item Behavior Cloning table: Peaking Behavior, Explain the buckets from \cite{jacob2022modeling}. \somesh{Updated Buckets will remove 2250/2500 and rename}
+%     \item Related work: Unified-IO2 comments, \somesh{XXX} 
+%     \item How representative is the example in Fig. 4, @Harini: Put the cherry picking rationale \somesh{XXX}
+%     \item Explain table 7 in detail, add paragraph in results and discussion \somesh{XXX}
+%     \item Improve the qualitative example. \somesh{XXX}
+%     \item Data Appendix \somesh{XXX}
+%     \item Explain LLAMIA Bench \somesh{XXX}
+%     \item Introduction: Lora adapters / Task expertise + Results \somesh{XXX Will strip off main text in case of reviews, was a one off concern}
+%     \item Input vs Output vs State in Architecture \somesh{XXX}
+%     \item Extending to other envs \somesh{XXX}
+%     \item Output Projections as a part, as thinking chains \somesh{XXX}
+%     \item Stylometry: Explain why some of the results are not good \somesh{Removed}
+%     \item Metrics explanation for Commentary \somesh{Will update to G-eval + Highlights}
+%     \item Instruct Conditioned Planning: When is the engine swapped \somesh{XXX Eval sections}
+%     \item Qualitiative and Quant results on Image aesthetics and Behavior \somesh{XXX Adding figures}
+% \end{enumerate}
+
