@@ -1,0 +1,100 @@
+\section{Experiments}
+\label{sec:experiments}
+We now present experiments that rigorously evaluate LLAMIA’s capability to internalize latent agent states and act enables its robust intrinsic reasoning and planning capabilities. We test its (1) state-of-the-art performance on gameplay and existing benchmarks without explicit search (2) Generalization on unseen downstream tasks and (3) generalization beyond chess into perceptual and behavioral domains such as text-to-image preference alignment and prediction persuasion.
+
+\subsection{Experimental Setup}
+\label{sec:exp_setup}
+
+
+\subsubsection{Baselines} Given LLAMIA’s claim to efficiently internalize external agent capabilities, we select diverse and rigorous baselines. These include state-of-the-art task-specific experts on each public benchmark, significantly larger general-purpose LLMs (GPT-4o, LLaMA-3 405B) with and without direct agent access through tool-calling (Lc0). We particularly emphasize comparisons that isolate the benefit of our internal latent state projection over standard language model fine tuning (\textit{Proj-Frozen}, ChessGPT) and external agent querying (tool-calling baselines).
+
+LLAMIA models (7B, 13B) were trained on five nodes of 80GB A100 GPUs, totaling approximately eight days of computational budget. Hyperparameters and detailed training schedules are provided in Appendix~\ref{sec:hyperparams}. All reported metrics include bootstrap-derived 95\% confidence intervals to ensure statistically rigorous comparisons.
+
+\subsection{Benchmarks}
+\textbf{Grandmaster-level Gameplay without Search}
+\label{sec:grandmaster_no_search} To understand whether LLAMIA truly internalizes planning and positional reasoning from latent embeddings alone, we first examine its performance in direct gameplay settings without explicit search. Remarkably, LLAMIA-13B achieves an Elo rating of $2279\pm41$, closely matching the strongest known search-free models and substantially surpassing the state-of-the-art generalist GPT-4o by 969 points (Table~\ref{tab:gameplay-performance}). This outcome supports one of our core hypothesis the internal latent projection alone effectively encapsulates sophisticated positional judgment and implicit planning signals traditionally requiring deep search. Given LLAMIA’s search-free architecture, an intriguing question arises: does latent-state internalization effectively emulate some degree of search? Previous works like \cite{jenner2024evidence} show evidence of learnt lookahead in Lc0-BT4, through mechanistic interpretability. To examine this, we measure Kendall’s $\tau$ correlation between the move probabilities of LLAMIA’s and underlying agent (Lc0-BT4) policy with and without search. Figure~\ref{fig:kt} reveals that, remarkably, LLAMIA’s policy increasingly resembles that of a shallow-search agent as between 30-50M training positions, its alignment with search suddenly increases upto 0.3 and matches a shallow depth of 4.
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=0.95\linewidth]{tcp2.pdf}
+    \caption{\textbf{Instruction Conditioned Planning:} LLAMIA is playing against an 800 higher-rated opponent. Note that played moves are indicated with white arrows, and the best moves are shown by blue arrows (size is ordered by the strength of the move). The following instruction is passed: ``your opponent is significantly weaker in endgames''. Orange and yellow moves indicate Mistakes and inaccuracies below. LLAMIA, in this position, plays the move \textbf{\textcolor{orange}{1... Nxd2??}} which is a mistake as it loses its advantage but creates a forced move sequence \textbf{[2. Nxd2 \textcolor{yellow}{Bxd2?} 3. Kxd2]} where it ends with a slightly better position in a rook endgame. Since our task design switches the Elo of Lc0 with a weaker policy here (1500) it ends up winning the game smoothly 19 moves later. LLAMIA was able to plan the forced exchange to trade down in an endgame where it knew it was better, demonstrating its superior planning. \textbf{FEN:[r7/6kp/pp2p2p/6b1/8/PPP2n2/3BK2P/RN6 b - - 0 1]}
+}
+    \vspace{-3mm}
+    \label{fig:tcp}
+
+\end{figure}
+
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=0.98\linewidth]{bc-sc.pdf}
+    \caption{\textbf{Left – Behavior Cloning}: The figure presents a qualitative example of behavior cloning. The ``Elo'' column indicates the rating of the players that played the move in this position. ``LLAMIA's Move'' represents the move that LLAMIA would play while simulating a player of that Elo, whereas ``Actual Move'' denotes the move made by a real player at that rating. Notably, LLAMIA successfully predicts the moves across all Elo levels except for 1000, Nearest MAIA (Best of 5) and GPT4o+Lc0 guess 4/7 and 2/7 only. \textbf{Right – State Annotation}:  Examples of generated state annotations. Red text denotes incorrect information, and blue text denotes important concepts and affected counterparts. Green text denotes look-ahead moves. LLAMIA is the only model that explains the position in terms of precise counterfactual states and continuations and shows overall better annotation quality.}
+    \label{fig:cloning-annot}
+    \vspace{-3mm}
+\end{figure}
+
+\textbf{Behavior Cloning} We further probe its capabiliry to clone policies from instructions, which tests a model’s ability to imitate human moves conditioned on player skill levels. Figure~\ref{fig:cloning-annot} shows LLAMIA correctly anticipates moves made by players across a broad Elo spectrum. To further test this we introduce our first LLAMIA-Bench task: Cloning policies in low data regimes like cloning individual grandmasters (GM25), gameplay under time pressure (Time), and when opponent skill has a huge gap $\pm500$. We match or improve over task experts \cite{mcilroy2020aligning} trained on individual skill levels. Detailed ablations of different skill levels and models are given in \ref{tab:behavior_cloning}. We hypothesize that this is a result of jointly training on behaviors and the LLM's ability to distinguish them from text.
+
+\textbf{State Annotation and Game level Commentary}
+\label{sec:grounded_commentary}
+Generating high quality chess commentary demands contextually relevant move descriptions and identification of subtle strategic themes. Traditional engines offer numerical evaluations but lack expressive explanatory narratives, whereas language only models frequently produce verbose yet superficial annotations. While current research explores move-level commentary \cite{jhamtani-etal-2018-learning}, we extend to game level commentary for commentating an entire game LLAMIA bridges this gap by aligning latent planning signals with fluent commentary generation. Quantitatively, LLAMIA-13B attains a G-eval \cite{liu2023g} score of 0.607, outperforming GPT-4o with tool-calling by 0.086 points while utilizing a model 30 times smaller (Fig.~\ref{fig:commentary}, left). Qualitative inspections (Fig.~\ref{fig:cloning-annot} (right)) further illustrate LLAMIA’s capacity to recognize and articulate nuanced concepts—such as ``passed pawns'' and ``king safety'' which are entirely absent from commentary generated by standard instruction tuned models. 
+
+\textbf{Conditional Planning from Instructions}
+\label{sec:instruction_conditioned_planning}
+
+Beyond pure imitation, we explore LLAMIA’s capability to modify its play style according to strategic instructions about an opponent’s known weaknesses. Human chess experts frequently exploit known vulnerabilities such as ``Endgame weakness", ``Time pressure''. Motivated by this human-centric capability, we evaluate LLAMIA using scenarios explicitly constructed to reward such adaptive behaviors (detailed scenario description in Appendix~\ref{tab:instruct_conditioned_planning}). Strikingly, LLAMIA-13B achieves a mean improvement of 17\% over a baseline that cannot condition on instructions (Table~\ref{tab:instruct_conditioned_planning}).
+We also observe the generalization capability of LLAMIA by comparing the \% of training data and win rates in \ref{fig:icp}. LLAMIA’s adaptive capabilities emerge rapidly (40\% of training data), whereas standard fine-tuning approaches (ChessGPT-13B) fail to meaningfully adapt until nearly full data exposure. 
+
+\begin{table}[!h]
+\centering
+\adjustbox{max width=0.5\textwidth}{
+\begin{tabular}{l|c|c|c|c}
+\toprule[1.2pt]
+\textbf{Model} & \textbf{Size} & \textbf{Method} & \textbf{\makecell{Behavior\\Simulation}} & \textbf{\makecell{Comparative\\Transsuasion}} \\
+\midrule
+GPT-4o & * & ICL & 43.2 & 57.3 \\
+GPT-4 & * & ICL & 39.2 & 55.7 \\
+GPT-3.5 & * & ICL & 35.6 & 50.6 \\
+LLaMA-3-70B & 70B & ICL & 37.4 & 52.6 \\
+\midrule
+Transsuasion-13B & 13B & IFT & 59.8 & 77.0 \\
+\midrule
+LLAMIA (Self-only) & 13B & SALT & \valgood{61.0} & 77.5 \\
+LLAMIA (Industry-only) & 13B & SALT & 60.1 & \valgood{79.2} \\
+LLAMIA (Self \& Industry) & 13B & SALT & \valbest{63.4} & \valbest{80.1} \\
+\bottomrule
+\end{tabular}}
+\vspace{2mm}
+\caption{\textbf{Simulative Persuasion Performance on PersuasionBench.} 
+We evaluate models on behavior simulation (BS) predicting tweet engagement levels and comparative transsuasion (TS) choosing the more engaging of two tweets. LLAMIA outperforms all baselines with a \textbf{6\% gain} in BS and \textbf{4\% in TS} over Transsuasion-13B, despite using only 50\% of the training data. LLAMIA internalizes a time-series critic, \texttt{chronos-bolt-base}\cite{ansari2024chronos}, trained to forecast engagement trends over a 14-day horizon using both post-author (self) and brand-level (industry) temporal signals. Ablations show that self-only and industry-only variants individually improve over the IFT baseline, but their combination yields the best generalization. This highlights the synergistic benefit of modeling both personalized and group-level engagement dynamics within the SALT framework.}
+\label{tab:persuasion_llamia}
+\end{table}
+
+\textbf{Generalization to Vision and Persuasion Tasks}
+\label{sec:cross_domain}
+Finally, we validate LLAMIA’s robustness as a framework beyond chess by integrating latent states from domain-specific pretrained critics in Text-to-Image Preference Alignment and persuasion prediction. For vision-based image preference alignment, LLAMIA significantly surpasses the state-of-the-art VisionReward model (+5 pp accuracy), achieving this improvement with merely half the required fine-tuning data (Appendix~\ref{sec:addl-results}). Qualitative results in Figure~\ref{fig:image_grid} further demonstrate LLAMIA’s superior stylistic fidelity and consistency across diverse artistic prompts.
+
+Similarly, in persuasion modeling—leveraging Chronos-Bolt time-series embeddings—we observe substantial accuracy improvements (+6 pp overall; peaking at +15 pp during weekend spikes; Appendix~\ref{sec:addl-results}). These results concretely demonstrate that LLAMIA’s latent-state integration approach is a broadly applicable mechanism capable of effectively incorporating structured domain knowledge into LLMs, beyond strictly structured game environments.
+
+
+\begin{table*}[h!]
+    \centering
+    \begin{adjustbox}{max width=1.05\textwidth}
+    \begin{tabular}{l|c|cccc|c}
+    \toprule[1.2pt]
+    \textbf{Model} & \textbf{Method} & \textbf{Composition} & \textbf{Quality} & \textbf{Fidelity} & \textbf{Emotion} & \textbf{HPDv2 (Tau*)} \\
+    \midrule
+    GPT-4o & ICL & 73.1 & 62.7 & 61.9 & 70.1 & 77.5 \\
+    Gemini & ICL & 69.4 & 59.9 & 59.7 & 74.9 & 60.7 \\
+    CogVLM2 & ICL & 65.8 & 67.1 & 53.1 & 74.7 & 64.5 \\
+    LLaVA & ICL & 59.9 & 65.7 & 59.8 & 64.4 & 61.0 \\
+    VisionReward-19B & IFT & \valbest{78.8} & \valgood{81.1} & \valgood{80.9} & \valgood{83.9} & \valgood{81.7} \\
+    GPT-4o + ImageReward & ICL + ToolCalling & 75.5 & 65.0 & 64.0 & 72.5 & 79.5 \\
+    \midrule
+    LLAMIA-19B (Ours) & SALT & \valgood{76.5} & \valbest{85.0} & \valbest{82.0} & \valbest{84.2} & \valbest{85.8} \\
+    \bottomrule[1.2pt]
+    \end{tabular}
+    \end{adjustbox}
+    \caption{\textbf{Image Generation Evaluation.} We evaluate LLAMIA-13B and prior vision-language models across perceptual axes (composition, quality, fidelity, emotion) from VisionReward \cite{xu2025visionrewardfinegrainedmultidimensionalhuman} and preference alignment via HPDv2\cite{wu2023human}. Despite having the same underlying base VLM (CogVLM2-llama3-chat\cite{hong2024cogvlm2}) LLAMIA internally integrates ImageReward\cite{xu2023imagereward} and outperforms all baselines in HPDv2 alignment (\valbest{85.7}), improving over GPT-4o (\valgood{77.5}) by \textbf{+8.2} and over VisionReward by \textbf{+4.1} with the same amount of training data for this task. We follow the same evaluation as \cite{xu2025visionrewardfinegrainedmultidimensionalhuman} However due to unavailability of Monet-Bench we could not include it.}
+    \label{tab:image_generation}
+\end{table*}

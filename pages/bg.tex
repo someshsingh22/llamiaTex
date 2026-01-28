@@ -1,0 +1,139 @@
+\section{Background}
+\vspace{-2mm}
+\textbf{An agent} \(\mathcal{A}\) maximizes a performance measure based on experience \cite{russell1995artificial}. It operates within an MDP \((S, A, P, R, \gamma)\), where \(S\) is the state space, \(A\) the action space, \(P\) the transition dynamics, \(R\) the reward function, and \(\gamma\) the discount factor. The agent's policy \(\pi: S \rightarrow \Delta(A)\) maps states to action distributions, selecting actions \(a_t\) at each step \(t\) to transition from \(s_t\) to \(s_{t+1}\) while receiving reward \(r_t\) \cite{puterman2014markov,sutton1999reinforcement}. Agents like Stockfish~\cite{maharaj2022chess}, AlphaZero~\cite{silver2017mastering} and Leela Chess Zero (LC0)~\cite{monroe2024mastering} model their policy and value estimates using encoder backbones \cite{nasu2018efficiently} which maps \(s\in S\) to a latent embedding \(\vh_{s}\).
+\begin{comment}
+   % \textbf{An agent} \(\mathcal{A}\) is defined as an entity that acts to maximize the expected value of a performance measure based on past experience and knowledge \cite{russell1995artificial}. Agents are often formalized within the framework of a Markov Decision Process (MDP) formalism, which specifies the environment as a tuple $(S, A, P, R, \gamma)$. Here, $S$ denotes the set of states, $A$ the set of actions, $P$ the transition probability function, $R$ the reward function, and $\gamma$ the discount factor. An agent is modeled as a policy $\pi: S \rightarrow \Delta(A)$, where $\Delta(A)$ is the probability distribution over actions. At each time step ($t\geq0$), the agent observes the current state ($s_t\in S$), takes an action ($a_t\in A$), and applies it to the environment. The environment then transitions into the next state ($s_{t+1}\in S$), while producing a scalar reward ($r_t\in R(s_t,a_t)$) \cite{puterman2014markov,sutton1999reinforcement}. 
+% From the advent of NNUE, Stockfish, AlphaZero, Lc0~\cite{XXX,XXX}~\cite{silver2017mastering}, such agents predominantly model their policy and value estimates using encoder backbones \(G_{\psi}\colon \sS \to \R^{d}\), parameterized by $\psi$ which maps \(\vs\) to a latent embedding \(\vh_{s}\). Recent transformer models achieve grandmaster-level gameplay without search \cite{ruoss2024grandmaster,monroe2024mastering} 
+\end{comment} 
+
+% \citet{ruoss2024grandmaster,monroe2024mastering} demonstrate that transformer-based agents, trained directly on gameplay trajectories, achieve grandmaster-level performance even without search suggesting that these latent representations encode sufficient information for planning and lookahead.
+
+
+
+\begin{comment}
+    % Extensive research has been done by the decision-making community \cite{sutton1999reinforcement}, encompassing areas such as reinforcement learning, imitation learning, planning, search, and optimal control. These efforts have resulted in state-of-the-art models (called as \textit{agents}) capable of surpassing human performance on decision making tasks, beginning in 1997 with IBM's Deep Blue defeating chess champion Garry Kasparov \cite{campbell2002deep} and extending to tasks such as playing board games \cite{tesauro1994td}, Atari video games \cite{mnih2013playing}, and enabling robots to navigate \cite{pomerleau1988alvinn} and manipulate objects \cite{kalashnikov2018scalable}.  In deep reinforcement learning, agents are modeled using neural networks that map observed states to actions, value estimates, or both. These networks are trained to optimize the policy or value functions using gradient-based optimization techniques, such as REINFORCE, Proximal Policy Optimization (PPO), and Deep Q-Networks (DQN) \cite{XXX}. Training typically involves collecting large datasets from the agent's interactions with the environment, which include tuples of states, actions, rewards, and next states. The aim is to maximize the expected cumulative reward, often referred to as the return. This approach has led to significant breakthroughs, with many works demonstrating superhuman performance in complex tasks such as chess \cite{XXX}, Go \cite{XXX,silver2018general}, shogi \cite{XXX,silver2018general}, Atari games \cite{XXX}, robotic control \cite{XXX}, and even protein folding \cite{XXX}. 
+
+% Chess engines have evolved over the past three decades. While the earlier chess engines were based on human knowledge, and their super-human strength came from their search capacity, which allowed them to consider a number of variations orders of magnitude above the abilities of human chess players, the introduction of neural network and RL-based approaches led to a surge of improvements with superhuman capabilities in chess now getting distilled into the neural network weights \cite{XXX}.
+% Let \(\sS\) be the state space or board position in chess, and let \(\vs \in \sS\) be the current state. An engine or a pretrained agent $G_\psi$ 
+% 1. A learned **policy** \(\pi(\vs)\) that outputs the next action (or probability distribution over actions).  
+% 2. A representation-learning backbone \. (In many standard approaches, \(\vh_{s}\) *remains hidden* within the agent.)  
+% AutoGen \cite{wu2023autogen} enables multi-agent collaboration by using LLMs as reasoning and coordination units, facilitating structured interactions. Reflexion \cite{shinn2023reflexionlanguageagentsverbal} extends this by allowing agents to iteratively improve their decisions through self-reflection. ReAct \cite{yao2022react} integrates reasoning and action, enabling LLMs to interleave thought and execution for better decision-making. In robotics, SayCan \cite{ahn2022can} combines LLM reasoning with affordance models to plan feasible actions grounded in the physical world. HuggingGPT \cite{shen2024hugginggpt} expands LLM capabilities by orchestrating specialized AI models to tackle multimodal tasks. Similarly, Generative Agents \cite{xxx} introduce LLM-powered virtual agents that exhibit memory, long-term planning, and dynamic interactions. For improving factual accuracy, WebGPT \cite{nakano2021webgpt} enhances LLMs with web search capabilities, allowing agents to retrieve and verify information. Finally, Toolformer \cite{schick2023toolformerlanguagemodelsteach} trains LLMs to autonomously invoke external APIs and tools, augmenting their problem-solving abilities. Together, these approaches demonstrate the evolving role of LLMs as autonomous agents capable of reasoning, acting, and collaborating across diverse domains.
+% AutoGen \cite{wu2023autogen} enables multi-agent collaboration, while Reflexion \cite{shinn2023reflexionlanguageagentsverbal} improves decision-making through self-reflection. ReAct \cite{yao2022react} interleaves reasoning and action, and SayCan \cite{ahn2022can} grounds LLM planning in robotics. HuggingGPT \cite{shen2024hugginggpt} orchestrates specialized AI models, and Generative Agents WebGPT \cite{nakano2021webgpt} enhances factual accuracy via web search, while Toolformer \cite{schick2023toolformerlanguagemodelsteach} enables LLMs to autonomously use external tools, pushing them toward greater autonomy.
+\end{comment}
+
+\textbf{LLM} denoted as \(F_{\theta}\) are parameterized by $\theta$ and trained on large-scale textual data \(\sV\), with their token output distribution expressed autoregressively as
+\(
+p_{\theta}(w_{t} \mid w_{1\ldots t-1}) = F_{\theta}\bigl(w_{t}\;\big|\;w_{1\ldots t-1}\bigr).
+\) where $w_i \in \sV$. Beyond text generation, recent research has increasingly positioned LLMs as reasoning and decision-making agents, capable of planning, self-reflection, and interaction with external tools \cite{liu2023agentbench}. Below, we formalize the key frameworks that extend LLMs toward autonomous agency.
+
+\textbf{Design of LLM based Autonomous Agents} 
+Modern LLM-based agents are designed to operate over token sequences that unify reasoning and action within a single autoregressive framework. Unlike traditional MDP-based agents that map states to discrete actions, LLM agents generate natural language ``Think'' tokens and structured ``Act'' tokens to represent internal deliberation and external operations. Reasoning steps may take the form of chain-of-thought traces \cite{wei2022chain}, collaborative dialogue among agents (AutoGen \cite{wu2023autogen}), interleaved reasoning-action sequences (ReAct \cite{yao2022react}), or multimodal end-to-end outputs (Unified IO2 \cite{lu2024unified}). Tool use is incorporated through explicit sub-agent or API calls, as seen in Toolformer \cite{schick2023toolformerlanguagemodelsteach}, HuggingGPT \cite{shen2024hugginggpt}, and surveys of tool-augmented models \cite{mialon2023augmented,ma2024sciagenttoolaugmentedlanguagemodels}. These systems enable LLMs to invoke and condition on external function outputs, forming a tight loop between thought, action, and environment feedback.
+
+The agent’s token sequence \(\tau = (w_1, w_2, \dots, w_T)\) thus embeds both the reasoning trace and any tool-assisted decisions, while prior tokens and sub-agent observations define the context for future decisions. Over time, the agent’s internal chain-of-thought tokens \(\tau_{<t}\) and retrieved outputs (e.g., from tools or sub-agents \(\mathcal{A}(s)\)) together shape its policy. To align these behaviors with task goals, the agent is optimized with respect to a reward function \(\mathcal{R}(s, \tau, \text{prompt})\) that evaluates the token trajectory \(\tau\) under a given task state and prompt. This leads to the general training objective:
+\vspace{-2mm}
+\begin{equation}
+\max_\theta \; \mathbb{E}_{s \sim \mathcal{D}} \Bigl[
+  \mathbb{E}_{\tau \sim \pi_\theta(\cdot \mid s)} \bigl[\mathcal{R}(s, \tau, \text{prompt})\bigr]
+\Bigr],  
+\label{eq:llm_agent_objective}
+\end{equation}
+where \(\mathcal{D}\) is a distribution over tasks or environments, and \(\pi_\theta\) is the LLM-induced token policy. This framework accommodates a range of downstream supervision signals—such as explanation quality, success rates, or user satisfaction—while allowing flexible interleaving of language, reasoning, and action. As demonstrated in recent work on generative simulation \cite{sun2024factorsim}, autonomous driving \cite{hu2024agentscodriver}, and commonsense reasoning \cite{zhao2024large}, LLM-based agents provide a generalizable interface for decision-making. Optimization techniques often incorporate iterative self-reflection (Reflexion \cite{shinn2023reflexionlanguageagentsverbal}) and affordance-aware grounding (SayCan \cite{ahn2022can}) to enhance long-term planning and alignment.
+
+
+
+Recent work suggests that reasoning in large language models does not have to be expressed explicitly through token-level chains of thought. Instead, the models’ hidden states themselves encode structured semantic and procedural information that can support multi-step inference in a continuous space (Chen et al., 2025b; Hao et al., 2024; Liu et al., 2024; Zhang et al., 2025). Approaches such as CoCoNut (Hao et al., 2024), along with latent-space steering and editing methods (e.g., RepE (Zou et al., 2023), LoT (Fungwacharakorn et al., 2024)), show that directly manipulating internal representations can shape downstream reasoning behavior and improve controllability, without relying on explicit textual rationales. These methods operate by modifying latent trajectories that influence generation, enabling forms of reasoning that are difficult to realize through discrete token sequences alone. However, this line of work has largely focused on the internal states of a single language model. They do not consider xxx.
+
+% For instance, given a state \(s\), sub-agent $\mathcal{A}$, task description prompt (``Explain the move Nc2'') the sub-agent is called as \(\mathcal{A}(s)\rightarrow(\mathrm{bestMove}, \mathrm{value}) = (\text{Nc2}, +0.3)\). The LLM conditions on this output and generates a token sequence \(\tau\) (``\textit{Since Nc2 with a +0.3 is the best move...}), formalized as:
+% \vspace{-2mm}
+% \begin{equation}
+%     F_\theta(\tau \mid s, \mathcal{A},\text{prompt}) = \prod_{t=1}^T \pi_\theta\bigl(w_t \mid w_{1:t-1}, s, O_{<t},\text{prompt}\bigr)
+% \label{eq:agentic_policy}
+% \end{equation}
+
+  
+\begin{comment}
+% The LLM \(F_\theta\) serves as the central agentic policy, but unlike traditional MDP-based agents, it operates over a language token space. This allows it to dynamically initiate multi-agent collaboration (Autogen \cite{wu2023autogen}), tool or sub-agent calls (Toolformer\cite{schick2023toolformerlanguagemodelsteach}), specialized agents (HuggingGPT\cite{shen2024hugginggpt}), and chain-of-thought (CoT) reasoning via structured ``Think'' tokens \(\tau\) \cite{wei2022chain}. For example, given a state \(s\), the sub-agent \(\mathcal{A}_{\mathrm{AlphaZero}}(s)\) returns \((\mathrm{bestMove}, \mathrm{value}) = (\text{Nc2}, +0.3)\). The LLM conditions on this output and generates a token sequence \(\tau\) (e.g., ``\textit{AlphaZero suggests Nc2 with a +0.3 advantage}''), formalized as:
+% where \(O_{<t}\) includes observations from prior sub-agent calls \(\mathcal{A}(s)_{<t}\) and generated tokens \(\tau_{<t}\) (textual reasoning or actions).      
+\end{comment}
+% The LLM's policy \(\pi_\theta(\tau \mid s)\) defines a distribution over token sequences \(\tau = (w_1, \dots, w_T)\), where each token \(w_t\) represents either reasoning steps (e.g., natural language explanations) or actions (e.g., tool invocations or sub-agent calls). 
+
+% This aligns with hierarchical RL, where the LLM acts as a meta-controller that interleaves reasoning (via CoT) and execution (via agent calls), conditioned on its internal state and history \(O_{<t}\).  
+
+% The LLM's hidden chain-of-thought tokens \(\tau_{<t}\) encode its internal reasoning process, and the observation space includes both text tokens and sub-agent outputs (e.g., \(\mathcal{A}(s)\)). The reward \(\mathcal{R}(s, \tau, \text{prompt})\) is task or prompt dependent and can measure outcomes (e.g., chess win/loss), explanation correctness, or user satisfaction (e.g., dialogue coherence). Formally, such agents optimize:
+% \vspace{-2mm}
+% \begin{equation}
+% \max_\theta \; \mathbb{E}_{s \sim \mathcal{D}} \Bigl[
+%   \mathbb{E}_{\tau \sim \pi_\theta(\cdot \mid s)} \bigl[\mathcal{R}(s, \tau, \text{prompt})\bigr]
+% \Bigr],  
+% \label{eq:llm_agent_objective}
+% \end{equation}
+
+% where \(\mathcal{D}\) is the task distribution. This universal interface enables adaptation to diverse applications, such as generative simulation \cite{sun2024factorsim}, autonomous driving \cite{hu2024agentscodriver}, and commonsense reasoning \cite{zhao2024large}. Current methods aim to optimize \eqref{eq:llm_agent_objective} via, iterative self-reflection (Reflexion \cite{shinn2023reflexionlanguageagentsverbal}), and affordance grounding (SayCan \cite{ahn2022can}).
+
+\textbf{Internal Agents:} However, these approaches to integrate agents collapse the sub-agent's rich internal state representations into sparse symbolic outputs (e.g., $\mathcal{A}(s) \to \text{Nc2}$). 
+This discards critical information encoded in the agent's latent state $\vh_s = G_\psi(s)$, which captures implicit planning signals, positional reasoning, and long-term value estimates as suggested by \citet{jenner2024evidence}. 
+
+
+To solve this,  we propose to \emph{internalize} the agent by incorporating its latent state $\vh_s$ into the LLM. Formally, we update the objective \ref{eq:llm_agent_objective} to:  
+\vspace{-2mm}
+\begin{equation}
+\max_\theta \; \mathbb{E}_{s \sim \mathcal{D}} \Bigl[
+  \mathbb{E}_{\tau \sim \pi_\theta(\cdot \mid\vh_s)} \bigl[\mathcal{R}(s, \tau, \text{prompt})\bigr]
+\Bigr],
+\label{eq:llamia_agent_objective}
+\end{equation}
+
+
+% \textbf{Projector}: XXX
+
+
+% These approaches to LLM-agent integration collapse the sub-agent's rich internal state representations into sparse symbolic outputs (e.g., $\mathcal{A}(s) \to \text{Nc2}$). This discards critical planning-relevant features encoded in the agent's latent space $\vh_s = G_\psi(\vs)$ \cite{jenner2024evidence}. Inspired by the prefrontal cortex's ability to repurpose shared neural activations for novel skills (e.g., prosthetic limb control \cite{kieliba2021robothand}), we propose integrating $\vh_s$ directly into the LLM's token space while keeping its Language modeling capabilities intact. Formally, we aim to replace sub-agent API calls $\text{Verb}(\mathcal{A}(\vs))$ with $\vh_s = G_\psi(\vs)$, updating the optimization objective to:  
+% \[
+% \max_{\theta} \; \mathbb{E}_{s \sim \mathcal{D}} \Bigl[
+%   \mathbb{E}_{\tau \sim \pi_\theta(\cdot \mid s, \vz_s)} \bigl[\mathcal{R}(s, \tau, \vh_s, \text{prompt})\bigr]
+% \Bigr],
+% \label{eq:llamia_agent_objective}
+% \]  
+
+
+
+% However, The sub-agent (AlphaZero) being trained on billions of states, has a rich internal representation of the state, collapsing this into $\mathcal{A}(s)$ loses a lot of information. Recent studies by \citet{jenner2024evidence} show that the encoders $G_\psi$ learn general representation that are required for long-term planning and reasoning. Similarly the prefrontal cortex despite acting as the central policy benefits from the shared activation to discover new skills such as usage of prosthetic third arms \cite{XXX}. Motivated by these, in this paper we attempt to replace sub-agent calls $\text{Verb}(\mathcal{A}(\vs))$ with $\vh_s=G_\psi(\vs)$. Formally we update the objective in \ref{eq:llm_agent_objective} to 
+
+
+% \begin{figure*}[t]
+%     \centering
+%     \begin{subfigure}[b]{0.48\textwidth}
+%         \centering
+%         \includegraphics[width=\textwidth]{llamia-fig (1).pdf}
+%         \caption{LLAMIA architecture}
+%         \label{fig:LLAMIA}
+%     \end{subfigure}
+%     \hfill
+%     \begin{subfigure}[b]{0.51\textwidth}
+%         \centering
+%         \includegraphics[width=\textwidth]{llamia-tasks3.pdf}
+%         \caption{Sample question-answers by LLAMIA demonstrating its capabilities}
+%         \label{fig:LLAMIA-alt}
+%     \end{subfigure}
+%     \vspace{-2mm}
+%     \caption{(a) The LLAMIA architecture shows the projection of input states, generation of actions, and language. Actions, encoded in `\textbf{[]}', are extracted by regex  and update the state $S_0$ using the python-chess UCI, and the new state's tokens get appended. Only the projector gets trained for pre-training task, whereas during fine-tuning both LLM and projector get trained. (b) Tasks demonstrating LLAMIA capabilities. The various tasks focus on planning, reasoning, and acting capabilities. The figure shows LLAMIA performing chess evaluations, best move predictions, Behavior Cloning, Commentary Prediction, State Annotation, and Puzzle Understanding, demonstrating the model's ability to simulate human play and analyze game states. \yaman{in b - remove the pertaining, finetuning distinction} }
+%     \label{fig:LLAMIA-arch-tasks}
+%  \vspace{-3mm}   
+% \end{figure*}
+% \vspace{-3mm}
+
+
+
+
+
+
+
+
+% \section{Related Work and Preliminaries}
+% Recent research has seen the focus shift to real-life applications that involve topics like long-term reasoning, planning, and search \cite{wei2022emergent,strohman2005indri,huang2022inner,brohan2022rt} which have been core to the field of sequential decision making. Planning and reasoning are important for XXX. Recently, literature has paid much attention to developing these capabilities through various means like using run-time compute in the form of language \cite{XXX} and external tools (e.g., \cite{komeili2021internetaugmenteddialoguegeneration,gao2023pal}), supervised fine-tuning (e.g., \cite{ruoss2024grandmaster,tang2024mathscale,nye2021show,rajani2019explain}). 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

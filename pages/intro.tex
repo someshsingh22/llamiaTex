@@ -1,0 +1,283 @@
+\section{Introduction}
+\vspace{-2mm}
+
+\begin{comment}
+    Possible ways to present:
+    1. PFC and Brain analogy
+    2. Actions as a modality
+    3. 
+
+
+% and proposing decisions as a new modality.
+% Using this framework, we develop LLAMIA, an FDM that combines pretrained LLaMA (7B, 13B) with Lc0-BT4 (270M) through training on interleaved agent tokens, instructions, and verbal decisions. Our results show that LLAMIA achieves state-of-the-art and grandmaster-level performance without explicit search while requiring less than 60M ($< $0.4\%) of action-value pairs compared to recent searchless transformers.
+% explore decisions  and introduce LLAMIA, a framework for s to bridge this gap. We train them on interleaved instructions and decisions.
+% The progress to leverage LLMs as planning modules of autonomous agents has attracted more attention.and decision-making (AlphaZero) tasks language-vision models like LLaVA have leveraged the domain-knowledge LLMs to solve a wide range of downstream tasks. leverage their domain knowledge and adaptive capabilities to solve . While weakly-learned (VPT) or self-supervised agents (AlphaZero) have shown near-human or super-human level planning in complex environments like Minecraft and Chess, however aligning these decision models with LLMs remains an open challenge.
+% In this work we propose policy as a new modality, and motivated by recent progress in foundation vision-language models, we show that training instructions and actions
+
+% By training instructions and actions in an interleaved manner we show policy as a new modality. We present Arjun-LLaMA models, the first end-to-end trained Large RL-LLM which learns across policies, generates policies from instructions and policy-aligned texts, and shows promising results in the field of generalized decision making. \somesh{Add a nice summary of 0-shot and finetuned results here}. Further we conduct human studies and find that Arjun-Chat models are much more preferred over state of the art open and closed source models like LLaMA3.1 70B, GPT4-o, Claude-Sonnet even if assisted with super human engines. We release our code, datasets at \href{https://git.corp.adobe.com/someshs/rlqa}{https://git.corp.adobe.com/someshs/rlqa}.
+%In contrast to breakthroughs in Vision-LLMs, existing RL models face challenges in integrating pre-trained agents with LLMs \somesh{Note to self: Make this point concrete}.
+% Addressing this issue, we present Arjun, a model-agnostic approach designed to effectively unite super-human agents with pre-trained policies and LLMs in a self-supervised manner using RL tokens, shifting decision-making processes into the language space. Through a thorough evaluation, we demonstrate significant advancements over existing benchmarks in chess, and minecraft utilizing only a fraction of open-source supervised data. Arjun facilitates RL-LLM models to explore Behavior Simulation, Policy Understanding, and Environment Understanding. This is exemplified through the introduction of tasks and benchmarks involving the simulation and identification of human/agent behavior, modeling game state interest, and extracting information from partially observable states. Our method's performance is rigorously compared against state-of-the-art models, expert models fine-tuned for tasks lacking previous models, and the performance of GPT-4. Additionally, human studies conducted on Arjun reveal that players at various levels find it to be <>. Further, we contribute to the progress of research in this direction by providing public access to our code, datasets, leaderboard, and weights at \href{https://git.corp.adobe.com/someshs/rlqa}{https://git.corp.adobe.com/someshs/rlqa}, we extend previous datasets to make the largest free open-source dataset in this direction. This transparency aims to encourage collaborative exploration and development within the research community.
+
+    1. PFC and Brain analogy
+
+        1. Mastering Board Games by External and Internal Planning with Language Models
+        2. ChessGPT: Bridging Policy Learning and Language Modeling
+    
+        What is the motivation?
+            Eyes / Robotic arms - third arm     
+                Brain - two parts      
+    
+        What are agents? How do agents bring planning/reasoning?
+            - 
+    
+        What do LLMs bring?    
+            - LLMs inherently understand language
+    
+        What do projectors do?
+            - performance: as it bridges the vision and language models by translating visual features into vi- sual tokens so that the language model can understand, the quality of conveyed visual tokens directly impacts the overall performance of the MLLM; and 
+            2) efficiency: as most of the computational burden lies with the language model, the efficiency of MLLMs is heavily influenced by the number of resulting visual tokens.
+
+
+    2. Actions as a modality
+
+        what do we mean when we say that actions is a modality?
+            - environment consists of space and time
+            - an agent acting in an environment performs actions to sense and modify its environment. Thus, actions of the agent are independent but are performed in response to the environment.  
+            - an MDP formalization in terms of the tuple (S,A,P,R,gamma) makes it even more clearer - where environment is encoded in S, and actions as a modality are independent but are performed in response to state S. 
+            - THerefore, if we consider actions as a separate modality that can vary independently, following what has been done in computer vision and speech research communities, we can encode actions in the form of a special encoder.
+            
+        What is the motivation behind our idea?
+            - images, videos, audios are modalities:
+                - LLM - specialized encoder and suddenly the LLMs start seeing and hearing
+            - similarly, if actions is a modality, we can take efficient action encoders - agent
+
+        
+        What are agents? How do agents bring planning/reasoning?
+            - 
+    
+        What do LLMs bring?    
+            - LLMs inherently understand language
+            - LLM understanding of language + agents understanding of actions brings in emergenet capabilities like:
+                - reasoning demonstrated in the form of: policy and state explanation (commentary), text conditioned planning
+                - decisioning capabilities conventionally missing in LLMs 
+                - zero-shot decisioning capabilities missing in agents
+            similar to:
+                - how VLMs enable much superior visual reasoning
+                - 
+                
+    
+        What do projectors do?
+            - performance: as it bridges the vision and language models by translating visual features into vi- sual tokens so that the language model can understand, the quality of conveyed visual tokens directly impacts the overall performance of the MLLM; and 
+            2) efficiency: as most of the computational burden lies with the language model, the efficiency of MLLMs is heavily influenced by the number of resulting visual tokens.
+        
+
+    
+
+    
+    What is planning?
+
+    What is reasoning?
+        they 
+
+    What are the characteristics of planning and reasoning?
+        Large pre-trained language models perform remarkably well on tasks that can be done ``in one pass'', such as generating realistic text (Brown et al., 2020) or synthesizing computer programs (Chen et al., 2021; Austin et al., 2021). However, they struggle with tasks that require unbounded multi-step computation, such as adding integers (Brown et al., 2020) or executing programs (Austin et al., 2021). 
+
+        This enables 
+
+        
+
+        
+\end{comment}
+% Recent advancements in foundation models (FMs), driven by large scale self supervised learning and characterized by emergent capabilities, have transformed tasks in vision and language \cite{bommasani2021opportunities}. However, despite their broad generalization and extensive world knowledge, especially in the case of large language models (LLMs), these models struggle with structured, multi step planning and reasoning. These capabilities are critical for real-world applications, including gaming, marketing, virtual assistants, robotics, and autonomous driving \cite{wei2022emergent,strohman2005indri,huang2022inner,brohan2022rt}.
+
+
+\harini{What is the problem?}
+
+Recent advancements in LLMs, driven by large-scale self-supervised learning and characterized by emergent capabilities, have transformed tasks in vision and language \cite{bommasani2021opportunities}. \yaman{2021 is not recent advancements.} Modern LLMs demonstrate strong general-purpose reasoning and broad world knowledge, enabling them to perform competitively across many tasks.
+
+
+\harini{Change this phrasing, add the exact family here }
+However, in many environments—such as chess, xxx—LLMs still fall short of domain-specialized agents that are explicitly trained to model state transitions, value, and policy. For example, despite vast exposure to chess text, LLMs consistently underperform dedicated engines that learn rich latent representations\harini{not necessary} of board positions and future outcomes.
+\harini{cite LLM elo without tool calling, HLE chess questions performance} \yaman{the jump from this to the next sentence is huge. Agents? We need to say the following before going to this question- "underperform" - anecdotal example/stats (s.t. this results gets solidified in the minds of reviewers), we need to show why are they lacking and we need to connect it to planning and reasoning and also the use of domain specific / specialized agents, then only the next statement will make sense}
+
+
+However, this success does not extend to environments that require reasoning over evolving states and long-term consequences. In domains such as chess, large language models generate locally plausible actions but struggle to plan several steps ahead or evaluate alternative futures. Empirical studies show that even strong LLMs achieve low-intermediate playing strength and perform poorly on benchmarks that require multi-step board reasoning and counterfactual evaluation \cite{schultz2024mastering}. This gap persists despite the vast amount of chess-related text in their training data, suggesting that the limitation is not exposure, but the absence of an internal model of environment dynamics. Unlike domain-specific agents, which are trained through interaction to encode how states change under actions and to estimate long-term value, LLMs are optimized to predict text. As a result, they cannot model how actions change future states, which prevents reliable long-horizon planning.
+
+This limitation motivates a central question:
+
+\vspace{-2mm}
+\begin{quote}
+    {\fontsize{9.5pt}{8pt}\selectfont\textit{``How can pretrained domain-specific agents be used to amplify the planning and reasoning capabilities of large language models?''}}
+\end{quote}
+
+\textbf{Add motivation here}
+\harini{If we are able to use these orthogonal agents effectively we can leverage their vast pretrained knowledge. LLMs and domain specific agents if coupled effectively they could solve X, Y, Z. Bring broad versions of Table 1 tasks here}
+
+\textbf{Literature gap}
+
+Tool calling:
+
+Current approaches to integrate LLMs with such agents typically rely on tool calling to leverage their domain expertise,\harini{If both are LLM based then conversations are used otherwise tool calling is used}
+where the LLM queries an external system and conditions on its outputs. For \textit{e.g.}: calls a calculator, 
+\harini{write it in terms of GDM, GDU}
+This paradigm works reasonably well when the agent itself is another language model or a tool that can naturally communicate through text. However, this does not hold for a lot of domain specific agents. Domain-specific agents such as xxx over high-dimensional latent states and return only sparse symbolic outputs (e.g., a move, a score). When forced into a text interface, these agents must compress their rich internal representations into a few tokens, discarding the structure that enables long-horizon planning and reasoning.
+\harini{Explain more, hard read}
+
+
+
+A separate line of work extends LLMs with projection modules that map perceptual inputs, such as images or videos, into the model’s token space. Vision–language models built on frozen visual encoders \cite{liu2023visual,li2023blip} demonstrate that LLMs can condition on non-text modalities without full end-to-end retraining. However, these systems operate over static observations. \yaman{connect these two sentences together} The projected representation is fixed, and the model’s outputs do not modify the underlying input. \yaman{it is still not clear - what does static observation mean here} In contrast, the settings we consider \yaman{the settings of planning and reasoning (not "we consider")} are stateful and interactive: the LLM’s actions change the environment, which in turn updates the agent’s internal representation. \yaman{give an example and a diagram please - this should be Fig-1. In Fig-1 call out "dynamic projection"}Existing projector-based models lack a mechanism for agent invocation and state transition, and therefore cannot support iterative planning or internal search.
+
+
+\yaman{Figure 1 should capture the three paradigms - first tool calling and projections and their limitations and then calling out that this requires a third paradigm called "dynamic projection"}
+Together, these limitations reveal a critical gap in current \yaman{combination patterns of?} LLM–agent systems.
+In tool-calling systems, the LLM only observes a compressed, symbolic output of the agent, whereas projector-based models operate on static representations that are not updated through interaction.
+Neither paradigm allows an LLM to reason directly over the evolving latent state of a domain-specific agent. \yaman{need to motivate why does the state evolve in the first place before saying LLM needs to reason over it.} As a result, existing systems cannot truly \textit{internalize} agent behavior to use it to guide long-horizon planning and decision understanding. Our work addresses this gap by enabling LLMs to communicate with pretrained agents in a shared latent space, allowing the agent’s internal state to directly condition the LLM’s reasoning and generation process. We call this \textbf{\textit{internalization}} \yaman{of something...}. \yaman{pitch the paradigm of dynamic projection in the title and the intro instead of pitchiing the "class of models". So LLAMIA model type becomes a result of dynamic projection paradigm} We term this class of models \textbf{LLAMIA} (Large Language and Action Models with Internal Agents) and evaluate them against domain specific fine-tuned models and 30x larger LLMs that rely on external agents or tools. \yaman{the why is not clear for comparing again 30x larger models - first say that we compare against - tool calling and static projector, then say that dynamic projector helps LLMs to compete against much larger models with access to tool calling or static projector as well - then say that we show this for 30x larger models.}
+
+We give a theoretical explanation for this in Section 2. \yaman{this is not good - explain the theoretical contribution here before pointing the reader to read more in Sec-2. Say why and how things work here itself, possibly merging it with the next paragraph.}
+
+
+% Current approaches to integrate LLMs with planning and reasoning typically involve resource-intensive fine-tuning on language-policy data \cite{feng2024chessgpt}, or rely on prompt engineering, which often yields suboptimal results. In contrast, research in reinforcement learning has shown that smaller domain-specific agents can achieve superhuman planning in sequential decision-making tasks \cite{campbell2002deep}. This contrast raises a fundamental question:
+
+
+
+% \harini{Shorten this and add to motivation}
+% We draw structural inspiration from the human brain, specifically, the prefrontal cortex. While the other regions of the brain handle language generation and sensory processing, the prefrontal cortex, despite its relatively small size, is primarily responsible for planning and reasoning \cite{friedman2022role,funahashi2017prefrontal}. This integration supports the alignment of goal-directed actions with verbal reasoning by leveraging working memory and cognitive control \cite{alderson2015inner}. Akin to the brain and prefrontal cortex, we propose that LLMs can leverage pretrained agents for planning and decision-making. These ``internalized'' agents operate within the LLM's latent space, enabling not only enhanced reasoning and planning but also novel capabilities such as instruction-conditioned decision-making or conditional planning.
+
+
+
+\textbf{Our solution}
+In this paper, we introduce a new class of multi-agent systems that allow large language models to reason directly over the latent representations of pretrained domain-specific agents. \yaman{"multi-agent system" - make sure it is not called this for the first time so late in the introduction. earlier we were calling it llm-agent, then a class of models, now we are calling it multi-agent. keep it consistent and stick to it. Never introduce a new thing this late.} Rather than treating these agents as external tools, we integrate their internal state into the LLM through a lightweight projection that maps the agent’s latent representation into the LLM’s token embedding space. \yaman{link it with both the current and future fig-1} This design allows the agent’s state to condition the LLM’s generation at every decoding step. \yaman{example} Crucially, the LLM can invoke the internalized agent during inference: such an invocation updates the environment state, which is re-encoded by the agent and projected back into the LLM. This closed interaction loop enables the model to reason over evolving states, supporting internal search, structured planning, and long-horizon decision making.
+
+
+
+% \textit{Our central hypothesis is simple}: Just as vision transformers (e.g., ViT) enabled LLMs ``\textit{to see}'' \cite{liu2023visual,li2023blip}, without requiring end-to-end visual pretraining, can a similar paradigm enable LLMs ``\textit{to act}", plan, and reason. 
+% We achieve this by applying a lightweight trainable linear projection that maps agent's state representations into the token embedding space of the LLM.
+% Furthermore, inspired by how the prefrontal cortex evaluates current and potential states, we train the LLM to invoke its internal agent during inference, demonstrating promising outcomes via this \textit{internal search} paradigm. The invokation is an action given by the LLM that updates the current state.
+
+\begin{comment}
+  % We leverage the existing capabilities of both the pretrained LLM and specialized agents by applying a simple linear trainable projection matrix to convert features from agents into language embedding token space. We train this layer through a suite of planning and reasoning tasks detailed in Section~\ref{}. This enables the LLM to understand and benefit from an agent's deep understanding of the sequential decision making task. Further, similar to how the brain leverages the prefrontal cortex to evaluate current and potential states and decisions, during inference, we train the LLM to invoke the internal agent by using a specialized token $<InvokeAgent>$. $<InvokeAgent>$ is immediately followed by the LLM's state input, representing the context for which the agent's insights are required. This is followed by agent projections of the input state. This allows the LLM to query and use the agent's specialized understanding of both current and counterfactual states. An architecture diagram for this setup is given in Fig.~\ref{}. 
+
+
+% Extensive research has been done by the decision-making community \cite{sutton1999reinforcement}, encompassing areas such as reinforcement learning, imitation learning, planning, search, and optimal control. These efforts have resulted in state-of-the-art models (called as \textit{agents}) capable of surpassing human performance on decision making tasks, beginning in 1997 with IBM's Deep Blue defeating chess champion Garry Kasparov \cite{campbell2002deep} and extending to tasks such as playing board games \cite{tesauro1994td}, Atari video games \cite{mnih2013playing}, and enabling robots to navigate \cite{pomerleau1988alvinn} and manipulate objects \cite{kalashnikov2018scalable}. 
+
+%  add the part about instruction fine-tuning and when and why the architecture is helpful
+  
+\end{comment}
+
+% Recent progress in game-playing AI has inspired techniques that enhance LLM capabilities. Self-play, exemplified by AlphaZero~\cite{silver2017mastering}, have motivated methods like Chain-of-thought and Deepseek R1 to iteratively improve without human intervention \cite{wei2022chain,guo2025deepseek}.
+
+\yaman{motivation - why this paragraph here - to evaluate this new paradigm - we choose three environments - chess, a, b.}
+For decades, chess has been a prominent testbed for AI, from Garry Kasparov's defeat in ``Brain's Last Stand'' \cite{campbell2002deep} to ``Humanity's Last Exam'' \cite{phan2025humanitysexam}.Despite the abundance of chess-related blogs, books, and videos, LLMs consistently fail to reason about potential moves using internal world models \cite{schultz2024mastering}, highlighting critical gaps in planning. We first evaluate LLAMIA in chess, a domain with well-defined rules, long-term planning dependencies, and abundant evaluation benchmarks. Beyond chess, we demonstrate LLAMIA’s extensibility in two distinct real-world applications: (i) aligning image generation preferences in text-to-image diffusion models, and (ii) Predicting persuasion in marketing content. \harini{elaborate more on why these environments? - 2-3 more lines}
+
+\begin{comment}
+    In this work, we present LLAMIA, a novel framework that enhances decision-making, planning, and reasoning by integrating large language models (LLMs) with internalized agent policies. Unlike prior approaches that rely on external tool calling or extensive fine-tuning, LLAMIA leverages a trainable agent projection network to incorporate structured decision-making into LLMs efficiently. Our key contributions are:
+
+Internalized Agent Representations for LLMs
+We propose a lightweight projection mechanism that maps an agent’s latent decision state into the LLM’s token space, allowing seamless language-conditioned decision-making without requiring explicit tool interactions or resource-intensive search.
+
+Unified Framework for Planning, Reasoning, and Action
+LLAMIA introduces a two-stage learning approach: (i) pretraining the agent projection layer to align structured decision states with language embeddings, and (ii) instruction-action fine-tuning on interleaved decision, language, and policy data. This method enables LLAMIA to generalize across diverse zero-shot and few-shot reasoning tasks.
+
+State-of-the-Art Decision-Making in Complex Domains
+LLAMIA achieves grandmaster-level chess performance with minimal training data, surpassing fine-tuned models and tool-assisted LLMs like GPT-4o and LLaMA-405B in move prediction, stylometry, and strategic reasoning. It also adapts dynamically to novel instructions, significantly outperforming baselines in instruct-conditioned planning and adaptive gameplay.
+
+First Large-Scale Benchmark for Decision-Oriented LLMs
+We introduce LLAMIABench, a comprehensive evaluation suite that tests generalized decision-making, policy understanding, and language-grounded strategy analysis across multiple tasks. This benchmark establishes a new standard for assessing AI decision-making models beyond traditional NLP tasks.
+
+Broader Implications for AI Reasoning and Autonomous Systems
+Our approach demonstrates that LLMs can internalize structured decision processes, unlocking potential applications in robotics, strategic assistants, finance, and autonomous driving. By bridging the gap between language-based reasoning and structured decision-making, LLAMIA sets the stage for next-generation AI agents capable of real-world planning and adaptation.
+
+
+\end{comment}
+
+
+\yaman{new contri: this new paradigm is x\% more efficient - more efficient if no x}
+\subsection{Our Contributions}
+In this work, we present LLAMIA, a unified, \yaman{what is it unifying?} novel, and extensible framework that enhances the intrinsic planning and reasoning capabilities by integrating pretrained agents with LLMs. Unlike prior approaches that rely on extensive supervised fine-tuning or external tool invocation, LLAMIA internalizes pretrained agents by learning a token-space projection of agent state representations. This simple but powerful interface allows LLMs to internalize and autoregressively invoke agent behavior enabling them to plan, act, and reason with minimal supervision. We conduct detailed ablative studies to understand the performance gains and generalization of LLAMIA in \ref{sec:addl-results}.
+
+\begin{enumerate}[leftmargin=*, labelsep=0.5em]
+    \item \textbf{LLAMIA:} We introduce (1) A lightweight \yaman{better term required here - no lightweight} projection network to align agent state representation with the LLM’s token embedding space and (2) \textbf{SALT} A two stage training methodology to finetune the LLM to learn from interleaved \textbf{S}tate, \textbf{A}ction, and \textbf{L}anguage, \textbf{T}okens enabling zero-shot generalization across unseen downstream tasks. \yaman{why was SALT not introduced before in the intro?} Furthermore, the interleaved action tokens can update the state and ``invoke'' the agent during inference to allow the ``internal search''.
+
+    
+    \item \textbf{Generalised Decision Making:} LLAMIA shows strong results on unseen behavior cloning and conditional planning tasks, where agents need to act optimally under open-ended directives like known opponent weakness (e.g. refer to figure\ref{fig:tcp}) or "Play like Magnus Carlsen". We outperform existing task expert models fine tuned on 10 times more data and much larger LLMs (GPT-4o, LLaMA-405B) equipped with the same agent through tool calling as ours. \yaman{without naming the task keyword, can we try to motivate the why behind the task and then say that we perform the best in task x and y which measure the "why" introduced. for example, the pattern of writing can be: for the tasks requiring 100+ calls of tool calling, we show that dynamic projection is able to solve it in <5 calls. This leads to it beating 1000x bigger models. We show the results for this on two tasks which measure this, namely, behavior cloning and conditional planning in table-2.}
+
+    
+    \item \textbf{Reasoning and Understanding:} LLAMIA is the first model capable of generating cohesive and accurate game-level chess commentary, capturing strategic intent, and scoring 30\% over existing methods. We are also able to predict the difficulty ($\rho =0.7$) and interest of puzzles ($\rho =0.5$) with high correlations, demonstrating superior reasoning and state understanding. \yaman{pattern of writing: because x, therefore y. why reasoning and understanding take place better?}
+
+
+    
+    \item \textbf{LLAMIA-Bench} \yaman{why is there the need for this new benchmark? present the why first, then what was done.} We introduce a benchmark to evaluate the capability of Language-Agent systems on structured planning and reasoning using chess as an Environment. The benchmark includes 5 tasks including generalised behavior cloning, game level commentary generation, conditional planning, and state understanding. Our results highlight the limitations of current LLMs, Engines, and their supervised fine tuning and tool-calling paradigms while demonstrating LLAMIA's significant improvements over these approaches.
+
+    \yaman{there are no numbers in the entire contributions section}
+
+    \yaman{where is the extension to other tasks?}
+
+    
+\end{enumerate}
+
+\begin{comment}
+In this work, we present \textbf{LLAMIA}, a novel extensible framework that enhances decision-making and reasoning by integrating large language models (LLMs) with pretrained agents. While existing approaches to plan, reason, and act with LLMs typically depend on supervised fine-tuning or external tool usage, LLAMIA takes a novel approach by internalizing agent policies through a trainable projection layer, enabling zero-shot and few-shot decision-making and reasoning (Fig.~\ref{fig:LLAMIA-arch-tasks}). Our experimental results (Fig.~\ref{fig:llamia-results}) demonstrate that LLAMIA achieves state-of-the-art results across public benchmarks measuring planning, reasoning, and acting capabilities. It also exhibits impressive zero-shot instruction conditioned planning. For example, LLAMIA is able to strategize against opponents with known weaknesses and win 17\% more times. Notably, LLAMIA-13B surpasses much larger LLMs like \textbf{GPT-4o} and \textbf{LLaMA-405B} even if equipped with an engine using tool calling while demonstrating substantial improvements over language-only models of comparable size.
+
+\textbf{LLAMIA: A Unified Framework for Decision-Making and Reasoning.} We introduce an agent projection network and two-stage methodology where (i) agent states are aligned with the LLM's token embedding space, and (ii) the model learns from interleaved language-policy sequences. This novel approach enables LLAMIA to generalize across unseen downstream tasks requiring structured reasoning and world knowledge without relying on external tools.
+\textbf{Generalized Decision-Making.} LLAMIA achieves state-of-the-art results in behavior cloning and instruction-conditioned planning, where agents modify gameplay based on open-ended directives outperforming fine-tuned task-expet models trained on 10 times more data and even GPT-4o and LLaMA-405B with engines.  
+
+3. Generalized Decision Understanding. LLAMIA is the first model capable of generating cohesive76
+and accurate game-level chess commentary that captures strategic intent beyond individual moves,77
+scoring 30% o. It enhances planning-based reasoning scores by 10–50% over GPT-4o. Further-78
+more, LLAMIA shows strong accuracy in behavioral stylometry, successfully identifying players,79
+game formats, and Elo ratings from moves, demonstrating sophisticated policy understanding.80
+\textbf{LLAMIABench: A Comprehensive Benchmark for Decision Models.} We introduce LLAMIABench, a benchmark to evaluate models on generalized decision-making and reasoning. This benchmark suite includes over 20 diverse tasks, such as game-level commentary, stylometric classification, puzzle difficulty, interest ranking, and instruction-conditioned planning. Our results highlight the limitations of both language-only models and tool-augmented LLMs while demonstrating LLAMIA's significant improvements over these approaches.
+% \somesh{In this paper, we introduce an extensible framework for decision making and reasoning through large language models via agent projections and training on interleaved language and policy tokens. We show that an agent's policy can be morphed with language for better decision-making and reasoning capabilities. We demonstrate the promise of foundation models for decision making through the following contributions and findings in this paper:
+% We use Lc0, an open-source chess engine trained on over 2.5 billion games played against itself \cite{monroe2024mastering} and train two versions of LLAMIA with Vicuna (7B and 13B) as the LLM. We test LLAMIA on a suite of different tasks covering decision making and reasoning capabilities including
+% Decision-making covering the tasks of (a)~\textbf{gameplay} (optimal gameplay with the objective of maximizing Elo), (b)~\textbf{behavior-cloning} (human-like gameplay), (c)~\textbf{behavioral stylometry} (predicting who played a game from the gameplay), (d)~\textbf{Puzzle solving} (XXX). We cover reasoning with tasks of: (a)~\textbf{game commentary generation} and (b)~\textbf{State annotation} (explaining the rationale behind moves covering strategic concepts and positional nuances).}
+
+% % % XXX
+% % We cover behavioral - complete 
+
+
+% % % XXX - add why and how the model is helpful - reducing the number of datapoints, performance wrt much bigger models and also with tool use, counterfactual inference, 
+
+% % % XXX - counterfactual inference - figure and example - maybe through commentary, behavior cloning, gameplay
+
+
+
+
+% % XXX - merge the below stuff with the above introduction.
+
+
+% \begin{enumerate}[left=0pt]
+% \item \textbf{Generalised Decision Making:} We evaluate the generalized decision making capabilities of LLAMIA, we show that while maintaining a strong. LLAMIA outperforms or matches state of the art performance in \textbf{Optimal Decision making} and \textbf{Decision Imitation} or Behavior Cloning in zero or few shot compared to domain specific finetuned model on public benchmarks, despite training on a fraction of the dataset. Further we show that LLAMIA can plan and make \textbf{Instruction following decisions} on open-ended instructions. \somesh{Integrate details}
+
+% \item \textbf{Generalised Decision Understanding:} We demonstrate that grounding the verbalized decisions within our LLAMIA framework enables decision and policy understanding. 
+
+
+% We validate this through state-of-the-art performance in Behaviour Stylometry \cite{mcilroy2021detecting} and Move Level Commentary Generation \cite{jhamtani-etal-2018-learning} benchmarks. To further assess fine-grained decision understanding, we extend these benchmarks with game-level commentary generation and stylometric classification tasks, including super grandmaster, human \textit{vs.} engine gameplay, Elo, and time format identification from moves. 
+% \somesh{We evaluate the decision understanding capabilities through (1) Stylometry: Identify agent from decisions (2) Move and Game commentary: Reason over decisions (3) Puzzle mining: Identify difficult and interesting decisions. Note that these tasks are instance level and decisions are an instantiation of policies, so we consider omit policy without loss of generality}
+
+%     \item \textbf{Grandmaster Level Chess without Explicit Search:} We show that pretraining on just 30M decisions, we are not only able to match SOTA gameplay \cite{ruoss2024grandmaster} trained on 15 billion action-value pairs (refer to Table~\ref{tab:gameplay-performance}) but we exceed this performance through a very efficient instruction finetuning on just 100k playouts (check Figure~\ref{fig:XXX}) reaching an Elo of \textbf{2317} improving by XXX Elo points above the base LC0 agent. This makes LLAMIA-13B one of the strongest chess engines without explicit search.
+
+
+%     \item \textbf{LLAMIABench}: To systematically evaluate foundation decision models beyond optimal gameplay, we introduce LLAMIABench, a benchmark spanning 20 novel tasks across generalized decision making, understanding, and commentary. Tasks like game commentary generation exemplify the need of FDMs because of the scarcity of human annotations; combining all recorded expert chess commentaries in history would yield less than 10k games.
+%     \somesh{4 Tasks in Behaviour Cloning \ref{tab:behavior_cloning}, 4 in stylometry \ref{tab:behavior_stylometry}, 2 Tasks in Move level commentary \ref{tab:state_commentary_annotation}, 6 in Game level commentary \ref{tab:game_commentary_annotation}, 3 in Puzzle \ref{tab:puzzle_understanding}, 1 in pruning \ref{XXX}}  
+    
+    % LLAMIA can differentiate between human and engine gameplay 87\% of times, LLAMIA can also explain or annotate moves like humans better than SOTA models, LLMs trained without agent projections, and even upto 30x larger frontier LLMs (GPT-4o, LLaMA-405B) equipped with engines through tool calling. We evaluate these annotations using the Chess Commentary benchmark on metrics like Description, Quality, and Planning (refer to \ref{tab:state_commentary_annotation})
+    
+    %\item \textbf{Emergent abilities:} We further demonstrate the strong generalization capabilities of our FDM approach, highlighting its ability to exhibit "emergent" or unseen task performance through zero-shot, in-context learning (ICL), or minimal in-context finetuning (IFT) \cite{wei2022emergent} on diverse tasks. We evaluate and observe this across a diverse suite of downstream tasks, including Search Pruning \ref{XXXPruningTable}, Puzzle Difficulty, Theme, and Human Preference estimation \ref{tab:puzzle_understanding} alongside previously mentioned LLAMIABench tasks. 
+    
+    
+    % We show the generalization of FDMs on unseen task performance in zero shot, ICL, or small scale IFT, commonly known as emergent properties \cite{wei2022emergent}. We evaluate and observe this on a suite of diverse downstream tasks including Search Pruning  \ref{XXXPruningTable}, Puzzle Difficulty, Theme, and Human Preference estimation \ref{tab:puzzle_understanding} and aforementioned tasks from LLAMIABench.
+
+
+    
+    % LLAMIA grounds the LLM with policies learnt on an enviroment for generating policy-aligned text. This enables downstream capabilities such as game or state commentary generation, we outperform SOTA models and even upto 10x larger LLMs assisted with super-human engines. We also conduct human evalutation for commentary preference.
+       
+    % with using the policy
+    % Using our proposed approach to describe policies learnt using any algorithm (RL or otherwise) in human-understandable textual form, enabling downstream tasks involving understanding policies such as commentary generation, state description (specifically for partially observed environments where the state need not belong to a pre-defined finite-dimensional space etc. (e.g. medicine, marketing)
+    % \item \textbf{Generalized Decision Making/Understanding} By treating policies as a modality we show emergent abilities of LLMs for decision making and understanding. We show this by showing performance on a suite of tasks like conditional decision making and explanation, agent identification, improving search by pruning in zero-shot.
+    % \item \textbf{Learning across policies} [Learning from multiple policies from offline data] Prior work in RL have utilized multiple policies by aggregation or ensemble learning. In this work we present how learning from different policies or decision-making history allows LLMs to improve their behaviour simulation and new tasks like cheating detection where data is not even available.
+% \end{enumerate}
+\end{comment}
+
+
+
+\vspace{-2mm}
