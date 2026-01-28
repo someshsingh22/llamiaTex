@@ -1,0 +1,339 @@
+\section{Prompts}
+\subsection{Pretraining}
+\label{listing:pretraining_instruction_format}
+      
+\begin{tcolorbox}[
+  colback=white,
+  colframe=black!75!white,
+  colbacktitle=black!75!white,
+  title=Pretraining instruction format,
+  enhanced,
+  before upper={% Insert the figure at the top-left
+    \begin{minipage}{0.3\textwidth} % Adjust width as needed
+      \includegraphics[width=\textwidth]{boards/pretrain_board.png}
+    \end{minipage}\\[10pt]
+  }
+]
+FEN: \textbf{8/8/8/3kp3/1K2n3/P3B3/5P2/8 b - - 0 1} \\ \\
+\textbf{Human}
+\texttt{<state>}
+What is the evaluation of the following position? Describe the evaluation followed by the continuation in UCI format e.g. if the evaluation is +1.5 and the best continuation is e2e4 e7e5, you should write "Evaluation is +1.5, Advantage for White, e2e4 e7e5"
+
+\tcbline
+\textbf{LLAMIA} \\
+Evaluation is +0.5, white has a slight advantage, d5c6 b4c4 e4d6 c4d3 d6e8 d3e4 e8d6 e4d3 c6d5
+
+\tcbline
+\textbf{Human} \\
+Give me the principal variation(s), just give me the evaluation(s) and the line(s)
+
+\tcbline
+\textbf{LLAMIA} \\
++0.4, e4d6 a3a4 d5c6 b4c3 c6d5 c3d3
+
+\tcbline
+\textbf{Human} \\
+What are the legal moves in this position? Give me up to 10 comma-separated UCI moves and nothing else
+
+\tcbline
+\textbf{LLAMIA} \\
+e4f2 d5e6 e4c3 e4g3 e4d6 e4g5 e4d2 e4f6 d5d6 e4c5
+
+\tcbline
+\textbf{Human} \\
+Describe the current position briefly
+
+\tcbline
+\textbf{LLAMIA} \\
+It is black's turn, the current position is: \\
+- White's King is somewhat exposed, with threats from Black's Knight and Pawn.\\
+- Black has a centralized active Knight and Pawn.\\
+- Both sides have pawns on the board but White has a central pawn that could potentially become mobile.\\
+This position appears as a complex endgame with white on slight advantage due to their extra pawn.
+\end{tcolorbox}
+\vspace{-3mm}
+% \captionof{figure}{\textbf{Pre-training Instruction Format:} We use SAN and UCI move notations with 30/70 probabilities, all evaluations are in pawn evaluations. The legal moves are automatically generated based on the UCI protocol and position description is generated using LLaMA-405B from feature verbalizations }
+
+\subsection{Puzzles}
+\label{listing:puzzle_instruction_format}
+\begin{tcolorbox}[
+  colback=white,
+  colframe=black!75!white,
+  colbacktitle=black!75!white,
+  title=Puzzle instruction,
+  enhanced,
+  before upper={% Insert the figure at the top-left
+    \begin{minipage}{0.3\textwidth} % Adjust width as needed
+      \includegraphics[width=\textwidth]{1.png}
+      
+    \end{minipage}\\[10pt]
+  }
+]
+FEN: \textbf{q3k1nr/1pp1nQpp/3p4/1P2p3/4P3/B1PP1b2/B5PP/5K2 b k - 0 17}
+\tcbline
+\textbf{Human} \\
+Your task is to describe and then solve the given puzzle \texttt{<state>}.
+What are the themes for this puzzle? Only give me the comma separated themes and nothing else.
+
+\tcbline
+\textbf{LLAMIA} \\
+mate, mateIn2, middlegame, short
+
+\tcbline
+\textbf{Human} \\
+What is the solution to the puzzle? Answer must be in UCI notation.
+
+\tcbline
+\textbf{LLAMIA} \\
+e8d7 a2e6 d7d8 f7f8
+
+\tcbline
+\textbf{Human} \\
+What would be the popularity and the Elo of the puzzle. Popularity is a number between 100 (best) and -100 (worst).
+
+\tcbline
+\textbf{LLAMIA} \\
+The popularity is 88 and the Elo is 1904
+\end{tcolorbox}
+
+\noindent\begin{minipage}{0.5\textwidth}
+\vspace{-10pt}
+% \captionof{figure}{\textbf{Puzzle Instruction Format}}
+
+\end{minipage}
+
+\subsection{Behavior Cloning}
+
+\begin{tcolorbox}[
+  colback=white,
+  colframe=black!75!white,
+  colbacktitle=black!75!white,
+  title=CCRL instruction,
+  enhanced,
+  before upper={% Insert the figure at the top-left
+    \begin{minipage}{0.3\textwidth} % Adjust width as needed
+      \includegraphics[width=\textwidth]{2.png}
+  
+    \end{minipage}\\[10pt]
+  }
+]
+FEN: \textbf{rnbq1rk1/p1pp1ppp/1p2pn2/8/1bP5/2N1PN2/PP1PBPPP/R1BQK2R w KQ - 0 6}
+\tcbline
+\textbf{Human} \\
+You have to simulate the following game: \\
+Engine (2754) - Engine (2710)\\
+Rating Difference = 44\\
+Event: Computer Chess Rating List 40/15\\
+ECO: A17\\
+Opening: English\\
+Variation: Nimzo-English opening\\
+The last 3 moves were e8g8 f1e2 b7b6 \texttt{<state>}\\
+Analyze the position and predict what would be the next 9 moves. Provide your response as a list of UCI moves.
+
+\tcbline
+\textbf{LLAMIA} \\
+The next moves are: e1g1 c8b7 d2d4 d7d6 c1d2 b8d7 c3b5 b4d2 f3d2
+
+\tcbline
+\textbf{Human} \\
+The last 3 moves were f3d2 e6e5 d1c2 \texttt{<state>}\\
+Analyze the position and predict what would be the next 5 moves.
+
+\tcbline
+\textbf{LLAMIA} \\
+The next moves are: a7a6 b5c3 d8e7 d4d5 a8e8
+
+\tcbline
+\textbf{Human} \\
+The last move was a2a3 \texttt{<state>}\\
+Analyze the position and predict what would be the next 3 moves.
+
+\tcbline
+\textbf{LLAMIA} \\
+The next moves are: f8e8 f1e1 d7f8
+
+\tcbline
+\textbf{Human} \\
+The last move was d2f1 \texttt{<state>}\\
+Analyze the position and predict what would be the next 8 moves.
+
+\tcbline
+\textbf{LLAMIA} \\
+The next moves are: h6h5 f1e3 b7c8 e2f3 h5h4 c2d2 h4h3 e3f5
+\label{listing:ccrl_instruction_format}
+\end{tcolorbox}
+
+\begin{tcolorbox}[
+  colback=white,
+  colframe=black!75!white,
+  colbacktitle=black!75!white,
+  title=Lichess instruction,
+  enhanced,
+  before upper={% Insert the figure at the top-left
+    \begin{minipage}{0.3\textwidth} % Adjust width as needed
+      \includegraphics[width=\textwidth]{3.png}
+   
+    \end{minipage}\\[10pt]
+  }
+]
+FEN: \textbf{rnbqkbnr/ppp2ppp/4p3/3p4/3PP3/2N5/PPP2PPP/R1BQKBNR b KQkq - 1 3}
+\tcbline
+\textbf{Human} \\
+You have to simulate the following game: \\
+Lichess Player (1713) vs Lichess Player (1668)\\
+Time Control: 300+3\\
+Time left: 5:04(Black) vs 5:02(White)\\
+The last 2 moves were d7d5 b1c3 \texttt{<state>}\\
+It is White's turn. Analyze the position and predict what would be the next 8 moves and the time taken for each of them? Provide your response in this format: (time taken) move1, (time taken) move2, (time taken) move3.
+
+\tcbline
+\textbf{LLAMIA} \\
+Moves: (1) g8f6, (0) c1g5, (2) f8e7, (0) e4e5, (1) f6d7, (4) g5e3, (2) c7c5, (2) g1f3
+
+\tcbline
+\textbf{Human} \\
+Time left: 4:55(White) vs 5:07(Black)\\
+The last 1 moves were b8c6 \texttt{<state>}\\
+It is Black's turn. Evaluate the position and predict what would be the next 10 moves and the time taken for each of them?
+
+\tcbline
+\textbf{LLAMIA} \\
+Evaluation: -0.81\\
+Moves: (1) f1b5, (1) e8g8, (4) b5c6, (0) b7c6, (2) e1g1, (0) c5d4, (28) d1d4, (1) c6c5, (14) d4g4, (8) f7f5
+
+\tcbline
+\textbf{Human} \\
+Time left: 3:58(White) vs 4:33(Black)\\
+The last 3 moves were d5d4\\
+f3g5\\
+e7g5 \texttt{<state>}\\
+It is Black's turn. Evaluate the position and predict what would be the next 4 moves and the time taken for each of them?
+
+\tcbline
+\textbf{LLAMIA} \\
+Evaluation: -2.09\\
+Moves: (2) e3g5, (20) d8c7, (12) g5e7, (12) f8f7
+\label{listing:lichess_instruction_format}
+\end{tcolorbox}
+
+
+\begin{tcolorbox}[
+  colback=white,
+  colframe=black!75!white,
+  colbacktitle=black!75!white,
+  title=Elite games instruction,
+  enhanced,
+  before upper={% Insert the figure at the top-left
+    \begin{minipage}{0.3\textwidth} % Adjust width as needed
+      \includegraphics[width=\textwidth]{4.png}
+  
+    \end{minipage}\\[10pt]
+  }
+]
+FEN: \textbf{rnbqk2r/ppppppbp/5np1/8/2PP4/2N5/PP2PPPP/R1BQKBNR w KQkq - 2 4}
+\tcbline
+\textbf{Human} \\
+You have to simulate the following game: \\
+Wang, Hao (2680) - Fedorov, Alexei (2563)\\
+Rating Difference = 117\\
+Event: TCh-ROU Superliga 2016\\
+ECO: E83\\
+Opening: King's Indian Defense, Saemisch Variation, Panno Formation\\
+The last 2 moves were g7g6 b1c3 \texttt{<state>}\\
+Analyze the position and predict what would be the next 3 moves. Provide your response as a list of UCI moves.
+
+\tcbline
+\textbf{LLAMIA} \\
+The next moves are: f8g7 e2e4 d7d6
+
+\tcbline
+\textbf{Human} \\
+The last move was d1d2 \texttt{<state>}\\
+Analyze the position and predict what would be the next 10 moves.
+
+\tcbline
+\textbf{LLAMIA} \\
+The next moves are: a8b8 h2h4 h7h5 e2c1 a6a5 f1e2 c8d7 e2d1 b7b6 c1e2
+
+\tcbline
+\textbf{Human} \\
+Predict the winner of the game and in how many moves will the game end.
+
+\tcbline
+\textbf{LLAMIA} \\
+Draw in 41 moves.
+\label{listing:elite_instruction_format}
+\end{tcolorbox}
+
+\subsection{Commentary}
+\begin{tcolorbox}[
+  colback=white,
+  colframe=black!75!white,
+  colbacktitle=black!75!white,
+  title=State annotation instruction,
+  enhanced,
+  before upper={% Insert the figure at the top-left
+
+    \begin{minipage}{0.3\textwidth} \includegraphics[width=\textwidth]{5.png}
+      
+    \end{minipage}\\[10pt]
+  }
+]
+
+FEN: \textbf{rnbqkbnr/pp1ppppp/8/2p5/2P1P3/8/PP1P1PPP/RNBQKBNR b KQkq - 0 2}
+\tcbline
+\textbf{Human} \\
+You have to annotate the following game: \\
+OstapSuleimanBender (1784) - galeru (1704)\\
+Rating Difference = 80\\
+Event: Rated Rapid game\\
+ECO: B20\\
+Opening: Sicilian Defense: Staunton-Cochrane Variation\\
+Time Control: 900+10\\
+Game: 1. e4 c5 2. c4 Nc6 3. Nc3 Nf6 4. Nf3 e5 5. d3 Be7 6. a3 Nd4 7. b4 cxb4 8. axb4 Bxb4 9. Bd2 Nxf3+ 10. Qxf3 Be7 11. Qg3 d6 12. Qxg7 Rg8 13. Qh6 Rg6 14. Qh4 h6 15. Be2 Nd5 16. Qh5 Nxc3 17. Bxc3 Kf8 18. h3 Kg7 19. Bd2 Rxg2 20. Bxh6+ Kg8 21. Bg4 Bh4 22. Rf1 Qf6 23. Be3 Bxg4 24. hxg4 Kg7 25. Qf5 a6 26. Rb1 b5 27. cxb5 axb5 28. Rxb5 Qxf5 29. gxf5 Ra1+ 30. Ke2 Ra2+ 31. Kf3 Rh2 32. Rd5 Kf6 33. Rxd6+ Ke7 34. Rd5 Kf6 35. Rb5 Bg5 36. Bxg5+ Kxg5 37. Rxe5 Rh3+ 38. Kg2 Kg4 39. d4 Rg3+ 40. Kh2 Rf3 41. Kg2 Kf4 42. Re7 Rg3+ 43. Kh1 Rd3 44. d5 Kf3 45. Kg1 Rdd2 46. f6 Rxf2 47. Rxf2+ Rxf2 48. d6 Rg2+ 49. Kf1 Rd2 50. d7 Rd1\# \\ 
+
+Annotate the move: 2. c4 \texttt{<state>}
+
+\tcbline
+\textbf{LLAMIA} \\
+B20 Sicilian Defense: Staunton-Cochrane Variation
+
+\tcbline
+\textbf{Human} \\
+Annotate the move: 3. Nc6 \texttt{<state>}
+
+\tcbline
+\textbf{LLAMIA} \\
+Feels like e6 or Nf6 would be more principled, but the d4 square is kind of nice?
+\label{listing:state_annotation_format}
+\end{tcolorbox}
+
+\begin{tcolorbox}[
+  colback=white,
+  colframe=black!75!white,
+  colbacktitle=black!75!white,
+  title=Commentary instruction,
+  enhanced,
+  before upper={% Insert the figure at the top-left
+    \begin{minipage}{0.3\textwidth} % Adjust width as needed
+      \includegraphics[width=1.0\textwidth]{6.png}
+      
+    \end{minipage}\\[10pt]
+  }
+]
+FEN: \textbf{2rqkb1r/pp3ppp/2n1pnb1/1BPp4/3N2P1/2N1B3/PPP1QP1P/R3K2R w KQk - 6 12}\\
+\tcbline
+\textbf{Human} \\
+You have to generate commentary for the following game: \\
+Geoff Chandler vs Richard Kynoch \\
+1.\ e4 c6 2.\ d4 d5 3.\ e5 Bf5 4.\ Nc3 e6 5.\ g4 Bg6 6.\ Nge2 c5 7.\ Be3 Nc6 8.\ dxc5 Nxe5 9.\ Nd4 Rc8 10.\ Bb5+ Nc6 11.\ Qe2 Nf6 12.\ O-O-O Be7 13.\ h4 h5 14.\ f3 Nd7 15.\ gxh5 Rxh5 16.\ Rhg1 Nxd5 17.\ Bxd4 Qc7 18.\ Rxg6 fxg6 19.\ Qxe6 Rf5 20.\ Nxd5 Qd8 21.\ Qxg6+ Rf7 22.\ Re1 Kf8 23.\ Qh7 Ke8 24.\ Qg8+ Rf8 25.\ Qxg7 Rf7 26.\ Qg8+ Rf8 27.\ Nf6\#. \\
+
+You will be provided with segments of moves from this game, one after the other, and your task is to commentate on the segment.\\[3pt]
+\texttt{<state>}
+\textbf{Moves:} 12.\ O-O-O Be7 13.\ h4 h5 14.\ f3 Nd7 15.\ gxh5 Rxh5 
+\tcbline
+\textbf{LLAMIA} \\
+We have a queenside castle by Chandler [12. O-O-O] and bishop to e7. [12… Be7] h4 [13. h4]  h5 [13… h5] f3 [14. f3], knight to d7 [14… Nd7] and g captures on h5 [15. gxh5] and this is definitely the critical position of the game. If black continued this game with (15… Bxh5) Bishop captures on h5 everything would be perfectly okay, and well black would continue this game being better. But Mr. Kenock decided to play rook captures on h5 [15… Rxh5] and this is where his troubles begin.
+\label{listing:commentary_format}
+\end{tcolorbox}
+

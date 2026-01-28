@@ -278,6 +278,96 @@ game formats, and Elo ratings from moves, demonstrating sophisticated policy und
 % \end{enumerate}
 \end{comment}
 
+\section{Introduction}
+\vspace{-2mm}
+
+% =============================================================================
+% PARAGRAPH 1: What is the problem? (Motivate clearly)
+% =============================================================================
+
+Large language models excel at tasks solvable through next-token prediction, yet struggle in domains requiring multi-step reasoning over evolving states~\cite{valmeekam2022large,bachmann2024pitfalls}. Chess provides a controlled testbed for this limitation: despite extensive exposure to chess notation during pretraining, GPT-4 achieves approximately 1800 Elo (strong amateur level), while compact neural agents like AlphaZero~\cite{silver2017mastering} and Leela Chess Zero~\cite{lczero} (with fewer than 300M parameters) exceed 3500 Elo. This gap persists even with chess-specific fine-tuning~\cite{feng2024chessgpt}, suggesting the limitation is structural rather than data-driven. Text-only models predict plausible next moves but lack internal representations of how actions change future board states, which prevents reliable multi-move planning.
+
+Meanwhile, neural agents trained through self-play or supervised learning achieve superhuman performance precisely because they learn such representations. These agents encode each board position as a continuous latent vector that captures not just piece placement, but a probability distribution over candidate moves, value estimates for future positions, and features representing positional concepts (e.g., whether the king is exposed to attack, or whether pawns block each other's advance). This internal representation enables the lookahead and evaluation that text-only LLMs lack. This contrast motivates our central question:
+
+\vspace{-2mm}
+\begin{quote}
+    {\fontsize{9.5pt}{11pt}\selectfont\textit{``What capabilities emerge when LLMs condition directly on the latent representations of pretrained agents, rather than on their symbolic outputs?''}}
+\end{quote}
+\vspace{-1mm}
+
+% =============================================================================
+% PARAGRAPH 2: Why is it interesting and important? (Motivate GDU/GDM)
+% =============================================================================
+
+Answering this question addresses a practical bottleneck in building systems that combine language understanding with domain expertise. LLMs excel at instruction following, natural language generation, and leveraging broad world knowledge. Neural agents excel at precise action selection and value estimation within their trained domains. Current approaches treat these as separate capabilities: one builds a chess commentator by fine-tuning an LLM on move-explanation pairs, a behavior-cloning agent by training separate models for each skill level, and a strategic planner by prompting an LLM with engine outputs. Each task requires a different architecture, training pipeline, and dataset.
+
+We ask whether a single architectural choice can unify these capabilities. Specifically, we investigate whether conditioning an LLM on agent latent representations, rather than symbolic outputs, enables a single model to perform diverse tasks that previously required specialized systems. We organize these tasks into two paradigms: \textit{Generalized Decision Understanding} (GDU) covers reasoning about agent behavior, including commentary generation, difficulty prediction, and style identification; \textit{Generalized Decision Making} (GDM) covers action and policy adaptation, including behavior cloning across skill levels and instruction-conditioned planning. Our hypothesis is that both paradigms emerge naturally when the LLM has access to the same rich representations that make the underlying agent effective.
+
+% =============================================================================
+% PARAGRAPH 3: Why is it hard? (Tool calling bottleneck - accessible explanation)
+% =============================================================================
+
+The standard approach to combining LLMs with external agents is tool calling: the LLM queries an engine through a text interface and conditions on its response. This works well when tools communicate naturally through language (calculators, code interpreters), but introduces an information bottleneck for agents whose reasoning occurs in continuous spaces. When an LLM queries a chess engine, even enriched responses (top moves with evaluations, predicted continuations, win probabilities) remain symbolic compressions. The engine's internal representation encodes a full distribution over legal moves, uncertainty estimates, and positional features, but this information does not transfer through the text interface.
+
+This bottleneck matters most for fine-grained tasks. Consider behavior cloning: predicting how a player at a specific skill level (say, 1500 Elo) would move. The top move alone is insufficient; one needs the full probability distribution over moves to capture characteristic mistakes and preferences at that skill level. Current approaches~\cite{mcilroy2020aligning} address this by training separate neural networks for each skill bracket (1100-1300, 1300-1500, etc.), requiring multiple models and abundant data per bracket. For skill levels or playing styles where data is scarce, this approach fails entirely. A similar limitation appears in commentary generation: explaining why a move is strong requires access to evaluation features (which squares are weak, which pieces are active), not just the final score.
+
+% =============================================================================
+% PARAGRAPH 4: Why hasn't it been solved before? (Prior paradigms and their limits)
+% =============================================================================
+
+Prior work has pursued two paradigms, each with limitations. The first, exemplified by ChessGPT~\cite{feng2024chessgpt}, fine-tunes LLMs on move sequences and language annotations. This improves chess-related text generation but operates entirely in token space; the model learns patterns over notation rather than gaining access to structured agent representations. We show empirically (Section~\ref{sec:experiments}) that ChessGPT struggles with tasks requiring policy-level reasoning, such as cloning behavior at specific skill levels or adapting play based on opponent characteristics.
+
+The second paradigm, used in vision-language models~\cite{liu2023visual,li2023blip} and robotics~\cite{brohan2023rt2}, projects encoder representations into the LLM's token space. This enables LLMs to condition on non-text modalities. However, LLM-based agents can communicate information over multiple tokens during a conversation, refining their outputs iteratively. Non-LLM agents (neural networks trained on games or simulations) lack this capability; their knowledge is locked in continuous latent spaces with no natural text interface. Existing projection approaches treat this as a static mapping: encode once, then generate. In sequential domains, this is insufficient because the LLM's actions change the environment state, requiring the agent to re-encode. Without a mechanism for dynamic re-encoding, these approaches cannot support iterative planning.
+
+% =============================================================================
+% PARAGRAPH 5: Our approach (SALT motivation and architecture)
+% =============================================================================
+
+We propose \textbf{latent state internalization} with dynamic re-encoding. A lightweight adapter projects the agent's latent representation into the LLM's token embedding space. These projected tokens are interleaved with language and action tokens during both training and inference. Crucially, a special \texttt{<InvokeAgent>} token enables the LLM to trigger state updates: when generated, the environment transitions based on the preceding action, the agent re-encodes the new state, and fresh latent tokens are appended. This closed loop allows the LLM to reason over evolving states without external API calls.
+
+Training follows a two-stage approach we call \textbf{SALT} (State, Action, Language Tokens). Stage 1 aligns the projection layer: given a board state encoded by the agent, the LLM learns to reconstruct a natural language description. This teaches the adapter to map agent representations into the LLM's semantic space. Stage 2 fine-tunes on interleaved sequences spanning gameplay, commentary, and instruction-following, using cross-entropy loss over action and language tokens. The key insight is that interleaved training allows prompt tokens to act as implicit reward shaping: through self-attention, the LLM learns to morph the base agent's policy toward target behaviors specified in natural language, without modifying the agent's weights.
+
+We instantiate this framework as \textbf{LLAMIA} (Large Language and Action Models with Internal Agents), combining Vicuna-7B/13B with Leela Chess Zero's BT4 network (240M parameters). Unlike prior approaches that require separate fine-tuned models for each task, LLAMIA uses a single unified model trained once.
+
+% =============================================================================
+% PARAGRAPH 6: Results (prose, not bullets - accessible framing)
+% =============================================================================
+
+Our experiments compare LLAMIA against task-specific baselines: Maia~\cite{mcilroy2020aligning} (separate networks per skill bracket), ChessGPT-13B~\cite{feng2024chessgpt} (LLM fine-tuned on chess text), and GPT-4o with Stockfish tool access. On behavior cloning, LLAMIA-13B achieves 55\% move-matching accuracy across skill levels with a single model, compared to 52\% for Maia's best ensemble of five skill-specific networks, each trained on 12M games. LLAMIA matches this with under 1M training examples and no task-specific architecture.
+
+On policy alignment (how well the model's move rankings match target skill-level preferences), LLAMIA achieves strong correlation ($\tau = 0.55$) using 50k pretraining games. ChessGPT-13B requires 200k games to reach equivalent alignment, representing a 4$\times$ data efficiency gain from latent conditioning (Figure~\ref{fig:kt}).
+
+The strongest demonstration of the paradigm is instruction-conditioned planning. When given a directive like ``your opponent struggles in endgames'' (the final phase when few pieces remain and precise calculation matters), LLAMIA adapts its play to steer toward such positions. Figure~\ref{fig:icp} shows LLAMIA intentionally making a suboptimal move that simplifies the position, trading immediate advantage for a favorable endgame. This controllable policy modification yields 17\% more wins against the specified weakness, compared to uninstructed play. Neither tool-calling baselines nor fine-tuned models exhibit this capability, as they lack the continuous policy representation needed for language-based steering.
+
+On commentary generation, human evaluators prefer LLAMIA's game-level analysis over GPT-4o with tool access 65\% of the time (Figure~\ref{fig:comm}). Tool-calling approaches must query engines for evaluations and construct explanations from symbolic outputs; LLAMIA accesses the same positional features directly through the latent representation.
+
+% =============================================================================
+% PARAGRAPH 7: Scope and extensions
+% =============================================================================
+
+We demonstrate extensibility beyond chess: internalizing a reward model improves text-to-image preference prediction, and internalizing a persuasion classifier improves marketing content analysis (Section~\ref{sec:extensions}). However, our primary contribution is methodological. We establish that latent projection provides a more efficient interface than tool calling for integrating pretrained agents with LLMs, with chess providing a controlled domain where ground-truth evaluations exist and baselines are well-characterized.
+
+% =============================================================================
+% SUMMARY OF CONTRIBUTIONS
+% =============================================================================
+
+\vspace{-1mm}
+\subsection{Summary of Contributions}
+\vspace{-1mm}
+
+\begin{enumerate}[leftmargin=*, labelsep=0.5em, topsep=2pt, itemsep=2pt]
+    \item \textbf{Latent State Internalization (Section~\ref{sec:method}):} A paradigm for LLM-agent integration where the agent's latent representation is projected into the LLM's token space with dynamic re-encoding via \texttt{<InvokeAgent>}. We formalize the objective (Eq.~\ref{eq:intern}) and contrast with tool calling (Eq.~\ref{eq:tool}).
+    
+    \item \textbf{SALT Training Framework (Section~\ref{sec:salt}):} A two-stage methodology enabling a single model to perform diverse tasks that previously required separate architectures. Stage 1 aligns projections; Stage 2 fine-tunes on interleaved state, action, and language tokens, achieving 4$\times$ data efficiency over language-only fine-tuning.
+    
+    \item \textbf{Unified GDU/GDM Capabilities (Section~\ref{sec:experiments}):} Empirical demonstration that latent internalization enables a single model to match or exceed task-specific baselines: 55\% behavior cloning accuracy (vs.\ 52\% for Maia's 5-model ensemble), 17\% win-rate improvement from instruction-conditioned planning, and 65\% preference for generated commentary.
+    
+    \item \textbf{LLAMIA-Bench (Section~\ref{sec:benchmark}):} A benchmark for evaluating LLM-agent systems on generalized decision making and understanding, including tasks where data scarcity prevents training specialized models (grandmaster imitation, low-time-pressure play, cross-Elo behavior cloning).
+\end{enumerate}
+
+\vspace{-2mm}
+
+
 
 
 \vspace{-2mm}
