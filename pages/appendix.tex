@@ -387,51 +387,11 @@ We evaluate whether models can adapt their strategy in response to explicit inst
 %     \caption{\textbf{Kendall-$\tau$ alignment} scaling with data and parameters. The alignment between the LLM's policy and Agent's Value (Q-values post search) and Policy (Base policy). Over 30 million points the alignment with both policy and value improves, interestingly both 13B and 7B models exhibit an area (30M-40M) where they start deviating from policy to value, we call this the shallow ``internal search''}.
 %     \label{fig:pretraining-curve}
 % \end{figure}
-\section{Environment Extension}
-To evaluate the extensibility of our framework we extend our approach to two new tasks, \textbf{Text-to-Image Preference Alignment} to predict and improve alignment of image generation models and goal directed language through \textbf{PersuasionBench}. We follow the exact same setup, training data, and evaluation protocol as \cite{xu2025visionrewardfinegrainedmultidimensionalhuman} and \cite{singh2024measuring}.
-
-
-
-
-
-
-\begin{figure}[!h]
-    \centering
-    \includegraphics[width=\linewidth]{aesth (2).pdf}
-    \vspace{-2mm}
-    \caption{
-\textbf{Qualitative Examples: Image Preference Alignment via Internalized Rewards.}  
-We compare images generated using VisionReward (left), LLAMIA-ImageReward (middle), and human-preferred selections (right) across diverse prompts involving aesthetic composition, product photography, and stylistic variation. LLAMIA-ImageReward yields more coherent framing, superior lighting consistency, and better adherence to prompt-specific constraints, as also reflected in human preference studies (+5 pp). Notably, these improvements emerge with half the fine-tuning data, demonstrating LLAMIA’s capacity to internalize domain-specific reward functions and generalize stylistic priors across prompts.
-}.
-    \label{fig:image_grid}
-\end{figure}
-\FloatBarrier
-
-\begin{figure}[htbp]
-    \centering
-    \begin{subfigure}[b]{0.5\linewidth}
-        \centering
-        \includegraphics[width=\linewidth]{human_preference_comparison.png}
-        \caption{\textbf{Human Preference Comparison:} Human raters prefer LLAMIA’s SDXL generations over VisionReward’s by a margin of +7.9\%. While VisionReward improves significantly over raw SDXL (e.g., +19.5\% win rate), LLAMIA’s internal reward alignment improves sample-level aesthetics and relevance further, as reflected in Pick-a-Pic and HPSv2 gains.}
-        \label{fig:subfig-human-preference}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[b]{0.48\linewidth}
-        \centering
-        \includegraphics[width=\linewidth]{output (7).png}
-        \caption{\textbf{Sample Efficiency on HPDv2:} LLAMIA shows significantly better sample efficiency over VisionReward on the HPDv2 benchmark. It achieves 81.3\% accuracy with just 2k samples, matching VisionReward’s peak accuracy with 8k samples. This highlights that internalizing ImageReward within the generation process yields more data-efficient preference modeling.}
-        \label{fig:subfig-model-output}
-    \end{subfigure}
-\caption{\textbf{Quantitative Analysis of Visual Reward Alignment.} We compare LLAMIA to VisionReward across two axes: (a) sample efficiency of preference prediction and (b) human preference studies on DPO-enhanced SDXL generations. LLAMIA consistently achieves higher accuracy and win rates with fewer samples.}
-    \label{fig:comparison}
-\end{figure}
-
-\clearpage
-
 
 \input{pages/appendix/ablations}
 \input{pages/appendix/study}
 \input{pages/appendix/examples}
+\input{pages/extension}
 \input{pages/appendix/dataset}
 \input{pages/appendix/prompts}
 \section{Hyperparamaters}
@@ -477,88 +437,22 @@ approximately eight days of computational budget.
     \item Deepspeed config: Deepspeed Zero2 with Offload
   \end{itemize}
 
+\section{SALT Training Efficiency}
+\label{sec:fsdp_impl}
+
+
+Training LLAMIA requires co-locating the LLM backbone (7B/13B parameters) and Lc0 agent encoder (240M parameters). We implement custom FSDP (Fully Sharded Data Parallel) following LLaVA-NEXT\footnote{\url{https://github.com/LLaVA-VL/LLaVA-NeXT}} with separate shards for the Transformer-based Lc0 encoder. The LLM uses ZeRO Stage 2 optimization across 8 GPUs per node; the agent encoder uses a dedicated communication group; the projector (12M parameters) is replicated. LLAMIA achieves 42\% MFU compared to 44.5\% for ChessGPT-13B (same LLM, no agent)---only 6\% relative overhead. Memory increases by 3.2GB per GPU (71.2GB to 74.4GB), and throughput drops 5.6\% (2,850 vs 3,020 tokens/s/GPU). The key insight is that Transformer-based agents integrate naturally into existing distributed training infrastructure, making LLAMIA-style architectures practical at scale and opening research directions for complex multi-agent LLM systems.
+
+
 \section{Chess as a Testbed for LLM-Agent Integration}
-\label{sec:chess_testbed_main}
+\label{sec:chess_testbed}
 
-We motivate chess as the primary evaluation domain for LLAMIA, arguing that it provides unique advantages for studying LLM-agent integration that generalize to broader applications.
 
-\paragraph{Why Chess?}
+We motivate chess as the primary evaluation domain, arguing it provides unique advantages for studying LLM-agent integration. Chess uniquely combines: (1) \textbf{Deterministic, fully observable dynamics} enabling precise evaluation without environment noise; (2) \textbf{Rich language grounding} from centuries of books, commentaries, and forums (90k annotated games on Lichess alone), enabling GDU evaluation alongside GDM; (3) \textbf{Diverse behavioral data} across skill levels (800--2800+ Elo) with ground-truth labels unavailable in other domains; (4) \textbf{Established benchmarks} with 60+ years of Elo calibration; (5) \textbf{Superhuman pretrained agents} (Lc0, Stockfish) with interpretable outputs; and (6) \textbf{Practical applications} in tutoring, commentary, and adaptive training for 10M+ online players.
 
-Chess uniquely combines six properties essential for rigorous evaluation of LLM-agent systems:
+The capabilities demonstrated in chess generalize to other sequential decision domains. Behavior cloning across skill levels maps to personalized robot assistance, adaptive game AI, and driver behavior modeling. Instruction-conditioned policy modification maps to natural language robot control and goal-conditioned planning. Latent-grounded explanation generation maps to explainable AI for medical diagnosis and autonomous driving. Our extensions to text-to-image preference alignment and persuasion prediction (Section~\ref{sec:cross_domain}) provide initial evidence that SALT transfers beyond chess. The methodology is general; chess provides a controlled testbed where ground-truth evaluation is tractable.
 
-\begin{enumerate}
-    \item \textbf{Deterministic, Fully Observable Dynamics.} Chess has no hidden information or stochastic transitions, enabling precise evaluation of model decisions. Errors can be unambiguously attributed to the model rather than environment noise. This contrasts with partially observable domains (poker, real-world robotics) where evaluation requires averaging over many trials.
-    
-    \item \textbf{Rich Language Grounding.} Unlike most RL benchmarks, chess has centuries of natural language annotation: opening theory books, annotated game collections, online forums, and educational videos. The Lichess database alone contains 90k annotated games in English. This enables evaluation of Generalized Decision Understanding (GDU) tasks alongside Generalized Decision Making (GDM) tasks.
-    
-    \item \textbf{Diverse Behavioral Data Across Skill Levels.} Millions of games exist across the full Elo spectrum (800--2800+), each labeled with precise skill ratings. This enables behavior cloning evaluation across human expertise levels---from beginner mistakes to grandmaster-level play. No other domain offers comparable behavioral diversity with ground-truth skill labels.
-    
-    \item \textbf{Established Benchmarks with Clear Semantics.} Elo ratings have 60+ years of calibration data and are directly interpretable (100 Elo $\approx$ 64\% expected win rate). Puzzle accuracy, behavior matching, and commentary quality all have established evaluation protocols. New methods can be directly compared to decades of prior work.
-    
-    \item \textbf{Superhuman Pretrained Agents.} Lc0 and Stockfish provide agents that exceed human world champion level by 500+ Elo points. These agents output interpretable representations (policy distributions over legal moves, value estimates, principal variations) that enable principled study of what transfers to LLMs via latent projection.
-    
-    \item \textbf{Practical Applications.} Chess tutoring systems, automated commentary for broadcasts, and adaptive training platforms represent real deployment scenarios where LLM-agent integration provides immediate value. The 10+ million active online chess players constitute a substantial user base for these applications.
-\end{enumerate}
 
-\paragraph{Generalization Beyond Chess.}
-
-The capabilities demonstrated in chess have direct analogues in other sequential decision domains:
-
-\begin{itemize}
-    \item \textbf{Behavior Cloning Across Skill Levels} $\rightarrow$ Personalized robot assistance, adaptive game AI difficulty, driver behavior modeling for autonomous vehicles.
-    
-    \item \textbf{Instruction-Conditioned Policy Modification} $\rightarrow$ Natural language robot control, preference-aware recommendation systems, goal-conditioned planning.
-    
-    \item \textbf{Latent-Grounded Explanation Generation} $\rightarrow$ Explainable AI for medical diagnosis, transparent autonomous driving decisions, game AI commentary for esports.
-    
-    \item \textbf{Counterfactual State Reasoning} $\rightarrow$ What-if analysis for business decisions, scenario planning for strategic games, safety analysis for autonomous systems.
-\end{itemize}
-
-Our extensions to text-to-image preference alignment and persuasion prediction (Section~\ref{sec:cross_domain}) provide initial evidence that the SALT framework transfers beyond chess. The methodology is general; chess provides a controlled testbed where ground-truth evaluation is tractable.
-
-\section{Distributed Training: FSDP for Heterogeneous LLM-Agent Systems}
-\label{sec:fsdp_details}
-
-Training LLAMIA requires co-locating two architecturally different models: the LLM backbone (Vicuna 7B/13B) and the chess encoder (Lc0-BT4, 240M parameters). Standard distributed training frameworks assume homogeneous model architectures, requiring custom implementation for LLAMIA's heterogeneous setup, we follow the setup like LLaVA-NEXT\footnote{\url{https://github.com/LLaVA-VL/LLaVA-NeXT}} and create custom shards for JAX. Further owing to recent trends in transformer based Chess Networks we use the Lc0-BT4 family\footnote{\url{https://lczero.org/blog/2024/02/how-well-do-lc0-networks-compare-to-the-greatest-transformer-network-from-deepmind/}} showing much better results compared to \citep{ruoss2024grandmaster}.
-
-\paragraph{Architecture Overview.}
-\begin{itemize}
-    \item \textbf{LLM Backbone}: Vicuna-13B with 40 Transformer layers, 5120 hidden dimension, 40 attention heads.
-    \item \textbf{Agent Encoder}: Lc0-BT4 with 15 Transformer encoder layers, 1024 hidden dimension, optimized for chess board encoding.
-    \item \textbf{Projector}: 3-layer MLP mapping 1024 $\rightarrow$ 2048 $\rightarrow$ 2048 $\rightarrow$ 81920 (16 tokens $\times$ 5120 embedding dimension).
-\end{itemize}
-
-\paragraph{FSDP Configuration.}
-We implement Fully Sharded Data Parallel (FSDP) with the following configuration:
-
-\begin{enumerate}
-    \item \textbf{LLM Sharding}: ZeRO Stage 2 optimization, sharding optimizer states and gradients across 8 GPUs per node. Each Transformer layer is wrapped as a separate FSDP unit.
-    
-    \item \textbf{Agent Encoder Sharding}: Lc0's Transformer architecture enables straightforward FSDP integration. We create a separate process group for the agent encoder with its own sharding strategy, avoiding communication overhead between LLM and agent parameter updates.
-    
-    \item \textbf{Projector Handling}: The projector (12M parameters) is small enough to replicate across all workers. Gradients are synchronized via all-reduce after the backward pass.
-    
-    \item \textbf{Forward Pass Coordination}: During forward pass, the agent encoder processes board states independently, then the projector maps outputs to the LLM's embedding space. The LLM receives concatenated [language tokens, projected state tokens, action tokens].
-\end{enumerate}
-
-\begin{table}[h]
-\centering
-\begin{tabular}{l|cccc}
-\toprule[1.2pt]
-\textbf{Configuration} & \textbf{MFU (\%)} & \textbf{Memory/GPU (GB)} & \textbf{Tokens/s/GPU} & \textbf{Overhead} \\
-\midrule
-ChessGPT-13B (baseline) & 44.5 & 71.2 & 3,020 & -- \\
-LLAMIA-13B (ours) & 42.0 & 74.4 & 2,850 & 6\% \\
-\bottomrule[1.2pt]
-\end{tabular}
-\caption{\textbf{Distributed Training Efficiency.} LLAMIA incurs only 6\% MFU overhead compared to ChessGPT (same LLM, no agent encoder). Memory increases by 3.2GB per GPU for agent weights and projector. Throughput reduction is primarily due to agent forward pass and projection, not communication overhead.}
-\label{tab:fsdp_efficiency}
-\end{table}
-
-\paragraph{Implications for Future Work.}
-Our implementation demonstrates that heterogeneous LLM + domain-agent systems can be trained efficiently using existing distributed training infrastructure. The key insight is that Transformer-based agents (like Lc0) integrate naturally into FSDP's sharding strategy. This enables scaling LLAMIA-style architectures to larger LLMs (70B+) and larger agent encoders without fundamental architectural changes and opens the whole field to complex multi agent setups as well.
-
-We release our FSDP configuration and training scripts to facilitate future research on LLM-agent integration at scale.
 
 \somesh{TODO: Add link to released code repository}
 

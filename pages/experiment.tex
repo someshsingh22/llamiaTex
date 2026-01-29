@@ -1,11 +1,9 @@
 \section{Experiments}
 \label{sec:experiments}
+\label{sec:exp_setup}
 We now present experiments that rigorously evaluate LLAMIA’s capability to internalize latent agent states and act enables its robust intrinsic reasoning and planning capabilities. We test its (1) state-of-the-art performance on gameplay and existing benchmarks without explicit search (2) Generalization on unseen downstream tasks and (3) generalization beyond chess into perceptual and behavioral domains such as text-to-image preference alignment and prediction persuasion.
 
-\subsection{Experimental Setup}
-\label{sec:exp_setup}
-
-\subsubsection{Baselines} 
+\subsection{Baselines} 
 We design baselines to isolate the contribution of latent state internalization from confounding factors such as model scale, training data, and agent access. Our comparisons span three paradigms:
 
 \paragraph{Language-Only Fine-Tuning.} ChessGPT~\cite{feng2024chessgpt} represents the standard approach of fine-tuning LLMs on chess notation and natural language. Since the original work provides only 2B and 3B checkpoints, we train ChessGPT-7B and ChessGPT-13B variants on our dataset for fair comparison. These models receive FEN strings, verbalized board features, and engine evaluations as text input---equivalent information content to LLAMIA's latent projection, but without continuous representations.

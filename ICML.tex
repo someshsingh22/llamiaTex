@@ -199,17 +199,12 @@ Paired with Lc0, a chess engine, LLAMIA models based on Vicuna (7B, 13B) achieve
 \input{pages/bg}
 \input{pages/methodology}
 \input{pages/experiment}
-\section{Limitations and Future Directions}
-\label{sec:limitations_future}
-
-Despite compelling results, LLAMIA requires separately trained projectors per domain. Future research could explore meta-learning techniques to enable more scalable multi-domain projector training. Encouragingly, our LoRA fine-tuning ablations (Table~\ref{tab:instruct_conditioned_planning}) indicate that substantial benefits still emerge with minimal parameter updates, highlighting opportunities for deployment-friendly versions of LLAMIA. Additionally, improving LLAMIA’s estimation accuracy in very-low skill scenarios remains an open area for future model refinement.
-
-In summary, LLAMIA robustly demonstrates the power of internalizing latent agent states to achieve expert-level reasoning and strategic flexibility, outperforming much larger externally assisted models and generalizing impressively across perceptual and behavioral domains.
 
 
 
 
-Currently, in multiagent systems, specialized agents are used as tool calls . We propose a new paradigm "internalization" of these agents. We define what agents benefit most from internalization, what is the improvement over just finetuning or toolcalling.
+
+
 
 \section*{Impact Statement}
 
