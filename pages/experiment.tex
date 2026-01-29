@@ -5,8 +5,17 @@ We now present experiments that rigorously evaluate LLAMIA’s capability to int
 \subsection{Experimental Setup}
 \label{sec:exp_setup}
 
+\subsubsection{Baselines} 
+We design baselines to isolate the contribution of latent state internalization from confounding factors such as model scale, training data, and agent access. Our comparisons span three paradigms:
 
-\subsubsection{Baselines} Given LLAMIA’s claim to efficiently internalize external agent capabilities, we select diverse and rigorous baselines. These include state-of-the-art task-specific experts on each public benchmark, significantly larger general-purpose LLMs (GPT-4o, LLaMA-3 405B) with and without direct agent access through tool-calling (Lc0). We particularly emphasize comparisons that isolate the benefit of our internal latent state projection over standard language model fine tuning (\textit{Proj-Frozen}, ChessGPT) and external agent querying (tool-calling baselines).
+\paragraph{Language-Only Fine-Tuning.} ChessGPT~\cite{feng2024chessgpt} represents the standard approach of fine-tuning LLMs on chess notation and natural language. Since the original work provides only 2B and 3B checkpoints, we train ChessGPT-7B and ChessGPT-13B variants on our dataset for fair comparison. These models receive FEN strings, verbalized board features, and engine evaluations as text input---equivalent information content to LLAMIA's latent projection, but without continuous representations.
+
+\paragraph{Tool-Calling.} GPT-4o and LLaMA-3.1 405B with Lc0 access via ReAct~\cite{wu2023autogen} represent the tool-calling paradigm. The agent returns top-5 moves with centipawn evaluations, win/draw/loss probabilities, and principal variations up to depth 20. This provides rich symbolic information but compresses the agent's full policy distribution (${\sim}30$ legal moves) into sparse outputs.
+
+\paragraph{Task-Specific Experts.} For each benchmark, we compare against the strongest published models: Maia~\cite{mcilroy2020aligning} for behavior cloning (5 separate networks per Elo bracket, trained on 12M games each), SCC~\cite{zang2019automated} for move commentary, and the 270M Transformer~\cite{ruoss2024grandmaster} for gameplay. These represent the performance ceiling achievable with task-specific architectures and abundant training data.
+
+\paragraph{Ablation Baselines.} To isolate LLAMIA's components, we include: (i) \textit{Proj-Frozen}---Stage 1 only, with the LLM frozen during Stage 2; (ii) \textit{No-InvokeAgent}---LLAMIA without dynamic re-encoding; (iii) \textit{LoRA variants}---parameter-efficient adaptation with rank 32. Detailed ablations appear in Appendix~\ref{sec:ablations}.
+% Given LLAMIA’s claim to efficiently internalize external agent capabilities, we select diverse and rigorous baselines. These include state-of-the-art task-specific experts on each public benchmark, significantly larger general-purpose LLMs (GPT-4o, LLaMA-3 405B) with and without direct agent access through tool-calling (Lc0). We particularly emphasize comparisons that isolate the benefit of our internal latent state projection over standard language model fine tuning (\textit{Proj-Frozen}, ChessGPT) and external agent querying (tool-calling baselines).
 
 LLAMIA models (7B, 13B) were trained on five nodes of 80GB A100 GPUs, totaling approximately eight days of computational budget. Hyperparameters and detailed training schedules are provided in Appendix~\ref{sec:hyperparams}. All reported metrics include bootstrap-derived 95\% confidence intervals to ensure statistically rigorous comparisons.
 

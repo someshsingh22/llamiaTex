@@ -1,1 +1,234 @@
 \section{Ablations and Additional Experiments}
+\label{sec:ablations}
+
+We conduct systematic ablations to isolate the contribution of each component in LLAMIA. These experiments address three core questions: (1) How does dynamic re-encoding via \texttt{<InvokeAgent>} affect performance across task types? (2) What is the relative contribution of Stage 1 alignment versus Stage 2 fine-tuning? (3) How sensitive is LLAMIA to architectural choices (projection tokens, agent size and ELO)?
+
+\subsection{Effect of Dynamic Re-Encoding (InvokeAgent Ablation)}
+\label{sec:invoke_ablation}
+
+The \texttt{<InvokeAgent>} mechanism enables LLAMIA to dynamically re-encode board states during generation, supporting iterative reasoning over evolving positions. We hypothesize that this capability is most valuable for multi-step tasks (conditional planning, game-level commentary) and less critical for single-step tasks (move prediction, puzzle solving). \somesh{FIX: To test this we compare LLAMIA-7B (invoke off during inference, similar to no invoke slightly better, with invoke (default), trained without invoke, use results for 7B), understanding should have a higher fall, show relative falls in delta, merge key insights in the table caption / paragraph above no separate paragraph}
+To test this hypothesis, we train a variant \textit{LLAMIA-NoInvoke} that removes the \texttt{<InvokeAgent>} token and its associated re-encoding mechanism. All other training parameters remain identical. Table~\ref{tab:invoke_ablation} presents results across five task categories.
+
+\begin{table}[h]
+\centering
+\begin{adjustbox}{max width=0.98\textwidth}
+\begin{tabular}{l|ccccc}
+\toprule[1.2pt]
+\textbf{Model} & \textbf{Gameplay (Elo)} & \textbf{BC (Acc)} & \textbf{Commentary (G-eval)} & \textbf{Planning (Win\%)} & \textbf{Understanding ($\rho$)} \\
+\midrule
+LLAMIA-13B & \valbest{2279$\pm$41} & \valbest{0.55} & \valbest{0.61} & \valbest{17\%} & \valbest{0.70} \\
+LLAMIA-13B (NoInvoke) & 2251$\pm$38 & 0.53 & 0.48 & 8\% & 0.64 \\
+\midrule
+$\Delta$ & -28 & -0.02 & \textbf{-0.13} & \textbf{-9\%} & -0.06 \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\caption{\textbf{InvokeAgent Ablation.} We compare LLAMIA-13B with and without the dynamic re-encoding mechanism. Removing \texttt{<InvokeAgent>} has minimal impact on single-step tasks (Gameplay: -28 Elo, Behavior Cloning: -2\%) but substantially degrades multi-step tasks (Commentary: -0.13 G-eval, Conditional Planning: -9\% win rate). This confirms that dynamic re-encoding is essential for tasks requiring iterative reasoning over evolving states, while static projection suffices for move-level predictions.}
+\label{tab:invoke_ablation}
+\end{table}
+
+\paragraph{Key Insight.} The asymmetric degradation pattern confirms our hypothesis: InvokeAgent contributes +9\% absolute improvement on conditional planning and +0.13 G-eval on commentary, but only +28 Elo on gameplay. Multi-step tasks benefit from the ability to query the agent at intermediate states; single-step tasks rely primarily on the initial projection quality.
+
+\subsection{Stage 1 vs Stage 2 Contribution}
+\label{sec:stage_ablation}
+
+\somesh{FIX: First explain that this is anyways required because due to the abundance and availability of synthetic data we need light weight training in stage-1 so the decision is primarily around optimal compute resources}
+LLAMIA's two-stage training separates projector alignment (Stage 1) from task-specific fine-tuning (Stage 2). We investigate whether this separation is necessary by comparing four training configurations: (1) Stage 1 only, (2) Stage 2 only with random projector initialization, (3) Full SALT, and (4) Frozen LLM during Stage 2.
+
+\paragraph{Experimental Setup.} Stage 1 uses 50M state-policy pairs from the Lichess evaluation database. Stage 2 uses the mixed dataset described in Appendix~\ref{app:data_stats}: 12M behavior cloning games, 92k commentary examples, 4M puzzles, and 80k language-only samples. We evaluate on held-out test sets for each task category.
+
+\begin{table}[h]
+\centering
+\begin{adjustbox}{max width=0.99\textwidth}
+\begin{tabular}{l|ccccc|c}
+\toprule[1.2pt]
+\textbf{Configuration} & \textbf{Gameplay} & \textbf{BC} & \textbf{Commentary} & \textbf{Planning} & \textbf{Understanding} & \textbf{Training Stability} \\
+\midrule
+Stage 1 Only & 2198$\pm$35 & 0.29 & 0.31 & 3\% & 0.45 & Stable \\
+Stage 2 Only (Random Init) & 1650$\pm$62 & 0.38 & 0.39 & 6\% & 0.51 & Unstable (first 40\%) \\
+Stage 2 Only (Catch-up) & 2089$\pm$48 & 0.47 & 0.52 & 11\% & 0.61 & Converges late \\
+Frozen LLM (Stage 2) & 2215$\pm$39 & \valgood{0.52} & 0.41 & 7\% & 0.58 & Stable \\
+\textbf{Full SALT} & \valbest{2279$\pm$41} & \valbest{0.55} & \valbest{0.61} & \valbest{17\%} & \valbest{0.70} & Stable \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\caption{\textbf{Stage 1 vs Stage 2 Ablation.} We compare training configurations to isolate the contribution of each stage. Stage 1 alone achieves reasonable gameplay (2198 Elo) but poor language-dependent tasks. Stage 2 with random initialization shows training instability for the first 40\% of training, eventually catching up but plateauing below full SALT. Freezing the LLM during Stage 2 preserves behavior cloning but degrades commentary (-0.20 G-eval) and planning (-10\% win rate). Full SALT achieves the best results across all tasks, confirming that both stages are necessary: Stage 1 provides stable initialization, Stage 2 enables task-specific adaptation.}
+\label{tab:stage_ablation}
+\end{table}
+
+\somesh{FIX: No separate paragraph for this, merge it with the experimental setup, we don't have the figures like 10x, remove random projector results,catch up results, again merge the key insight into the introductory paragraph only}
+\paragraph{Training Dynamics.} Figure~\ref{fig:stage_training} shows the evaluation loss curves for each configuration. Key observations:
+
+\begin{enumerate}
+    \item \textbf{Stage 2 without Stage 1} exhibits significant instability during the first 40\% of training, with gradient norm spikes exceeding 10$\times$ the stable baseline. The model eventually recovers but converges to a local minimum with 190 Elo lower gameplay strength.
+    
+    \item \textbf{Frozen LLM} maintains stable training throughout but shows a performance ceiling on language-heavy tasks. Behavior cloning (which primarily requires action prediction) degrades minimally (-0.03), while commentary (requiring language generation) degrades substantially (-0.20 G-eval).
+    
+    \item \textbf{Full SALT} transitions smoothly from Stage 1 to Stage 2, with the projector weights serving as a warm start that prevents early-training instability.
+\end{enumerate}
+
+\somesh{TODO: Add figure showing eval loss curves for Stage 1 $\rightarrow$ Stage 2 transition, annotating instability regions}
+
+\paragraph{Key Insight.} The staged approach addresses a fundamental tension: projector alignment requires large-scale data with simple objectives (predicting top moves), while task adaptation requires diverse, instruction-rich data. Attempting both simultaneously leads to unstable optimization. The two-stage decomposition allows each objective to converge before introducing the next.
+
+\subsection{Projection Token Count (k)}
+\label{sec:token_ablation}
+\somesh{FIX: Reduce over bulleting, sectioning, and using paragraph, explain the motivation, setup, bring the concrete results followed by analysis, we use grad norm so explosion is not an issue but we notice a lot of spike, it is not mentioned final performance of what? we measure eval loss only}
+LLAMIA projects the agent's latent state into $k=16$ tokens. We investigate sensitivity to this hyperparameter by training variants with $k \in \{4, 8, 16, 32, 64\}$.
+
+\paragraph{Stability Observations.} Training with $k < 16$ exhibits significant instability:
+\begin{itemize}
+    \item $k=4$: Gradient explosions at 15\% of training, requiring learning rate reduction that slows convergence.
+    \item $k=8$: Intermittent loss spikes throughout training, with final performance 8\% below $k=16$.
+    \item $k=16$: Stable training throughout, selected as default.
+    \item $k=32, 64$: Stable but no improvement over $k=16$; adds computational overhead.
+\end{itemize}
+
+\paragraph{Sequence Length Considerations.} Chess games average 40 moves, and with \texttt{<InvokeAgent>} calls, total sequence length can reach $16 \times 40 + \text{invoke overhead} \approx 800$ projection tokens per game. Increasing $k$ beyond 16 risks exceeding context limits for game-level tasks without proportional benefit.
+
+\subsection{Agent Encoder Quality}
+\somesh{FIX: Agent Quality is a weird non scientific term, we are primarily looking at the agent size and playing ELO, again dont over bullet, no separate paragraph for key insight, right after introductory paragraph followed by detailed results}
+\label{sec:agent_ablation}
+
+LLAMIA's performance depends on the quality of the internalized agent. We investigate this dependency by training LLAMIA with three Lc0 variants of increasing strength: T72 (72M parameters, $\sim$2200 Elo), T80 (80M parameters, $\sim$2400 Elo), and BT4 (240M parameters, $\sim$3200 Elo policy-only).
+
+\begin{table}[h]
+\centering
+\begin{adjustbox}{max width=0.99\textwidth}
+\begin{tabular}{l|c|ccccc}
+\toprule[1.2pt]
+\textbf{Agent} & \textbf{Agent Elo} & \textbf{Gameplay} & \textbf{BC} & \textbf{Commentary} & \textbf{Planning} & \textbf{Understanding} \\
+\midrule
+Lc0-T72 & $\sim$2200 & 2021$\pm$44 & 0.48 & 0.52 & 10\% & 0.58 \\
+Lc0-T80 & $\sim$2400 & 2156$\pm$42 & 0.51 & 0.56 & 13\% & 0.63 \\
+\textbf{Lc0-BT4} & $\sim$3200 & \valbest{2279$\pm$41} & \valbest{0.55} & \valbest{0.61} & \valbest{17\%} & \valbest{0.70} \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\caption{\textbf{Agent Encoder Quality Ablation.} We train LLAMIA with three Lc0 variants of increasing strength. Stronger agents consistently improve all downstream tasks, with the largest gains in gameplay (+258 Elo from T72 to BT4) and planning (+7\% win rate). Commentary and understanding also improve (+0.09 G-eval, +0.12 $\rho$), indicating that richer latent representations benefit language generation tasks. The improvement is approximately linear with agent Elo, suggesting that LLAMIA can leverage arbitrarily strong agents as they become available.}
+\label{tab:agent_ablation}
+\end{table}
+
+\paragraph{Cross-Task Sensitivity.} Interestingly, the relative improvement varies by task:
+\begin{itemize}
+    \item \textbf{Gameplay}: Most sensitive to agent quality (+258 Elo, 12.8\% relative improvement). The LLM's playing strength is upper-bounded by the agent's policy quality.
+    \item \textbf{Planning}: Highly sensitive (+7\% absolute). Stronger agents provide better counterfactual evaluations for steering toward weakness exploitation.
+    \item \textbf{Commentary}: Moderately sensitive (+0.09 G-eval). Richer positional features enable more nuanced explanations.
+    \item \textbf{Behavior Cloning}: Least sensitive (+0.07 accuracy). Human move prediction depends more on the LLM's ability to model human error patterns than on optimal play.
+\end{itemize}
+
+\paragraph{Key Insight.} LLAMIA degrades gracefully with weaker agents rather than failing catastrophically. Even with Lc0-T72 (roughly equivalent to a strong club player), LLAMIA-T72 achieves 2021 Elo and 0.48 behavior cloning accuracy---still competitive with ChessGPT-13B. This suggests the framework is applicable even when superhuman agents are unavailable.
+
+% \subsection{LLM Backbone Comparison}
+% \label{sec:backbone_ablation}
+
+% We compare Vicuna-7B/13B (our default) against Qwen3-8B to assess whether LLAMIA generalizes across LLM architectures.
+
+% \begin{table}[h]
+% \centering
+% \begin{adjustbox}{max width=0.95\textwidth}
+% \begin{tabular}{l|ccccc}
+% \toprule[1.2pt]
+% \textbf{LLM Backbone} & \textbf{Gameplay} & \textbf{BC} & \textbf{Commentary} & \textbf{Planning} & \textbf{Understanding} \\
+% \midrule
+% Vicuna-7B & 2171$\pm$31 & 0.52 & 0.49 & 14\% & 0.61 \\
+% Qwen3-8B & 2189$\pm$36 & \valgood{0.54} & \valgood{0.58} & \valgood{16\%} & \valgood{0.67} \\
+% Vicuna-13B & \valbest{2279$\pm$41} & \valbest{0.55} & \valbest{0.61} & \valbest{17\%} & \valbest{0.70} \\
+% \bottomrule[1.2pt]
+% \end{tabular}
+% \end{adjustbox}
+% \caption{\textbf{LLM Backbone Comparison.} Qwen3-8B achieves competitive performance with Vicuna-13B on language-heavy tasks (Commentary: 0.58 vs 0.61, Planning: 16\% vs 17\%) despite having 38\% fewer parameters. For gameplay, which depends primarily on the agent's policy, the gap narrows further (2189 vs 2279 Elo). This suggests that for GDU tasks, a stronger LLM backbone can partially compensate for model size, while GDM tasks remain bottlenecked by agent quality.}
+% \label{tab:backbone_ablation}
+% \end{table}
+
+% \paragraph{Key Insight.} The LLM backbone matters most for language-generation tasks (commentary, planning explanations) and least for action-prediction tasks (gameplay, puzzles). Qwen3-8B's stronger language modeling capabilities (trained on more recent data with improved tokenization) translate to better G-eval scores despite smaller size. This suggests a practical deployment strategy: use smaller, stronger LLMs for GDU applications and scale the agent for GDM applications.
+
+\subsection{Illegal Move Analysis and Policy Alignment}
+\label{sec:illegal_moves}
+\somesh{It should be mentioned that the mask is still used for inference in trained models because of huge search space although the probabilities are mostly rare, write although we exhaustively predict from the autoregressive token probabilities over the entire UCI move notation, we analyze how the perplexity changes after training}
+A critical concern for LLM-based chess systems is the generation of illegal moves. We analyze LLAMIA's behavior on illegal move tokens and measure policy alignment with the underlying agent.
+
+\paragraph{Illegal Move Perplexity.} We measure the perplexity assigned to illegal move tokens across training:
+\begin{itemize}
+    \item \textbf{Pre-training (random init)}: Illegal moves receive similar perplexity to legal moves (ratio $\approx$ 1.1$\times$).
+    \item \textbf{After Stage 1}: Illegal move perplexity increases to 8.0$\times$ legal move perplexity.
+    \item \textbf{After Stage 2}: Illegal move perplexity increases further to 16.8$\times$ (8.0 $\times$ 2.1).
+\end{itemize}
+
+This progressive increase indicates that LLAMIA learns to strongly suppress illegal moves through training, even without explicit constraints.
+
+\paragraph{KL-Divergence Analysis.} We measure the KL-divergence between LLAMIA's policy distribution and Lc0-BT4's policy across training:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{l|cc}
+\toprule[1.2pt]
+\textbf{Training Stage} & \textbf{KL (Legal Moves)} & \textbf{KL (Illegal Moves)} \\
+\midrule
+Random Init & 2.31 & 9.30 \\
+After Stage 1 & 0.89 & 4.12 \\
+After Stage 2 & \valbest{0.42} & \valbest{0.71} \\
+\bottomrule[1.2pt]
+\end{tabular}
+\caption{\textbf{Policy Alignment via KL-Divergence.} KL-divergence between LLAMIA and Lc0-BT4 policy distributions, computed over 10k held-out positions. Training reduces KL on legal moves from 2.31 to 0.42, indicating strong policy alignment. Remarkably, KL on illegal moves drops from 9.30 to 0.71, showing that LLAMIA learns to assign near-zero probability to illegal moves without explicit masking}
+\label{tab:kl_divergence}
+\end{table}
+\somesh{FIX:Merge the analysis/implication above only no need for separate paragraph}
+\paragraph{Practical Implication.} Despite the strong learned suppression, we use beam search over the legal move space during inference to guarantee legal outputs. The low KL-divergence (0.71 on illegal moves) means this filtering rarely changes the selected move.
+
+\subsection{Computational Efficiency: FSDP Implementation}
+\label{sec:fsdp_impl}
+
+Training LLAMIA requires co-locating two heterogeneous models: the LLM backbone (7B/13B parameters) and the Lc0 agent encoder (240M parameters). We implement a custom FSDP (Fully Sharded Data Parallel) configuration that efficiently shards both models across GPU workers.
+
+\paragraph{Implementation Details.}
+\begin{itemize}
+    \item \textbf{LLM Sharding}: Standard FSDP with ZeRO-2 optimization, sharding optimizer states and gradients across 8 GPUs per node.
+    \item \textbf{Agent Sharding}: Lc0-BT4 uses a Transformer encoder architecture, enabling straightforward FSDP integration. We shard the encoder layers independently from the LLM, with a dedicated communication group.
+    \item \textbf{Projector Placement}: The 3-layer MLP projector (2048 hidden dimension) is replicated across all workers due to its small size (12M parameters).
+\end{itemize}
+
+\paragraph{Efficiency Metrics.}
+\begin{itemize}
+    \item \textbf{MFU (Model FLOPs Utilization)}: LLAMIA achieves 42\% MFU compared to 44.5\% for ChessGPT-13B (same LLM, no agent)---only a 6\% relative overhead from agent integration.
+    \item \textbf{Memory Overhead}: Per-GPU memory increases by 3.2GB (from 71.2GB to 74.4GB) for agent encoder and projector weights.
+    \item \textbf{Training Throughput}: 2,850 tokens/second/GPU for LLAMIA vs 3,020 tokens/second/GPU for ChessGPT---5.6\% throughput reduction.
+\end{itemize}
+
+\paragraph{Code Availability.} We release our FSDP configuration and heterogeneous model sharding code to facilitate future research on LLM + domain-specific agent systems. The key insight is that Transformer-based agents (like Lc0) integrate naturally into existing distributed training infrastructure, making LLAMIA-style architectures practical at scale.
+
+\somesh{TODO: Add code snippet or reference to released implementation}
+
+\subsection{Chess as a Testbed for LLM-Agent Integration}
+\label{sec:chess_testbed}
+
+We motivate chess as the primary evaluation domain for LLAMIA, arguing that it provides unique advantages for studying LLM-agent integration that generalize to broader applications.
+
+\paragraph{Why Chess?}
+
+\begin{enumerate}
+    \item \textbf{Deterministic, Fully Observable Dynamics.} Chess has no hidden information or stochastic transitions, enabling precise evaluation of model decisions. Errors can be unambiguously attributed to the model rather than environment noise.
+    
+    \item \textbf{Rich Language Grounding.} Unlike most RL benchmarks, chess has centuries of natural language annotation: books, commentaries, forums, and educational materials. This enables evaluation of GDU tasks (commentary, explanation) alongside GDM tasks (gameplay, planning).
+    
+    \item \textbf{Diverse Behavioral Data.} Millions of games across skill levels (800--2800 Elo) enable behavior cloning evaluation across the full spectrum of human expertise. No other domain offers comparable behavioral diversity with ground-truth skill labels.
+    
+    \item \textbf{Established Benchmarks.} Elo ratings, puzzle accuracy, and behavior matching have well-understood semantics and decades of calibration data. New methods can be directly compared to prior work.
+    
+    \item \textbf{Superhuman Pretrained Agents.} Lc0 and Stockfish provide agents with interpretable outputs (policy distributions, value estimates) and superhuman performance, enabling study of what capabilities transfer to LLMs.
+    
+    \item \textbf{Practical Applications.} Chess tutoring, automated commentary, and adaptive training systems represent real deployment scenarios where LLM-agent integration provides direct value.
+\end{enumerate}
+
+\paragraph{Generalization Beyond Chess.}
+
+The capabilities demonstrated in chess---behavior cloning across skill levels, instruction-conditioned policy modification, latent-grounded explanation generation---have direct analogues in other domains:
+
+\begin{itemize}
+    \item \textbf{Robotics}: Cloning behaviors from demonstrations, adapting policies based on verbal instructions, explaining robot decisions.
+    \item \textbf{Game AI}: Generating commentary for esports, personalizing difficulty, detecting anomalous play patterns.
+    \item \textbf{Autonomous Driving}: Explaining planner decisions, adapting driving style to user preferences, predicting human driver behavior.
+\end{itemize}
+
+Our extensions to text-to-image preference alignment and persuasion prediction (Section~\ref{sec:cross_domain}) provide initial evidence that the SALT framework transfers beyond chess. However, we emphasize that chess serves as a controlled testbed where ground-truth evaluation is feasible---the methodology is general, but rigorous evaluation requires domain-specific benchmarks.
+
