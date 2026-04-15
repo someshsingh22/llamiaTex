@@ -479,3 +479,146 @@ We collect data of commentary on chess games from a famous Youtube channel calle
 
 
 % % 
+
+\section{Results Synthesis and Paper Positioning}
+\label{sec:results_synthesis}
+
+% This section synthesizes experimental evidence to determine the optimal paper narrative and contribution ordering.
+
+\subsection{Table-by-Table Key Insights}
+
+\paragraph{Gameplay (Table~\ref{tab:gameplay-performance})}
+\textbf{Primary Claim:} Latent internalization achieves 500$\times$ data efficiency over supervised transformers.
+\textbf{Key Delta:} LLAMIA-13B (2279 Elo, 30M positions) matches Transformer-270M (2299 Elo, 15B positions) with 500$\times$ fewer training positions.
+\textbf{Insight:} Pretrained agent knowledge transfers efficiently through projection; the LLM does not need to re-learn positional evaluation from scratch.
+\textbf{Contribution Link:} Supports SALT framework as enabling efficient knowledge transfer.
+
+\paragraph{Game-Level Commentary (Table~\ref{tab:game_commentary_annotation})}
+\textbf{Primary Claim:} A 13B model with internalized agents outperforms 405B models with tool-calling on complex reasoning tasks.
+\textbf{Key Delta:} LLAMIA-13B achieves G-eval 0.61 vs GPT-4o+Lc0 at 0.52 (+17.3\%); Highlight RMSE 5.09 vs 12.31 (+142\% improvement).
+\textbf{Insight:} Tool-calling compresses agent state into sparse outputs; internalization preserves the full policy distribution needed for nuanced commentary.
+\textbf{Contribution Link:} Directly supports dynamic projection over tool-calling paradigm.
+
+\paragraph{Behavior Cloning (Table~\ref{tab:behavior_cloning})}
+\textbf{Primary Claim:} One unified model replaces five task-specific experts while using 12$\times$ less data.
+\textbf{Key Delta:} LLAMIA-13B (single model, 1M samples) achieves 0.52-0.55 accuracy across Elo buckets vs Maia (5 models, 12M samples each) at 0.46-0.55.
+\textbf{Insight:} The LLM's language conditioning enables skill-level adaptation that specialized models achieve only through separate training.
+\textbf{Contribution Link:} Supports unified GDU/GDM as emergent capability.
+
+\paragraph{State Annotation (Table~\ref{tab:state_commentary_annotation})}
+\textbf{Primary Claim:} Latent internalization enables counterfactual reasoning that tool-calling cannot support.
+\textbf{Key Delta:} LLAMIA-13B achieves 38.13 BLEU-2 on Planning vs GPT-4o+Lc0 at 30.13 (+26.6\%).
+\textbf{Insight:} Planning commentary requires reasoning about ``what would happen if...'' which demands continuous access to agent representations, not discrete API calls.
+\textbf{Contribution Link:} Strongest evidence for dynamic re-encoding necessity.
+
+\paragraph{Puzzle Understanding (Table~\ref{tab:puzzle_understanding})}
+\textbf{Primary Claim:} Internalized representations capture human-aligned difficulty perception.
+\textbf{Key Delta:} LLAMIA-13B achieves $\rho=0.70$ on difficulty prediction vs GPT-4o+Lc0 at $\rho=0.53$ (+32\%).
+\textbf{Insight:} The agent's latent state encodes features correlated with human difficulty (piece coordination, pattern recognition) that don't transfer through symbolic outputs.
+\textbf{Contribution Link:} Supports latent states capturing richer information than tool outputs.
+
+\paragraph{Conditional Planning (Table~\ref{tab:instruct_conditioned_planning})}
+\textbf{Primary Claim:} Language-conditioned policy modification requires iterative state updates.
+\textbf{Key Delta:} LLAMIA-13B achieves 17\% win-rate improvement vs LLaMA-3.1 405B+Lc0 at 10\% (+70\% relative improvement).
+\textbf{Insight:} Exploiting opponent weaknesses requires steering play toward specific positions over multiple moves—a task requiring the \texttt{<InvokeAgent>} mechanism for ongoing state evaluation.
+\textbf{Contribution Link:} Strongest validation of dynamic re-encoding for multi-step planning.
+
+\subsection{Ablation Synthesis: What Drives Performance?}
+
+\paragraph{Most Critical: Dynamic Re-Encoding (InvokeAgent)}
+The InvokeAgent ablation (Table~\ref{tab:invoke_ablation}) reveals the starkest asymmetry:
+\begin{itemize}[leftmargin=*, itemsep=1pt]
+    \item \textbf{Single-step tasks:} Gameplay (-1.3\%), BC (-3.8\%) — minimal degradation
+    \item \textbf{Multi-step tasks:} Planning (-64.3\%), Commentary (-22.4\%) — severe degradation
+\end{itemize}
+\textbf{Causal Chain:} Multi-step tasks (conditional planning, game commentary) require reasoning over \textit{evolving} states. Static projection—like tool-calling—provides a snapshot; InvokeAgent enables a closed-loop where the LLM's actions update the environment and fresh latent states are re-encoded. This is the \textbf{key differentiator} over all baselines.
+
+\paragraph{Supporting: Two-Stage Training}
+Stage 1 alone achieves strong gameplay (2198 Elo) but poor language tasks (Commentary 0.31). Stage 2 alone shows instability. Full SALT combines both benefits.
+\textbf{Insight:} Stage 1 provides stable projector initialization from abundant synthetic data; Stage 2 enables task-specific adaptation. Neither alone is sufficient.
+
+\paragraph{Scaling: Agent Quality}
+Performance scales linearly with agent Elo (T72→BT4 gives +258 Elo, +7\% planning win-rate).
+\textbf{Insight:} LLAMIA inherits and amplifies agent capabilities—stronger agents yield proportionally better LLM performance.
+
+\subsection{Story Recommendation}
+
+We evaluate four candidate narratives against the evidence:
+
+\begin{enumerate}[label=\Alph*., leftmargin=*]
+    \item \textbf{SALT-first:} ``Unified modeling of States, Actions, Language enables emergent capabilities''
+    \item \textbf{Dynamic Projector-first:} ``InvokeAgent enables iterative reasoning over evolving states''
+    \item \textbf{Data Efficiency-first:} ``Latent internalization achieves 50-500$\times$ data efficiency''
+    \item \textbf{Unified Model-first:} ``One model replaces multiple task-specific experts''
+\end{enumerate}
+
+\paragraph{Recommendation: B (Dynamic Projector) as primary, supported by A (SALT)}
+
+\textbf{Rationale:}
+\begin{enumerate}[leftmargin=*, itemsep=2pt]
+    \item \textbf{Falsifiability:} The InvokeAgent ablation provides direct causal evidence. Reviewers can verify: ``remove InvokeAgent → planning collapses''.
+    \item \textbf{Differentiation:} Dynamic re-encoding is what separates LLAMIA from (a) tool-calling (static API outputs), (b) VLMs (static image encoding), and (c) ChessGPT (no agent at all).
+    \item \textbf{Generalizability:} The mechanism—LLM generates actions, invokes agent to re-encode updated state—applies to robotics, games, and any sequential decision domain.
+    \item \textbf{Memorability:} ``The LLM operates state evolution as a tool call'' is a crisp, memorable framing.
+\end{enumerate}
+
+SALT is the \textit{enabling framework} that makes dynamic re-encoding possible; data efficiency and unified capabilities are \textit{consequences}. The story should be: \textbf{``Dynamic re-encoding enables multi-step reasoning (B), implemented via SALT (A), achieving 500$\times$ data efficiency (C) and unified capabilities (D).''}
+
+\subsection{Contribution Ordering}
+
+Based on the synthesis above, we recommend the following ordering:
+
+\begin{enumerate}[leftmargin=*, itemsep=4pt]
+    \item \textbf{PRIMARY: Latent State Internalization with Dynamic Re-Encoding}
+    
+    \textit{``A paradigm for LLM-agent integration where the agent's latent representation is projected into the LLM's token space, with support for dynamic re-encoding during generation via the \texttt{<InvokeAgent>} mechanism.''}
+    
+    \textbf{Justification:} This is the core methodological innovation. Without InvokeAgent, planning drops 64\%; without projection, the entire approach collapses. This component has the highest Novelty $\times$ Impact.
+    
+    \item \textbf{SECONDARY: SALT Training Framework}
+    
+    \textit{``A two-stage training methodology—projector alignment followed by interleaved fine-tuning on State, Action, and Language tokens—achieving 4$\times$ data efficiency over language-only fine-tuning.''}
+    
+    \textbf{Justification:} SALT is the architectural scaffold that makes Contribution 1 possible. The two-stage design (Table~\ref{tab:stage_ablation}) is necessary for stable training. This provides the ``how'' to Contribution 1's ``what''.
+    
+    \item \textbf{TERTIARY: Emergent GDU/GDM Capabilities}
+    
+    \textit{``Empirical demonstration that latent internalization enables capabilities limited in baselines: controllable policy modification (+17\% win-rate), cross-Elo behavior cloning (55\% accuracy), and preferred commentary (G-eval 0.61).''}
+    
+    \textbf{Justification:} These are the consequences that validate Contributions 1 and 2. Strong empirically but derivative conceptually.
+    
+    \item \textbf{QUATERNARY: LLAMIA-Bench}
+    
+    \textit{``A benchmark for evaluating LLM-agent systems on generalized decision making and understanding, with tasks for conditional planning, behavior cloning, commentary, and state annotation.''}
+    
+    \textbf{Justification:} Valuable for reproducibility and future work, but secondary to the methodological contributions.
+\end{enumerate}
+
+\subsection{Reviewer-Ready Pitch}
+
+The paper's core claims, in descending order of importance:
+
+\begin{enumerate}[leftmargin=*, itemsep=3pt]
+    \item \textbf{Dynamic projection enables iterative reasoning over evolving states}, unlocking multi-step planning that tool-calling cannot support. Evidence: 17\% planning win-rate improvement; 64.3\% drop when InvokeAgent is removed; Commentary G-eval 0.61 vs 0.52 for GPT-4o+Lc0.
+    
+    \item \textbf{Latent internalization achieves 500$\times$ data efficiency} by leveraging pretrained agent knowledge. Evidence: 30M positions vs 15B for comparable Elo; 1 model vs 5-model ensemble for behavior cloning; 1M samples vs 12M for Maia-level accuracy.
+    
+    \item \textbf{Unified modeling enables a 13B model to outperform 30$\times$ larger LLMs with tool-calling} on reasoning-intensive tasks. Evidence: +26.6\% on Planning BLEU-2 vs GPT-4o+Lc0; +17.3\% on G-eval vs GPT-4o+Lc0; +32\% on difficulty prediction $\rho$.
+\end{enumerate}
+
+\subsection{The Paper Story}
+
+\textbf{One-line pitch:} LLAMIA internalizes pretrained agents into LLMs via dynamic latent projection, enabling iterative reasoning over evolving states that tool-calling cannot support.
+
+\textbf{Expanded narrative:}
+Large language models excel at language but struggle with multi-step reasoning over structured states. The dominant paradigm—tool-calling—compresses rich agent representations into sparse symbolic outputs, creating an information bottleneck. We propose \textit{latent state internalization}: projecting the agent's continuous representation directly into the LLM's token space, with a novel \texttt{<InvokeAgent>} mechanism for dynamic re-encoding during generation. This closed loop enables the LLM to reason over evolving states—critical for planning, commentary, and policy adaptation.
+
+We instantiate this as LLAMIA, combining Vicuna with the Lc0 chess engine. Key findings:
+\begin{itemize}[leftmargin=*, itemsep=1pt]
+    \item Removing InvokeAgent causes 64\% degradation on planning but only 1\% on single-step tasks, confirming that dynamic re-encoding is \textit{specifically} critical for multi-step reasoning.
+    \item A 13B LLAMIA outperforms 405B models with tool-calling on commentary (G-eval 0.61 vs 0.52) and planning (+7\% win-rate), demonstrating that latent internalization overcomes the tool-calling bottleneck.
+    \item Extensions to vision (ImageReward internalization) and persuasion (Chronos internalization) show the approach generalizes beyond chess.
+\end{itemize}
+
+The contribution is not ``better chess AI'' but a \textbf{paradigm for LLM-agent integration} that applies wherever iterative reasoning over structured states is needed: robotics, autonomous driving, game AI, and beyond.
+
