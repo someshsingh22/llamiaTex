@@ -112,7 +112,7 @@
 \begin{document}
 
 \twocolumn[
-  \icmltitle{LLAMIA: Large Language and Action Models with Internal Agents for Decision Making and Reasoning}
+  \icmltitle{Internalizing Heterogeneous Agents in Language Model Reasoning}
 
   % It is OKAY to include author information, even for blind submissions: the
   % style file will automatically remove it for you unless you've provided
@@ -179,16 +179,18 @@
 
 
 \begin{abstract}
-Foundation models (FMs) exhibit strong zero-shot generalization in language (e.g., BERT, GPT-3) and vision (e.g., ViTs) across downstream tasks. Building on this, recent research has explored the use of Large Language Models (LLMs) as general-purpose planners for agentic systems in domains such as gaming, marketing, virtual assistants, and autonomous driving. However, despite their extensive world knowledge, LLMs continue to struggle with structured, multi-step reasoning and long-horizon planning. We introduce LLAMIA, a novel framework that integrates pretrained domain-specific agents into LLMs by projecting latent agent states directly into the LLM’s token space. This allows LLMs to internalize and invoke agent behavior autoregressively, augmenting their intrinsic planning and reasoning capabilities.
-Paired with Lc0, a chess engine, LLAMIA models based on Vicuna (7B, 13B) achieve grandmaster-level performance without search. They outperform fine-tuned experts, significantly larger LLMs (e.g., GPT-4o, LLaMA-3 405B), and tool-augmented systems across planning and reasoning tasks including behavior cloning ($\uparrow$5–10\%), commentary generation ($\uparrow$20–25\% BLEU), and conditional planning ($\uparrow$7–10\% win rate). We further demonstrate LLAMIA's extensibility to other environments (1) Text-to-Image preference alignment, improving over VisionReward by +7.9\% win rate in DPO and 5\% in preference prediction accuracy (2) Persuasion Modeling, $\sim$5\% improvement in persuasion prediction. These results also highlight LLAMIA’s robustness and its potential to generalize across perceptual and behavioral environments.
-\vspace{-5mm}
+Large language models increasingly collaborate with external agents for planning, reasoning, and domain-specific decision-making. Two paradigms have emerged: tool calling, where agents communicate via text, and latent multi-agent systems, where homogeneous language models exchange continuous representations. However, for \textit{heterogeneous} agents---pretrained neural networks for game playing, control, or evaluation whose internal representations occupy fundamentally different spaces---tool calling remains the only integration path, compressing rich continuous states (policy distributions, value estimates, positional features) into sparse symbolic outputs.
+
+We propose \textit{latent state internalization}: projecting a heterogeneous agent’s internal representations directly into the LLM’s chain-of-thought reasoning via a lightweight adapter ({<}1\% additional parameters, $K{=}32$ tokens per state). An \texttt{InvokeAgent} mechanism enables dynamic re-encoding as states evolve during multi-step reasoning, and we train these augmented reasoning traces with GRPO, enabling the model to learn when and how to invoke the internalized agent.
+
+We validate on chess---a domain with deterministic dynamics, calibrated evaluation via Elo ratings, and superhuman pretrained agents. A single 13B model with an internalized chess engine achieves 2279$\pm$41 Elo without search, 55\% behavior cloning accuracy across skill levels, 0.61 G-eval on game commentary, and a 17\% win-rate gain from instruction-conditioned planning---matching or exceeding task-specific specialists and 30$\times$ larger LLMs with tool access. Ablations confirm that dynamic re-encoding is the critical mechanism: removing it causes 64\% degradation on planning tasks but only 1--4\% on single-step predictions. These results establish latent internalization as a more efficient and capable paradigm than tool calling for integrating heterogeneous agents into LLM reasoning.
 \end{abstract}
 
 
 \begin{figure}[!h]
     \centering
     \includegraphics[width=0.98\linewidth]{llamia-fig (5).pdf}
-    \caption{\textbf{LLAMIA Architecture Overview.} Given a state $S_0$ (e.g., images, tweets, or board configurations) and a language instruction, the agent's encoder representation $h_{S_0}$ is projected into the LLM's embedding space (indicated by \textcolor[HTML]{8C25FF}{\(\rightarrow\)}) as the internal state projection $z_{S_0}$ and gets concatenated with the LLM language and \texttt{<action>} tokens. During \textit{pretraining}, only the projector $H_\psi$ is trained, while during \textit{fine-tuning}, both the LLM and the projector are jointly trained. At inference time, the LLM uses a special \texttt{<InvokeAgent>} token followed by the state input to explicitly query the agent’s understanding. This allows the model to reason over both the current and counterfactual states.
+    \caption{\textbf{Latent State Internalization.} Given a state $S_0$ and a language instruction, the agent’s encoder representation $h_{S_0}$ is projected into the LLM’s embedding space via $H_\phi$ (indicated by \textcolor[HTML]{8C25FF}{\(\rightarrow\)}) as $K{=}32$ continuous tokens $z_{S_0}$, interleaved with language and \texttt{<action>} tokens. Stage~1 trains only the projector $H_\phi$ on state-policy pairs; Stage~2 fine-tunes both LLM and projector on diverse instruction data. At inference, the \texttt{<InvokeAgent>} token triggers dynamic re-encoding: the LLM’s generated action transitions the state, and the agent produces fresh latent tokens for the updated position, enabling iterative reasoning over evolving states.
 }
     \vspace{-3mm}
     \label{fig:LLAMIA}
