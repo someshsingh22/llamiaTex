@@ -1,0 +1,909 @@
+\section{Working TODO: Experiments, Analyses, and Visualizations}
+\label{sec:todo}
+
+\emph{Working appendix} synthesizing (i) the 2026-04-27 call log,
+(ii) prior reviewer comments on this work (Sec.~\ref{sec:reviewer_action_items}),
+(iii) lessons mined from 16 closely-related papers' OpenReview discussions
+in \texttt{paper\_reviews/}, and (iv) self-critique of the current draft.
+Items are tagged \textbf{[P0]} (camera-ready blocker),
+\textbf{[P1]} (paper is materially weaker without it), or
+\textbf{[P2]} (appendix-only, time-permitting).
+The appendix is organized around the load-bearing thesis statement and works
+outward to ablations, mechanistic analyses, scaling, baselines,
+human studies, and presentation hygiene.
+
+\subsection{Headline thesis the experiments must defend}
+\label{sec:todo_narrative}
+
+The paper claims \emph{one} thesis:
+\textbf{verbalized agent access (text-mediated tool calling, even when its
+invocation policy is RL-optimized) is structurally insufficient for
+\emph{sustained} LLM--agent collaboration; latent-state internalization with
+dynamic re-encoding closes that gap}.
+Every experiment, ablation, and figure must be auditable against
+exactly one of:
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Verbalization is the bottleneck}
+    (deltas vs.\ text-mediated baselines on tasks that require sustained
+    interaction; cf.\ \cite{toolrl2025} as the strongest verbalized-RL
+    baseline).
+    \item \textbf{Dynamic re-encoding is the load-bearing component}
+    (asymmetric degradation: multi-step vs.\ single-step;
+    Sec.~\ref{sec:invoke_ablation}).
+    \item \textbf{It generalizes beyond chess}
+    (Sec.~\ref{sec:todo_extensions}; reviewers LEvg/HUaR repeatedly flagged
+    chess-only framing; the rejected \texttt{Maia4All} review shows this
+    omission can sink a paper on its own).
+    \item \textbf{Mechanistic plausibility} (latent tokens encode
+    interpretable, instruction-controllable structure;
+    Sec.~\ref{sec:todo_sae}).
+    \item \textbf{Scaling story} (joint scaling of LLM-side and
+    agent-side intelligence; Sec.~\ref{sec:todo_scaling}).
+\end{enumerate}
+
+\paragraph{External thesis-supporting citation we should lean on hard.}
+\cite{yRxX01oRIi-cot-hurts} (NeurIPS'25 poster; ``Why CoT Sometimes Hurts'')
+formalizes a 3-stage CoT noise decomposition $(\alpha_k, \epsilon_k)$ for
+decomposition / solving / summarization, and shows empirically that
+\emph{more reasoning tokens compound errors on inductive tasks}.
+This is the cleanest external argument that verbalization is structurally
+worse than latent conditioning, and it should appear in
+\S\ref{sec:methodology} as the formal motivation for re-encoding rather than
+re-verbalization.
+
+\subsection{Benchmark organization and the two-radar headline figure}
+\label{sec:todo_benchmark_layout}
+
+\textbf{[P0] Two-radar headline figure (Fig.~1 candidate).}
+Replace current Fig.~1 with two side-by-side radars; the call log nominated
+this layout explicitly:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Left -- Public benchmarks:} behavior cloning (Maia-test),
+    state annotation (move-level commentary), gameplay (Elo), puzzle accuracy.
+    Millions of supervised points exist; task experts are the relevant ceiling.
+    \item \textbf{Right -- LLAMIA-Bench (low-data regime):} GM25 cloning,
+    bullet/blitz time-format cloning, $\pm 500$ Elo gap cloning, behavior
+    stylometry, game-level commentary, instruction-conditioned planning,
+    puzzle interestingness, puzzle human-difficulty.
+\end{itemize}
+Each radar overlays four systems: SOTA task expert, GPT-4o\,+\,ReAct(Lc0),
+LLaMA-3 405B\,+\,ReAct(Lc0), LLAMIA-13B (ours).
+
+\textbf{Why two radars and not one:} the call log's principal organizing axis
+is \emph{public-vs-low-data} (also phrased as \emph{in-distribution vs.\
+in-the-wild}). Low-data tasks are where text-only fine-tuning and
+tool-calling both fail and where internalization shows its unique value.
+
+\textbf{[P0] Task taxonomy table (appendix companion).}
+Single table classifying each task on three axes:
+(a) \emph{state understanding} vs.\ \emph{policy understanding};
+(b) \emph{single-step} vs.\ \emph{sustained} interaction;
+(c) \emph{public} vs.\ \emph{LLAMIA-Bench (low-data)}.
+This pre-empts ``what is LLAMIA-Bench actually testing that public splits
+don't?'' (a ChessQA \cite{kefUcn22mk-chessqa} reject critique).
+
+\textbf{[P0] Cross-task correlation matrix.}
+Pearson/Spearman matrix between subtask scores per system. The argument:
+LLAMIA-Bench tasks share a common ``sustained collaboration'' axis.
+\cite{LLM-CHESS-65R1Dbfwzk} was rejected partly for failing to show this --
+the reviewer demand was explicit. Also do an external correlation: each
+LLAMIA-Bench score vs.\ Game-Arena Elo / LiveCodeBench Pass@1.
+
+\textbf{[P1] Skill-acquisition curves (extend Fig.~\ref{fig:icp}).}
+For each of the eight LLAMIA-Bench tasks, plot performance vs.\ \% Stage-2
+data, with skill icons at fractions where each task ``turns on.''
+Done once with consistent style across all tasks. The current
+single-task version is a strong template -- promote to a panel.
+
+\textbf{[P1] Pareto plot: capability per parameter / per FLOP.}
+Two-axis Pareto: $x$ = LLM params (or train FLOPs), $y$ = aggregate
+LLAMIA-Bench score. LLAMIA-7B / 13B sit above the verbalized-tool baseline
+curve. Borrowed from Chessformer \cite{chessformer-2ltBRzEHyd},
+which used this layout to defend a ``Pareto improvement'' framing
+that reviewers loved.
+
+\subsection{Sustained-interaction stress tests}
+\label{sec:todo_sustained}
+
+The thesis hinges on \emph{sustained} collaboration, but most current metrics
+are single-shot. Add the following.
+
+\textbf{[P0] Game-level commentary -- replay graph.}
+Per game, plot timestep-aligned trajectories of
+(i) engine evaluation, (ii) commentary attention to the played move,
+(iii) per-move annotation accuracy. Define ``narrative continuity'' as
+correlation between commentary salience and second derivative of engine eval
+(turning points). LLAMIA should track turning points; tool-calling should
+miss them.
+
+\textbf{[P0] ICP turn-by-turn budget curve.}
+Per ICP game log per move:
+(a) win-rate evolution (Monte Carlo with $\geq 100$ rollouts via Lc0),
+(b) deviation from base-policy KL,
+(c) whether the move matched the instructed strategic theme (a held-out
+LLM-judge classifier validated against $\geq 100$ human-labeled examples,
+$\kappa \geq 0.7$ -- cf.\ \cite{yRxX01oRIi-cot-hurts}).
+Plot expected win-rate vs.\ move number. Tool-calling should peak early;
+LLAMIA's gap should widen with depth -- the most direct evidence that
+re-encoding compounds.
+
+\textbf{[P0] Multi-step commentary fidelity vs.\ horizon.}
+Truncate commentary at first $N$ moves; ask raters to predict game outcome
+(centipawn at end). Plot accuracy vs.\ $N$. Tool-calling plateaus;
+LLAMIA continues to improve. Mirrors Allie \cite{Allie-bc2H72hGxB}'s
+phase-of-game decomposition request.
+
+\textbf{[P1] $k$-step rollout BC accuracy.}
+Single-step BC accuracy vs.\ rollout BC accuracy at $k=1,3,5,8$.
+Verbalization penalty should compound; LLAMIA's slope should be flatter than
+text-mediated baselines.
+
+\textbf{[P1] Phase-of-game decomposition.}
+Opening / middlegame / endgame breakdown of every gameplay-related metric
+(Elo, BC accuracy, commentary G-eval, ICP win-rate). \cite{Allie-bc2H72hGxB}
+reviewers demanded this in rebuttal; treating it as a default makes our
+results more legible.
+
+\subsection{Mechanistic interpretability via Sparse Autoencoders}
+\label{sec:todo_sae}
+
+The call log nominated this as a flagship analysis. The two
+\emph{rejected} Maia-2 SAE papers (\cite{gBz9NMbvYS-maia2-sae,Wxl0JMgDoU-maia2-sae})
+provide a clear lesson: feature visualization alone is insufficient; reviewers
+demand causal interventions, comparisons against alternative interpretability
+methods, and human-grounded ecological validity.
+
+\textbf{[P0] Convergent multi-method evidence.}
+Following \cite{Leela-lookahead-8zg9sO4ttV}'s template, support every claim
+about the $K{=}16$ latent tokens with three independent lines of evidence:
+\begin{enumerate}[leftmargin=*]
+    \item \emph{Sparse autoencoder.} Top-$k$ or JumpReLU SAE on LLM-side
+    embeddings of the projected tokens. Dictionary $\in\{8\text{k},32\text{k}\}$,
+    $L_0 \approx 32$, ghost-grad. Hyperparameter selection criterion follows
+    \cite{gBz9NMbvYS-maia2-sae}: jointly optimize reconstruction and
+    \emph{Concept-Coverage AUC} (CC-AUC) against a curated set of chess
+    concepts (piece type, square color, pawn structure, king safety,
+    mate-in-$n$, endgame type, opening family, tactical motifs).
+    \item \emph{Linear probes.} Train probes for each concept directly on
+    $\vz_s$ and $\vh_s$. Reviewers in
+    \cite{gBz9NMbvYS-maia2-sae,Wxl0JMgDoU-maia2-sae} explicitly
+    demanded this comparison; \cite{BLOIB8CwBI-soundness} shows probes can be
+    decodable but causally inert. Report probe accuracy and intervention
+    accuracy per concept.
+    \item \emph{Activation patching.} Pair (clean FEN, corrupted FEN) such
+    that Lc0 changes top move but a weak engine does not. Patch latent
+    tokens between conditions; measure log-odds change on next-move
+    prediction. Direct adaptation of \cite{Leela-lookahead-8zg9sO4ttV}'s
+    protocol.
+\end{enumerate}
+
+\textbf{[P0] $\pi$ vs.\ $\pi'$ feature-delta experiment (call log flagship).}
+For one fixed position $s$, harvest:
+$\vz_s^{\text{base}}$ (neutral instruction),
+$\vz_s^{\text{ICP}}$ (e.g.\ ``opponent weak in endgames''),
+$\vz_s^{\text{Maia}}$ (e.g.\ ``play like 1500 Elo'').
+Decompose via SAE; show sparse delta $\Delta f$.
+Hypothesis: ICP $\Delta f$ concentrates on endgame features;
+Maia $\Delta f$ matches the per-feature delta of \emph{actual Maia-1500}
+relative to base Lc0 (Maia is public; we have ground truth).
+Publishable headline: \emph{instruction reproduces what fine-tuning does to a
+separate model}.
+
+\textbf{[P0] Key figure: 1 position $\times$ 3 instructions $\times$ 3 SAE views.}
+Layout: 3 rows (instructions) $\times$ 3 columns (board with arrows, top-K
+activated SAE features, board heatmap of feature attribution). One ICP
+example, one BC example. Call log explicitly nominated this as the
+``one example has to be the key figure'' figure.
+
+\textbf{[P0] Causal steering experiment.}
+Identify the SAE direction most predictive of an ICP instruction.
+\emph{Ablate} the instruction prompt but \emph{add} the SAE direction at
+inference time. Recovery of the win-rate delta is causal evidence.
+This is the missing piece in \cite{gBz9NMbvYS-maia2-sae,Wxl0JMgDoU-maia2-sae}
+that contributed to their rejection.
+
+\textbf{[P0] Future-move-square probe (implicit lookahead).}
+Linear probes on $\vz_s$ predicting the principal-variation squares 1, 3, 5
+moves in the future. Direct adaptation of
+\cite{Leela-lookahead-8zg9sO4ttV} \S 3.3. Report probe accuracy on solved
+mate-in-$N$ puzzles and on quiet positions; the gap argues that LLAMIA
+inherits implicit search.
+
+\textbf{[P0] Per-token ablation (which of the 16 tokens does what?).}
+Ablate one of $K{=}16$ tokens at a time; plot log-odds reduction across tasks.
+Group tokens by ablation effect (gameplay-critical, commentary-critical,
+ICP-critical). Mirrors \cite{Leela-lookahead-8zg9sO4ttV}'s per-(layer, head)
+heatmap. Ties directly to the existing $k$-sweep ablation in
+\S\ref{sec:token_ablation}.
+
+\textbf{[P0] First-$N$ (not cherry-picked) feature catalog.}
+\cite{chessformer-2ltBRzEHyd} reviewers explicitly demanded a
+\emph{non-cherry-picked} catalog. Annotate the first 40 SAE features by
+firing frequency; ship the remainder behind an anonymized URL with full
+visualizations. Boring features count: ``square is occupied,''
+``piece-on-d5,'' ``check.''
+
+\textbf{[P0] Adversarial soundness check.}
+Following \cite{BLOIB8CwBI-soundness}'s IMO-style protocol, adversarially
+probe whether dynamic re-encoding prevents hallucinated state references in
+LLAMIA's commentary (``the rook on c8 is attacking $\dots$'' when no rook on
+c8). Compare to verbalized-tool baseline. Quantify factual board errors per
+1000 commentary tokens.
+
+\textbf{[P1] Human ecological validity of interventions.}
+Show two annotated games to chess-experienced raters: one un-intervened,
+one with the SAE-direction added. Ask raters to identify which followed an
+instruction. \cite{Wxl0JMgDoU-maia2-sae} reviewer wbeH demanded this for
+a Maia SAE; we should bake it in.
+
+\textbf{[P1] Distinct from Karvonen et al.\ (Othello SAE) and Maia-2 SAE.}
+Required differentiation paragraph: we operate on the
+\emph{LLM-side projection} of an external policy, not the policy's own
+latents. SAE features here are about how the LLM \emph{reads} the agent,
+not what the agent \emph{computes}. Cited in
+\cite{gBz9NMbvYS-maia2-sae,Wxl0JMgDoU-maia2-sae}.
+
+\subsection{Scaling-law axes (insights that ``travel across the board'')}
+\label{sec:todo_scaling}
+
+Per call log, area chairs reward insights that generalize beyond the
+specific paper. Multi-axis scaling is the cleanest such insight.
+
+\textbf{[P0] LLM size $\times$ agent Elo (the headline 2D scaling figure).}
+Train LLAMIA with LLM $\in\{$1B, 3B, 7B, 13B, 32B$\}$ (we have 7B/13B; add at
+least 1B and 32B) crossed with agent $\in\{$Maia-1500, Lc0-T72 ($\sim$2200),
+T80 ($\sim$2400), BT4 ($\sim$3200)$\}$. Plot for the four headline metrics
+(BC, commentary, ICP, gameplay). Expected insight: minimum LLM size below
+which agent quality stops mattering; minimum agent Elo below which
+collaboration collapses to LLM-only. Frontier is diagonal.
+Call log: ``so this is one access of computing -- how many units of compute
+do you give birth date?'' -- here we operationalize that across both axes.
+
+\textbf{[P0] Three-way GRPO comparison (Re-Tool style anchor figure).}
+Identical reward, base model, rollout count for three runs:
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Text-only GRPO:} no agent.
+    \item \textbf{Tool-calling GRPO:} ReAct over Lc0 (exact \cite{toolrl2025}
+    recipe).
+    \item \textbf{Latent-internal GRPO (LLAMIA):} latent tokens +
+    \texttt{<InvokeAgent>}.
+\end{enumerate}
+Reward and held-out win-rate vs.\ training step on the ICP task.
+``How does the gap evolve?'' is the canonical retool-style figure.
+Call log: ``how will multi-agent reinforcement learning with GRP work out?''
+-- this is the answer.
+
+\textbf{[P0] Avoid the term ``scaling laws.''}
+\cite{DiffuSearch-A9y3LFX4ds} reviewers explicitly attacked ``scaling laws''
+language without proper power-law fits. Use ``scaling trends'' or
+``compute--performance curves'' unless we have $\geq 4$ decades and bootstrap
+fits.
+
+\textbf{[P1] Data-axis scaling.}
+Stage-1 data $\in\{$1M, 5M, 25M, 50M$\}$ state--policy pairs;
+Stage-2 data $\in\{$50k, 250k, 1M$\}$ instruction examples. Two scaling
+curves per task. Compute the \emph{compute-equivalent improvement}:
+``how many additional Stage-2 samples does internalization buy you over
+text-only fine-tuning?'' Backs the ``$4\times$ data efficiency'' claim
+already in the draft.
+
+\textbf{[P1] Compute-allocation tradeoff (Pareto frontier).}
+Fixed training-FLOPs budget; sweep allocation between LLM-side
+parameters/data and agent-side search depth.
+ICP and game-commentary should favor LLM-side; raw gameplay should favor
+agent-side. Resolves the call-log point ``the search is not getting stirred
+into the latent internalization, that is a problem.''
+
+\textbf{[P1] Test-time compute Pareto.}
+\#\texttt{<InvokeAgent>} calls per game vs.\ task performance. Distinguish
+two budgets: LLM tokens (CoT length) and agent calls. Two-axis curve.
+At fixed wall-clock, what is the optimal split? Generalizes the existing
+$K$-token ablation.
+
+\textbf{[P2] Reasoning-budget $\times$ task difficulty.}
+\cite{kefUcn22mk-chessqa,LLM-CHESS-65R1Dbfwzk} demonstrated that reasoning
+budget (low/med/high effort) interacts with task difficulty. Sweep CoT
+length budget $\in\{0, 256, 1024, 4096\}$ tokens and report performance
+per budget. Required for the verbalized-tool baseline to look honest.
+
+\subsection{Three-way method comparison: behavior diff under matched reward}
+\label{sec:todo_three_grpo}
+
+Even when the three GRPO runs (text-only, tool-call, latent) reach similar
+reward, classify and compare their \emph{behaviors} (call log: ``software
+repair spotlight, the difference in behavior even at $0.3\%$ delta'').
+\begin{itemize}[leftmargin=*]
+    \item Average rollout length, agent-invocation frequency, distribution of
+    strategic themes (clustered).
+    \item Diversity of move sequences (KL between rollout-move distributions).
+    \item Failure-mode taxonomy (Sec.~\ref{sec:todo_failure}).
+\end{itemize}
+Goal: show that the three paradigms develop \emph{qualitatively different}
+collaboration policies even at matched performance.
+
+\subsection{Failure-mode taxonomy and granular error analysis}
+\label{sec:todo_failure}
+
+\textbf{[P0] Verbalized-tool failure taxonomy.}
+\cite{kefUcn22mk-chessqa,LLM-CHESS-65R1Dbfwzk} both built explicit failure
+taxonomies that anchored their narratives. Build ours:
+(i) tool-call format error,
+(ii) hallucinated move string / nonexistent piece reference,
+(iii) sound analysis but wrong final action,
+(iv) ``no answer'' / refusal,
+(v) plan abandonment / off-topic drift,
+(vi) strategic blunder (the only ``honest'' error category).
+For each system, report counts per category on a held-out 500-position set.
+LLAMIA should eliminate (i)--(iv), preserve only (v) and (vi).
+
+\textbf{[P0] Three-stage CoT-error decomposition.}
+Apply \cite{yRxX01oRIi-cot-hurts}'s
+$(\alpha_k^{\text{decomp}}, \alpha_k^{\text{solve}}, \alpha_k^{\text{summ}})$
+decomposition to verbalized-tool baselines. Each verbalized step
+contributes a noise term; latent re-encoding bypasses two of three.
+Quantify per-stage contribution.
+
+\textbf{[P1] LLAMIA failure-mode breakdown.}
+When LLAMIA is wrong: (a) LLM-side reasoning, (b) agent-side, (c) interface
+(latent token mis-conditioned). Confusion matrix across tasks.
+
+\subsection{Behavior cloning, stylometry, and skill calibration}
+\label{sec:todo_bc}
+
+\textbf{[P0] Maia-equivalence claim.}
+For each Maia-X (X $\in \{1100, 1300, 1500, 1700, 1900\}$), compare
+LLAMIA-instructed-as-X vs.\ Maia-X vs.\ Lc0 with depth tuned to match X.
+Metrics: move-match accuracy, KL to actual human moves at that Elo,
+``human-likeness'' under a held-out classifier. Narrative:
+\emph{instruction reproduces what fine-tuning does to a separate model.}
+
+\textbf{[P0] Skill calibration plot.}
+\cite{Allie-bc2H72hGxB}'s 49-Elo gap figure is the clean skill-calibration
+template. Plot LLAMIA's effective Elo vs.\ instructed Elo target;
+report a single calibration-error number (mean $|$achieved $-$ target$|$).
+
+\textbf{[P0] Lichess deployment.}
+\cite{Allie-bc2H72hGxB,DiffuSearch-A9y3LFX4ds,lnIlH0hfek-mom} all deployed on
+Lichess; reviewers reward this. Run $\geq 1{,}000$ ranked games per Elo
+target; collect win/draw/loss + a short post-game survey
+(``did your opponent feel human?''). Cite IRB exemption
+\textbf{45 CFR 46.104(d)(2)(ii)} as in \cite{Allie-bc2H72hGxB}.
+
+\textbf{[P0] Stylometry: Top-1, Top-2, Top-3 accuracy.}
+\cite{lnIlH0hfek-mom} was rejected partly for silently swapping Top-1/2 for
+Top-3+ when results disappointed. Report all three; transparent confusion
+matrix; \emph{also} report on held-out \emph{real} GM games not used in
+training. Split-half consistency. Diagonal-dominance number.
+
+\textbf{[P0] Round-robin Elo table.}
+\cite{CvjXlsBLCX-strength-est}'s round-robin among controlled-strength
+agents, with iterative Elo update from pairwise win-rates. Apply to
+LLAMIA-instructed-as-X for $X \in \{1500, 1700, 1900, 2100, 2300\}$ vs.\
+Maia and Lc0-depth-matched. 250 games per cell; Elo CIs from bootstrap.
+
+\textbf{[P1] GM25 / time-format / Elo-gap (low-data splits).}
+Already in LLAMIA-Bench draft. Add $\geq 3$ baselines (Maia-best-of-5,
+GPT-4o+ReAct, ChessGPT-13B-IFT) per split, plus SAE-feature traces showing
+which features drive each cloned style. Address the
+\cite{Maia4All-bwhLqFjsxd} rejection critique: tiny \% deltas read cosmetic;
+anchor each delta to an Elo-equivalent unit.
+
+\textbf{[P1] Behavior stylometry as inverse task.}
+Predict Elo / time-format / identity from a played game. Compare LLAMIA
+(internalized latent) to a transformer-from-scratch and to
+\cite{CvjXlsBLCX-strength-est}'s SE Bradley--Terry baseline. Report
+rank-prediction accuracy as a function of \#observed games
+$\{1, 10, 20, 50, 100\}$ with bootstrap CIs from $\geq 500$ resamples.
+
+\textbf{[P1] Per-Elo move-match curves with binomial CIs.}
+\cite{chessformer-2ltBRzEHyd,Allie-bc2H72hGxB} both made per-Elo curves
+(1000--2800) the centerpiece. Plot LLAMIA, Maia, and tool-calling
+baselines together with binomial 95\% CIs; aleatoric ceiling at low Elo,
+epistemic headroom at high Elo.
+
+\textbf{[P2] Soft-token Elo conditioning.}
+\cite{Allie-bc2H72hGxB} introduced ``soft tokens'' for continuous-Elo
+conditioning. Cite as motivation for $K{=}16$ projected agent tokens
+(continuous, soft, learned) over discrete one-hot conditioning.
+
+\subsection{State annotation and commentary}
+\label{sec:todo_commentary}
+
+\textbf{[P0] Move-level vs.\ game-level decomposition.}
+Same model on (a) move-level annotation and (b) game-level commentary;
+plot the gap over baselines for each. Move-level = single-step (small
+gap; tool call suffices); game-level = multi-step (large gap; re-encoding
+compounds). Mirrors the InvokeAgent ablation in language space.
+
+\textbf{[P1] Annotation-accuracy and salience-targeting metrics.}
+Define formally:
+(i) \emph{annotation accuracy}: does commentary correctly identify
+blunder/brilliancy/quiet for each move?
+(ii) \emph{salience targeting}: does commentary emphasize moves the engine
+flags as turning points (eval-second-derivative thresholds)?
+Aggregate across $\geq 100$ games; binomial CIs.
+
+\textbf{[P1] Counterfactual coverage.}
+Subset of state-annotation set where ground-truth commentary discusses
+counterfactual lines (``if Black had played \dots''). Score systems on
+counterfactual coverage. Cleanest motivation for re-encoding: counterfactuals
+require invoking the agent on a hypothetical state.
+
+\textbf{[P1] Verbosity-binned comparison.}
+\cite{toolrl2025}-style reviewers (and ZW8t Q5) ask whether LLAMIA wins by
+being verbose. Bin systems by output-token count; show LLAMIA wins
+\emph{within each bin}.
+
+\textbf{[P2] Pedagogy diversity proxy.}
+Diversity of strategic concepts mentioned per commentary as automatic proxy.
+Cluster-count $\in \{$tactics, strategy, endgame, opening theory,
+psychology$\}$.
+
+\subsection{Puzzles: difficulty, interestingness, and rationale}
+\label{sec:todo_puzzles}
+
+\textbf{[P0] Counter-intuitiveness reward signal.}
+Adopt \cite{TNZse5q2Tr-creative-puzzles}'s definition: shallow-search eval
+$\neq$ deep-search eval. Operationalize via \texttt{lc0\_server} \texttt{/policy}
+endpoint with $\text{nodes} \in \{1, 64, 1024\}$; report
+$|\Delta \text{eval}|$ as the difficulty signal. Validate against Lichess
+puzzle ratings (Pearson $r$).
+
+\textbf{[P0] Human difficulty prediction with rationale.}
+Beyond Spearman-$\rho$: have LLAMIA \emph{justify} its predicted difficulty
+(``hard for $\sim$1600 because $\dots$''); raters score whether the rationale
+is correct. \cite{TNZse5q2Tr-creative-puzzles} acknowledged the deepmind
+generative-chess paper has a difficulty predictor without rationale; our
+contribution is the explanation. $\kappa \geq 0.7$ across $\geq 3$ raters.
+
+\textbf{[P1] Hard-puzzle subset (anti-saturation).}
+\cite{kefUcn22mk-chessqa} added 100 Lichess puzzles rated 3000+ in
+rebuttal -- GPT-5 high-effort solved only 26/100. Replicate: a
+``LLAMIA-Bench-Hard'' subset at the top decile of Lichess difficulty.
+Pre-empts ``benchmark saturates'' critique.
+
+\textbf{[P1] Pre-cutoff vs.\ post-cutoff contamination test.}
+Split puzzles by Lichess upload date $\leq$/$>$ each baseline LLM's
+training-data cutoff. Run $z$/Fisher tests for accuracy difference.
+Required by \cite{kefUcn22mk-chessqa}; chess web data is heavily scraped.
+
+\textbf{[P2] Puzzle generation (stretch).}
+Use LLAMIA to generate puzzles conditioned on a difficulty target. Have
+humans rate authenticity. Appendix-only; cf.\
+\cite{TNZse5q2Tr-creative-puzzles}.
+
+\subsection{Ablations beyond the existing five}
+\label{sec:todo_ablations}
+
+Existing: Stage-1/2, InvokeAgent, $k$, agent-size, illegal-move analysis.
+Add:
+
+\textbf{[P0] Latent vs.\ symbolic-rich ablation.}
+Replace $\vz_s$ with a textual representation of equivalent information
+content (top-$k$ moves with full eval, WDL probabilities, principal
+variations to depth 20, positional features). Train both at matched FLOPs.
+The thesis collapses if symbolic-rich text closes the gap; this is the
+cleanest possible ablation of \emph{representation form} given matched
+\emph{information content}.
+
+\textbf{[P0] $\vz_s$ vs.\ $\vh_s$ (raw vs.\ projected).}
+Reviewer ZW8t's central question. Train LLAMIA with raw $\vh_s$
+token-padded to $k\times e$ vs.\ projected $\vz_s$. If parity, drop the
+projector claim.
+
+\textbf{[P0] Random / zeroed / weak-engine latent ablations.}
+\cite{DiffuSearch-A9y3LFX4ds}-style ``random world / oracle world / corrupted
+world.'' Replace $\vz_s$ with: (a) Gaussian noise of matched shape and
+norm, (b) zeros, (c) $\vz_{s'}$ from a corrupted FEN, (d) $\vz_s$ from a
+weaker agent (Lc0-T72 instead of BT4). Shows information \emph{content}
+matters, not just bandwidth.
+
+\textbf{[P0] Future-paradigm ablation.}
+\cite{DiffuSearch-A9y3LFX4ds} S-AA / S-ASA / S-AVAV / S-AVSAV. Train
+LLAMIA where the latent encodes only:
+(a) policy distribution, (b) value, (c) policy + value,
+(d) policy + value + future-trajectory tokens. Show each ingredient adds.
+
+\textbf{[P0] InvokeAgent placement policy.}
+Three policies: every-move, learned-adaptive (current), random-matched-count.
+Adaptive should beat both. Defends ``LLM learns \emph{when} to invoke.''
+
+\textbf{[P0] Train/test data-leakage audit.}
+\cite{cmN8Wbvanr-card-games,kefUcn22mk-chessqa} both demanded this.
+Per benchmark report: (a) overlap with Stage-1 self-play data (FEN-level),
+(b) overlap with Stage-2 instruction data, (c) Lichess game-ID overlap,
+(d) date-cutoff for Stage-1 data. Single audit table in appendix.
+
+\textbf{[P0] General-capability retention.}
+\cite{cmN8Wbvanr-card-games} demanded MMLU/HumanEval/GSM8K before/after
+SFT to show non-catastrophic forgetting. Re-run on LLAMIA-13B; if
+retention is poor, do a ``general-mix recovery'' run with general-data
+in Stage 2.
+
+\textbf{[P1] Projector capacity.}
+3-layer MLP (current) vs.\ linear vs.\ Q-Former cross-attention vs.\
+6-layer MLP. Marginal-gain analysis; defends current choice or motivates
+upgrade.
+
+\textbf{[P1] Loss-weighting sensitivity.}
+\cite{Allie-bc2H72hGxB} reviewers asked for per-head loss-weight ablations.
+For us: Stage-1 alignment weight, Stage-2 BC weight, ICP RL weight.
+
+\textbf{[P1] Search-budget sensitivity.}
+\cite{Allie-bc2H72hGxB} reviewers wanted move-match-vs-search-budget.
+For us: vary \texttt{<InvokeAgent>} count per game and report task
+performance; matches the test-time compute Pareto.
+
+\textbf{[P2] LoRA vs.\ full fine-tune.}
+ZW8t flagged LoRA mention without details. Single LoRA-rank-32 row in main
+table; full ablation in appendix.
+
+\textbf{[P2] Sampling-strategy attack.}
+\cite{BLOIB8CwBI-soundness} added top-$k$/top-$p$ adversarial sampling in
+rebuttal. Sanity check that LLAMIA's gains hold under temperature$=$1
+sampling and not just greedy.
+
+\subsection{Generalization beyond chess}
+\label{sec:todo_extensions}
+
+The current persuasion+vision extensions are too thin (LEvg/HUaR flagged;
+\cite{Maia4All-bwhLqFjsxd} was rejected partly on a similar weakness).
+Strengthen one, demote one, add one.
+
+\textbf{[P0] Poker (call-log proposal).}
+Hidden information and bluffing -- features chess cannot show. Use a public
+poker engine (e.g.\ Pluribus open-source ports, OpenSpiel Texas Hold'em)
+plus an opponent-modeling dataset. Question:
+\emph{can the LLM strategize against a stated tendency to bluff?}
+Even one figure in the main paper plus a one-page appendix counters the
+``chess-only'' criticism. Call log: ``poker has lying and all that does not
+come into play in chess.''
+
+\textbf{[P1] Persuasion (deepen, not delete).}
+Move ``self vs.\ industry'' time-series ablation into main paper.
+Per-day-of-week breakdown (the +15pp weekend spike). SAE on the
+Chronos-Bolt projection (does it discover ``weekend spike'' features?).
+Add the broader-impact paragraph HUaR demanded.
+
+\textbf{[P1] AIME-style OOD generalization micro-experiment.}
+\cite{yRxX01oRIi-cot-hurts}'s 45\%$\to$65\% AIME table is one row; reviewers
+loved it. For us: pick one non-chess decision task (e.g.\ a single OpenSpiel
+game) and run a single internalize-vs-tool-call comparison. One table, one
+paragraph.
+
+\textbf{[P2] Vision (demote).}
+VisionReward to appendix, single paragraph, single table. Reviewers do not
+believe vision tasks are central to the planning thesis; we agree.
+
+\textbf{[P2] Robotics / Hanabi (stretch).}
+SFT-only result on Hanabi (sustained interaction + partial observability)
+as appendix.
+
+\subsection{Human evaluation}
+\label{sec:todo_human_study}
+
+Current human study (\S\ref{sec:human_study}) is solid but narrow.
+
+\textbf{[P0] ICP rationality task.}
+Show raters paired (game, instruction). ``Did the player follow the
+instruction?'' Score LLAMIA, GPT-4o+ReAct, no-instruction baseline.
+Validates that instruction-following is real, not metric-gaming.
+
+\textbf{[P0] Tiered rater pool.}
+Following \cite{afaakBqkvb-obscuro}: stratify raters by chess Elo
+($\sim$1400, 1700, 2000, $\geq$2200). Per-tier win-rate; binomial $p$-value.
+Pre-empts ``raters were not strong enough'' critique.
+
+\textbf{[P0] Inter-annotator $\kappa$.}
+\cite{yRxX01oRIi-cot-hurts}'s Cohen's $\kappa = 0.86$ on failure-mode coding
+became the gold standard. Two annotators per item, $\geq 100$ items per
+task; report $\kappa$ explicitly.
+
+\textbf{[P0] LLM-judge validation.}
+\cite{yRxX01oRIi-cot-hurts} validated GPT-4o-as-judge against blind human
+majority on 100 cases ($\kappa = 1.0$). Replicate for our G-eval and
+ICP-rationality classifiers. Without this, automatic metrics will be
+challenged.
+
+\textbf{[P1] Stylometry blind tasting.}
+Two games shown to raters: one Maia-X, one LLAMIA-instructed-as-X. Can
+raters discriminate? Lower discrimination = better cloning. Across
+$X \in \{1100, 1500, 1900, 2300\}$.
+
+\textbf{[P1] GM testimonials.}
+\cite{TNZse5q2Tr-creative-puzzles} included three GM/IM testimonials about
+their puzzle booklet; reviewers explicitly cited this favorably. Solicit
+1--2 named GM/IM blurbs about LLAMIA's commentary or ICP behavior.
+
+\textbf{[P1] Pre-registration.}
+Pre-register the human-study analysis plan (sample size, primary metric,
+exclusion criteria) before data collection. Mention the OSF/AsPredicted
+registration in the paper. Strong methodological-rigor signal.
+
+\subsection{Reviewer action items (from prior submission)}
+\label{sec:reviewer_action_items}
+
+Distilled from \texttt{pages/reviews.tex}. Each item is addressed by either
+an experiment, a clarification, or a deletion.
+
+\textbf{[P0] Notation cleanup (ZW8t, HUaR).}
+Merge $\vs_t, \vo_t, \vz_t$ into a single consistent set. Pick one of
+$\va_t$ vs.\ $\vy_t$. Rewrite \S\ref{sec:methodology} Eq.~(1) so each
+symbol is defined once and every conditioning bar is unambiguous.
+HUaR's complaint that the model ``is conditioned on tokens it is also
+tasked with predicting'' is the most damaging; fix it explicitly.
+
+\textbf{[P0] POMDP framing (LEvg, HUaR).}
+Either back the POMDP framing with a precise decision-theoretic argument
+(define $\mathcal{S}, \mathcal{A}, \mathcal{O}, T, R$ for the LLM--agent
+system, derive optimal policy, connect to the loss) or downgrade to
+``inspired by.''
+
+\textbf{[P0] Fair-comparison frame (LEvg).}
+Add at least one matched-fine-tune comparison: GPT-4o tool-call \emph{after}
+fine-tuning on the same Stage-2 data. If LLAMIA still wins, claim is
+defensible.
+
+\textbf{[P0] Latent CoT and adjacent related work.}
+ZW8t flagged missing contemporary latent-CoT work. Discuss explicitly:
+Coconut (Hao et al.\ 2024), latent multi-agent collaboration
+(\cite{latentmas2025}), implicit-reasoning literature, and any 2025--2026
+latent-CoT papers. Add row in comparison table; add row in related work.
+
+\textbf{[P0] Tool-call protocol box (HUaR).}
+Pseudocode box describing exactly what GPT-4o + Lc0 does: prompt template,
+tool schema, output format, retry policy, max calls per move, decoding
+settings. Without this, reviewers cannot judge whether the comparison is
+honest.
+
+\textbf{[P0] Reasoning-model baseline (cmN8Wbvanr-style).}
+\cite{cmN8Wbvanr-card-games} reviewers said \emph{absent} reasoning models
+is a defect. Add DeepSeek-R1 / o3 / Qwen3-thinking as baselines on at
+least one task category.
+
+\textbf{[P1] Figure 1 redesign (ZW8t).}
+Replace with the two-radar from \S\ref{sec:todo_benchmark_layout}. Place
+\emph{after} contributions, with an inset glossary defining all terms used.
+
+\textbf{[P1] Color-coding legend (LEvg).}
+Explicit legend in Table~\ref{tab:chess_benchmarks} caption explaining
+\valbest{best}, \valgood{second-best}, ``--''. SOTA(SFT) must name the model.
+
+\textbf{[P1] Verbosity vs.\ quality (ZW8t Q5).}
+Quantify avg.\ tokens per system; verbosity-binned comparison
+(\S\ref{sec:todo_commentary}).
+
+\textbf{[P1] Long-horizon planning evidence (LEvg).}
+LEvg flagged that long-horizon claims rest on ``vs.\ GPT-4o.''
+ICP turn-by-turn budget curve (\S\ref{sec:todo_sustained}) is the answer.
+
+\textbf{[P1] Robotics/AD policy-LLM connections (HUaR).}
+Add a related-work paragraph: RT-2, PaLM-E, Gato, Octo. Differentiate:
+those projects re-train both encoder and LLM jointly on physical actions;
+we project a \emph{frozen, heterogeneous} agent's latents.
+
+\textbf{[P2] Broader impact paragraph.}
+HUaR flagged the persuasion experiments need broader-impact discussion.
+Add a Limitations subsection: manipulation risks of internalized
+persuasion-classifier embeddings.
+
+\textbf{[P2] Limitations expansion.}
+\cite{lnIlH0hfek-mom} was rejected partly for missing limitations.
+Currently \texttt{limitations.tex} is six lines. Expand to: domain-coupling
+to projector; chess as testbed (transfer caveats); failure under
+out-of-distribution states; computational cost of dynamic re-encoding.
+
+\subsection{Paper-positioning insights from accepted vs.\ rejected papers}
+\label{sec:todo_positioning}
+
+Lessons from the digest of \texttt{paper\_reviews/}:
+
+\textbf{Why accepted papers got accepted.}
+\begin{itemize}[leftmargin=*]
+    \item \emph{Convergent multi-method evidence}
+    (\cite{Leela-lookahead-8zg9sO4ttV}): three independent techniques pointing
+    at the same conclusion. We will mirror this for the SAE story.
+    \item \emph{Pareto-improvement framing on a single dimension}
+    (\cite{chessformer-2ltBRzEHyd}): same architecture, multiple wins.
+    Apply: ``one model, one paradigm, multiple wins.''
+    \item \emph{Counter-intuitive empirical finding tied to a clean
+    theoretical model} (\cite{yRxX01oRIi-cot-hurts}). Our equivalent: dynamic
+    re-encoding helps planning $64\%$ but only $1\%$ on single-step --
+    explain via the $\alpha_k/\epsilon_k$ decomposition.
+    \item \emph{Curated, deterministic benchmark}
+    (\cite{kefUcn22mk-chessqa,LLM-CHESS-65R1Dbfwzk} both \emph{rejected}
+    despite this -- it is necessary, not sufficient).
+    \item \emph{Tournament-style head-to-head + binomial $p$-values}
+    (\cite{afaakBqkvb-obscuro}).
+    \item \emph{Live deployment / community engagement}
+    (\cite{DiffuSearch-A9y3LFX4ds,Allie-bc2H72hGxB}: Lichess bot;
+    \cite{TNZse5q2Tr-creative-puzzles}: GM testimonials).
+\end{itemize}
+
+\textbf{Why rejected papers got rejected.}
+\begin{itemize}[leftmargin=*]
+    \item Marginal numerical gain not anchored to interpretable units
+    (\cite{Maia4All-bwhLqFjsxd}: 51\%$\to$53\% reads cosmetic).
+    Anchor to Elo-equivalent.
+    \item Missing oracle / ceiling baselines (\cite{Maia4All-bwhLqFjsxd}).
+    Add ``oracle agent call'' ceiling.
+    \item Missing human baseline / human eval (\cite{kefUcn22mk-chessqa,
+    gBz9NMbvYS-maia2-sae,Wxl0JMgDoU-maia2-sae}).
+    \item Probing without causation
+    (\cite{gBz9NMbvYS-maia2-sae,Wxl0JMgDoU-maia2-sae}). Always pair probes
+    with interventions.
+    \item Silent metric-swapping (\cite{lnIlH0hfek-mom} dropped Top-1/Top-2
+    when results disappointed). \emph{Always} report all top-$k$.
+    \item Missing limitations (\cite{lnIlH0hfek-mom}).
+    \item Missing reasoning-model baseline
+    (\cite{cmN8Wbvanr-card-games}).
+    \item ``Descriptive'' benchmark with no mechanism story
+    (\cite{LLM-CHESS-65R1Dbfwzk}). Each LLAMIA-Bench task must isolate a
+    \emph{specific} verbalization failure mode.
+    \item Imprecise terminology (\cite{DiffuSearch-A9y3LFX4ds}: ``scaling
+    laws,'' ``compounding error''). Be specific.
+\end{itemize}
+
+\subsection{Visualizations checklist}
+\label{sec:todo_viz}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{[P0] Two-radar} (\S\ref{sec:todo_benchmark_layout}).
+    \item \textbf{[P0] Pareto plot of capability-per-parameter}
+    (\S\ref{sec:todo_benchmark_layout}).
+    \item \textbf{[P0] SAE figure: 1 position $\times$ 3 instructions
+    $\times$ 3 views} (\S\ref{sec:todo_sae}).
+    \item \textbf{[P0] Three-method GRPO training curves}
+    (\S\ref{sec:todo_three_grpo}).
+    \item \textbf{[P0] LLM size $\times$ agent Elo heatmap}
+    (\S\ref{sec:todo_scaling}).
+    \item \textbf{[P0] Replay graph of game-level commentary}
+    (\S\ref{sec:todo_sustained}).
+    \item \textbf{[P0] Per-Elo move-match curves with binomial CIs}
+    (\S\ref{sec:todo_bc}).
+    \item \textbf{[P0] Round-robin Elo table}
+    (\S\ref{sec:todo_bc}).
+    \item \textbf{[P0] Failure-mode taxonomy stacked bar}
+    (\S\ref{sec:todo_failure}).
+    \item \textbf{[P0] Verbosity-binned comparison}
+    (\S\ref{sec:todo_commentary}).
+    \item \textbf{[P1] Sankey/contingency of collaborative strategies}
+    (\S\ref{sec:todo_three_grpo}).
+    \item \textbf{[P1] Skill-acquisition icons across all bench tasks}
+    (\S\ref{sec:todo_benchmark_layout}).
+    \item \textbf{[P1] Per-move ICP win-rate evolution}
+    (\S\ref{sec:todo_sustained}).
+    \item \textbf{[P1] Per-move strength-score curves}
+    (\S\ref{sec:todo_bc}).
+    \item \textbf{[P1] LLAMIA-side failure-mode confusion matrix}
+    (\S\ref{sec:todo_failure}).
+    \item \textbf{[P1] CC-AUC heatmap across SAE features and skill levels}
+    (\S\ref{sec:todo_sae}).
+    \item \textbf{[P2] $k$-step BC degradation curve}
+    (\S\ref{sec:todo_sustained}).
+    \item \textbf{[P2] Feature-frequency / dead-feature histogram}
+    (SAE diagnostic).
+    \item \textbf{[P2] Cost-per-game table} (\$ / tokens), per
+    \cite{LLM-CHESS-65R1Dbfwzk}.
+\end{itemize}
+
+\subsection{Risks, traps, and contingency plans}
+\label{sec:todo_risks}
+
+\textbf{[P0] What if SAE features are not interpretable on the LLM-side
+projection?}
+Likely partial outcome -- the projector may disperse semantics. Mitigations:
+(a) train SAEs on \emph{both} agent-side $\vh_s$ and LLM-side $\vz_s$;
+report alignment; (b) frame the SAE section as
+``existence proof of human-meaningful features'' rather than exhaustive labeling;
+(c) lean on the causal-intervention experiment (which only requires \emph{some}
+identifiable directions, not full coverage).
+
+\textbf{[P0] What if LLM size $\times$ agent Elo scaling is flat in our range?}
+Plan B: show the regime where it breaks (very weak LLM \emph{or} very weak
+agent) and frame qualitatively.
+
+\textbf{[P0] What if matched-fine-tune GPT-4o catches up?}
+Likely on single-step. Plan B: lean harder on
+sustained-interaction metrics, where re-encoding makes a structural difference.
+
+\textbf{[P0] What if the radar charts show LLAMIA losing on public benchmarks?}
+The honest framing is ``parity on public, win on low-data.''
+Pre-write this narrative now so the paper does not over-claim.
+
+\textbf{[P1] What if InvokeAgent's measured impact is prompt-sensitive?}
+Likely. Robustness check: rerun the InvokeAgent ablation under three
+different ICP prompt templates; report variance. Also test top-$p$ sampling
+in addition to greedy (\cite{BLOIB8CwBI-soundness}-style robustness).
+
+\textbf{[P1] What if entropy collapses during GRPO?}
+\cite{TNZse5q2Tr-creative-puzzles,lnIlH0hfek-mom} both flag this for chess
+RL. Apply diversity-filtering (\cite{TNZse5q2Tr-creative-puzzles} \S 2.1);
+cite Wang 2025, Cui 2025, Yu 2025 (DAPO).
+
+\textbf{[P1] What if Lc0 self-play games leak into LLAMIA-Bench?}
+Audit and report (\S\ref{sec:todo_ablations} ``Train/test data-leakage'').
+
+\textbf{[P2] What if behavior-cloning gains read cosmetic?}
+Anchor every \% delta to an Elo-equivalent number, mirroring
+\cite{CvjXlsBLCX-strength-est}'s round-robin Elo conversion.
+
+\subsection{Methodology rigor checklist}
+\label{sec:todo_rigor}
+
+Compiled from cross-cutting reviewer demands across all 16 papers:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{[P0]} 95\% CIs (bootstrap, $\geq 500$ resamples) on
+    \emph{every} headline metric. Replace bare numbers with
+    ``$\hat\mu \pm \text{CI}_{95}$.''
+    \item \textbf{[P0]} Binomial / $z$-score / Fisher tests for human-eval
+    and head-to-head numbers.
+    \item \textbf{[P0]} Inter-annotator $\kappa$ for any qualitative coding.
+    \item \textbf{[P0]} Matched-pair LLM comparisons (same family, adjacent
+    release date) when claiming size effects.
+    \item \textbf{[P0]} Player- (or game-) disjoint train/test splits;
+    document.
+    \item \textbf{[P0]} Pre-cutoff vs.\ post-cutoff contamination test for
+    each LLM baseline; tabulate.
+    \item \textbf{[P0]} Detailed baseline cards (prompts, retry policy,
+    decoding settings, max calls, tools).
+    \item \textbf{[P0]} Pseudocode in appendix for projector + dynamic
+    re-encoding loop + GRPO recipe.
+    \item \textbf{[P0]} Single ``Threats to validity'' paragraph in
+    Limitations.
+    \item \textbf{[P1]} Strict no-retry evaluation protocol for gameplay
+    (greedy decoding; no error-correction loops);
+    cf.\ \cite{lnIlH0hfek-mom}.
+    \item \textbf{[P1]} Open code, anonymized website with full SAE catalog.
+    \item \textbf{[P1]} Avoid forbidden phrases: ``scaling laws,''
+    ``compounding error'' (use ``error amplification''),
+    ``simultaneously masters'' (use ``transfers across''),
+    ``counterparts'' (use ``matched-pair sibling'').
+\end{itemize}
+
+\subsection{Pre-camera-ready cleanup checklist}
+\label{sec:todo_cleanup}
+
+\begin{itemize}[leftmargin=*]
+    \item Resolve every \texttt{\textbackslash somesh\{\dots\}} margin note.
+    \item Replace placeholder Figs.\ 1 / 2 with redesigned versions.
+    \item Move VisionReward results to appendix; tighten persuasion narrative.
+    \item Cross-link every claim in the Introduction to the table/figure that
+    backs it (each $\to$ \texttt{\textbackslash ref}).
+    \item Re-render every table with consistent significant figures
+    ($\leq 4$ dp; \cite{TNZse5q2Tr-creative-puzzles} reviewers complained
+    about 6 dp).
+    \item Bootstrap CIs on every numeric cell.
+    \item Fix Eq.\ symbol overloads (probe $e$ vs.\ Elo $e$;
+    set $\mathcal{B}$ vs.\ count $B$).
+    \item Add explicit decoding-setting rows to baseline tables (greedy /
+    top-$p$ / temperature).
+    \item Ship code + checkpoints + LLAMIA-Bench under a single repo with
+    a frozen evaluation script;
+    pre-register human-study analysis plan.
+    \item Add citations for: Coconut (Hao et al.), Maia-2,
+    \cite{toolrl2025} (Re-Tool), \cite{latentmas2025},
+    \cite{TNZse5q2Tr-creative-puzzles} (creative chess puzzles, ent-collapse),
+    \cite{yRxX01oRIi-cot-hurts} (CoT hurts inductive),
+    \cite{Leela-lookahead-8zg9sO4ttV} (learned lookahead in Leela),
+    \cite{chessformer-2ltBRzEHyd} (Chessformer GAB),
+    \cite{Allie-bc2H72hGxB} (Allie),
+    \cite{DiffuSearch-A9y3LFX4ds} (DiffuSearch),
+    \cite{afaakBqkvb-obscuro} (Obscuro FoW chess),
+    \cite{CvjXlsBLCX-strength-est} (Strength Estimator),
+    \cite{kefUcn22mk-chessqa} (ChessQA),
+    \cite{LLM-CHESS-65R1Dbfwzk} (LLM CHESS),
+    \cite{lnIlH0hfek-mom} (Mixture-of-Masters),
+    \cite{Maia4All-bwhLqFjsxd} (Maia4All prototype),
+    \cite{cmN8Wbvanr-card-games} (8-card-games SFT),
+    \cite{BLOIB8CwBI-soundness} (adversarial soundness),
+    \cite{gBz9NMbvYS-maia2-sae,Wxl0JMgDoU-maia2-sae} (Maia-2 SAEs),
+    Karvonen et al.\ 2024 (Othello SAE).
+\end{itemize}
+
+\paragraph{Status.}
+This document is the active synthesis of camera-ready obligations.
+It is intended to be revised in place as experiments land; entries should
+move from \textbf{[P0]/[P1]/[P2]} to checked-off prose in the relevant
+appendix section, with pointers back here removed once integrated.

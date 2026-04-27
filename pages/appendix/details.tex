@@ -1,0 +1,568 @@
+\section{Implementation Details}
+\label{app:details}
+
+This appendix records all implementation details necessary for reproducibility: training hyperparameters, RL configuration, prompt templates, and library versions.
+
+%------------------------------------------------------------------------------
+\subsection{Libraries and Software}
+\label{app:details:libraries}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+\textbf{Package} & \textbf{Version} & \textbf{Role} \\
+\midrule
+PyTorch & 2.7.0+cu126 & Training backend \\
+VERL & 0.7.1 & RL training framework \\
+vLLM & 0.14.0 & Rollout inference engine \\
+Ray & 2.55.1 & Distributed orchestration \\
+Transformers & 5.x & Model loading \& tokenization \\
+lc0 & 0.32.1 & Chess specialist engine (UCI binary) \\
+python-chess & 1.11.2 & UCI client / FEN handling \\
+FastAPI / Uvicorn & 0.136 / 0.46 & HTTP wrapper for the engine \\
+CUDA toolkit & 12.4 & lc0 build target (cuBLAS) \\
+\bottomrule
+\end{tabular}
+\caption{Key software dependencies.}
+\label{tab:libraries}
+\end{table}
+
+%------------------------------------------------------------------------------
+\subsection{Model}
+\label{app:details:model}
+
+% TODO: fill in base LLM, projector architecture, K, adapter size
+
+%------------------------------------------------------------------------------
+\subsection{Training Hyperparameters}
+\label{app:details:hparams}
+
+% TODO: fill in per-stage hyperparams (Stage 1 projector pretraining, Stage 2 GRPO fine-tuning)
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+\textbf{Hyperparameter} & \textbf{Stage 1} & \textbf{Stage 2 (GRPO)} \\
+\midrule
+Learning rate & -- & -- \\
+Batch size & -- & -- \\
+Epochs & -- & -- \\
+KL coefficient & -- & -- \\
+$K$ (latent tokens) & 32 & 32 \\
+\bottomrule
+\end{tabular}
+\caption{Training hyperparameters.}
+\label{tab:hparams}
+\end{table}
+
+%------------------------------------------------------------------------------
+\subsection{RL Configuration (VERL + vLLM)}
+\label{app:details:rl}
+
+Reinforcement learning uses GRPO as the advantage estimator, implemented via the VERL framework~\cite{} with an external vLLM rollout server.
+
+% TODO: rollout temperature, top-p, response length, reward shaping details
+
+%------------------------------------------------------------------------------
+\subsection{Chess Specialist: lc0 + BT4}
+\label{app:details:lc0}
+
+The chess specialist agent is Leela Chess Zero (\texttt{lc0}) v0.32.1 running the BT4 transformer network. The LLM accesses it through an HTTP wrapper (\texttt{lc0\_server}); no in-process binding into the LLM training stack — the wrapper is a process boundary.
+
+\paragraph{Engine binary.}
+Built from upstream source (commit \texttt{v0.32.1}) with \texttt{gcc 11.4}, \texttt{meson} + \texttt{ninja}, CUDA toolkit 12.4. Build invocation: \texttt{./build.sh release -Dgtest=false -Ddnnl=false}. Both \texttt{cuda} (fp32) and \texttt{cuda-fp16} backends are produced; we run \texttt{cuda-fp16} on A100 (SM 8.0). The binary is dynamically linked, lives at \texttt{/dev/shm/somesh/lc0\_src/build/release/lc0}, and exposes a UCI interface on stdin/stdout. lc0's CUDA backend uses cuBLAS only — no cuDNN dependency.
+
+\paragraph{Network.}
+\texttt{BT4-1024x15x32h-swa-6147500-policytune-332.pb.gz} from the lczero ``contrib networks'' bucket: a 1024-dim, 15-block, 32-head BT4 transformer, multihead format (policy / value / WDL / moves-left), saved at training step 6{,}147{,}500 after a SWA pass and a policy-tuning fine-tune (\texttt{policytune-332}). On disk: 365\,MB compressed; resident GPU footprint at our settings: $\sim$\,2.9\,GB (weights in fp16 plus cuBLAS workspace).
+
+\paragraph{Tool interface.}
+The engine is exposed via FastAPI on \texttt{http://localhost:7100} with three endpoints (Table~\ref{tab:lc0-api}). The LLM never speaks UCI directly; it issues JSON over HTTP, mediated by the wrapper. The same FEN-based interface generalises to any UCI engine, so swapping in Stockfish or Leela contempt nets later requires no LLM-side change.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+\textbf{Endpoint} & \textbf{Body} & \textbf{Returns} \\
+\midrule
+\texttt{GET /health} & --- & \texttt{\{status, engine\_id, backend, weights\}} \\
+\texttt{POST /analyze} & \texttt{\{fen, nodes?, movetime\_ms?, multipv?\}} & \texttt{\{bestmove, multipv:[\{score\_cp, mate, depth, nodes, time\_ms, pv\}]\}} \\
+\texttt{POST /policy} & \texttt{\{fen, nodes?\}} & \texttt{\{value\_root, moves:[\{move, P, N, Q, WL, D, V, U, S, M\}]\}} \\
+\bottomrule
+\end{tabular}
+\caption{HTTP interface to \texttt{lc0\_server}. \texttt{/policy} parses lc0's \texttt{VerboseMoveStats} info-string lines: \texttt{P} is the NN prior in $[0,1]$, \texttt{V} the per-child single-eval network value in $[-1, +1]$, \texttt{Q} the running average action-value, \texttt{N} the visit count. With \texttt{nodes} $\geq$ \#\,legal\,moves, every root child is expanded exactly once and \texttt{P}/\texttt{V} reduce to a pure forward pass.}
+\label{tab:lc0-api}
+\end{table}
+
+\paragraph{Engine flags --- overrides versus defaults.}
+We deliberately leave search-behaviour flags at the upstream defaults so the engine matches publicly reproducible Leela behaviour; we override only the resource and observability flags driven by GPU-sharing (the engine co-resides on a single A100 with the RL rollout vLLM, dp=8). Both groups are listed in Table~\ref{tab:lc0-flags} for full reproducibility. Authoritative descriptions and defaults are taken from the lczero documentation~\cite{lc0flags}.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{llll}
+\toprule
+\textbf{Parameter} & \textbf{Upstream default} & \textbf{Our value} & \textbf{Rationale} \\
+\midrule
+\multicolumn{4}{l}{\emph{Overridden (resources / observability)}} \\
+\midrule
+\texttt{Backend}              & \texttt{cuda-auto} & \texttt{cuda-fp16} & Explicit fp16 on Ampere \\
+\texttt{WeightsFile}          & \texttt{<autodiscover>} & BT4 path & Pinned weights \\
+\texttt{Threads}              & \texttt{0} (backend) & \texttt{2} & Two CPU workers feeding the GPU batch \\
+\texttt{MinibatchSize}        & \texttt{0} (backend) & \texttt{128} & Throughput sweet spot on A100 (Table~\ref{tab:lc0-bench}) \\
+\texttt{MaxPrefetch}          & \texttt{32} & \texttt{32} & Upstream default --- memory is flat, no reason to throttle \\
+\texttt{NNCacheSize}          & \texttt{2{,}000{,}000} & \texttt{200{,}000} & Cap host RAM; FEN-cache hits dominate at low N \\
+\texttt{VerboseMoveStats}     & \texttt{false} & \texttt{true} & Required for the \texttt{/policy} parser \\
+\texttt{MultiPV}              & \texttt{1} & per-request & Set per call by python-chess \\
+\midrule
+\multicolumn{4}{l}{\emph{Held at upstream defaults (search behaviour)}} \\
+\midrule
+\texttt{CPuct}                  & \texttt{1.75}    & \multicolumn{2}{l}{cpuct\_init for PUCT} \\
+\texttt{CPuctBase}              & \texttt{38739}   & \multicolumn{2}{l}{cpuct\_base for PUCT growth} \\
+\texttt{CPuctFactor}            & \texttt{3.89}    & \multicolumn{2}{l}{cpuct growth multiplier} \\
+\texttt{FpuStrategy}            & \texttt{reduction}& \multicolumn{2}{l}{First-Play Urgency mode} \\
+\texttt{FpuValue}               & \texttt{0.33}    & \multicolumn{2}{l}{FPU offset for unvisited nodes} \\
+\texttt{PolicyTemperature}      & \texttt{1.36}    & \multicolumn{2}{l}{Policy softmax temperature} \\
+\texttt{OutOfOrderEval}         & \texttt{true}    & \multicolumn{2}{l}{Cache / terminal short-circuit} \\
+\texttt{MaxCollisionEvents}     & \texttt{917}     & \multicolumn{2}{l}{Collision events per batch} \\
+\texttt{MaxCollisionVisits}     & \texttt{80000}   & \multicolumn{2}{l}{Total collision visits per batch} \\
+\texttt{MaxConcurrentSearchers} & \texttt{1}       & \multicolumn{2}{l}{Single batch-gathering worker} \\
+\texttt{ContemptMode}           & \texttt{play}    & \multicolumn{2}{l}{Symmetric WDL} \\
+\texttt{ScoreType}              & \texttt{WDL\_mu} & \multicolumn{2}{l}{Score = $100\!\cdot\!Q$, not centipawns} \\
+\texttt{UCI\_ShowWDL}           & \texttt{false}   & \multicolumn{2}{l}{Off (we recover WDL via /policy)} \\
+\texttt{UCI\_ShowMovesLeft}     & \texttt{false}   & \multicolumn{2}{l}{Off} \\
+\bottomrule
+\end{tabular}
+\caption{lc0 configuration. All search-behaviour flags are at upstream defaults so results match unmodified Leela.}
+\label{tab:lc0-flags}
+\end{table}
+
+\paragraph{Throughput / batch profile (A100, BT4, cuda-fp16).}
+Resident GPU memory is essentially \emph{flat} across batch sizes (Table~\ref{tab:lc0-bench}); the cuBLAS workspace plus fp16 weights dominate, and per-position activations are negligible at this scale. Hence \texttt{MinibatchSize=128} is set as the default --- it gives 3$\times$ the throughput of \texttt{MinibatchSize=8} for free.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{rrrr}
+\toprule
+\textbf{Batch} & \textbf{Peak GPU mem} & \textbf{Throughput} & \textbf{ms/batch} \\
+\midrule
+1    & 2983 MiB & 366 nps    & 2.7   \\
+8    & 2983 MiB & 2{,}413 nps   & 3.3   \\
+32   & 2983 MiB & 5{,}335 nps   & 6.0   \\
+64   & 2983 MiB & 6{,}839 nps   & 9.4   \\
+128  & 2983 MiB & 7{,}319 nps   & 17.5  \\
+256  & 2983 MiB & 7{,}754 nps   & 33.0  \\
+512  & 2983 MiB & 8{,}051 nps   & 63.6  \\
+1024 & 2983 MiB & 8{,}283 nps   & 123.6 \\
+\bottomrule
+\end{tabular}
+\caption{\texttt{lc0 backendbench} sweep on A100-80GB, BT4 + cuda-fp16. Memory is constant at $\sim$\,3 GiB regardless of batch size; throughput plateaus near batch 128--256. Co-residing engines on the same A100 only need to leave $\sim$\,4\,GiB ($\sim$\,5\%) headroom per GPU.}
+\label{tab:lc0-bench}
+\end{table}
+
+\paragraph{Wrapper configuration.}
+Environment variables, with defaults: \texttt{LC0\_BIN} (engine path), \texttt{LC0\_NET} (\texttt{.pb.gz} weights), \texttt{LC0\_BACKEND} (\texttt{cuda-fp16}), \texttt{LC0\_THREADS} (\texttt{2}), \texttt{LC0\_MINIBATCH} (\texttt{128}), \texttt{LC0\_MAX\_PREFETCH} (\texttt{32}), \texttt{LC0\_NNCACHE} (\texttt{200000}), \texttt{LC0\_HOST} (\texttt{0.0.0.0}), \texttt{LC0\_PORT} (\texttt{7100}), \texttt{CUDA\_VISIBLE\_DEVICES} (\texttt{5} by default). The wrapper holds a single \texttt{Lc0Engine} instance; HTTP-level concurrency is serialised by an internal lock because UCI is a single-conversation protocol. Both \texttt{/analyze} and \texttt{/policy} accept an optional \texttt{moves} field (UCI-string list) applied on top of the FEN, so BT4's seven history planes are filled with the real game rather than synthesised; this matters for raw-policy queries mid-game (the \texttt{HistoryFill=fen\_only} default otherwise repeats the current FEN). \texttt{/policy} also accepts a per-call \texttt{policy\_temperature} override; note this only affects fresh evaluations because lc0's NN cache memoises the post-temperature priors per FEN.
+
+\paragraph{Strongest raw policy (top-$k$ from the NN with no search).}
+For $\arg\max_m P(m)$ to come from the unmodified BT4 forward pass: (i) call \texttt{/policy} with \texttt{nodes=1} and the full \texttt{moves} list so the history planes are real; (ii) pick the move with highest \texttt{P}. Temperature does not affect the argmax. For top-$k$ ranking, temperature also does not change the order. For probability-faithful sampling against the NN's training distribution, set \texttt{policy\_temperature=1.0} (the upstream default of \texttt{1.36} is tuned for MCTS exploration, not for honest sampling). The \texttt{policytune-332} fine-tune was specifically designed to sharpen the raw policy head, so this path is what the network is most optimised for.
+
+\paragraph{Score conventions.}
+With \texttt{ScoreType=WDL\_mu}, the centipawn field reported by lc0 is $100\!\cdot\!Q$ where $Q\in[-1,+1]$ is the WDL-mean utility from the side to move's perspective. For the experiments in \S\ref{sec:experiments} we report this as-is; it is \emph{not} a Stockfish-style centipawn evaluation. The \texttt{value\_root} field on \texttt{/policy} is the visit-weighted $Q$ across root children (a proxy for $V$ at the root), with $V$ available directly for each child once expanded.
+
+\paragraph{Strength.}
+We do not have a direct measurement of CCRL Elo for the \texttt{policytune-332} BT4 net. As a rough orientation, the BT4 family at long time control sits at $\sim$\,3500--3700 Elo on a single A100; at $1{,}000$ nodes per move (a typical setting for the \texttt{/analyze} endpoint) the network plus MCTS is $\sim$\,3300; at $1$ node (raw top policy) it is $\sim$\,2400--2600 -- a strong IM / weak GM ``intuition'' move. A calibration script (\texttt{lc0\_server/scripts/bench\_elo.py}) is provided to measure this against Stockfish at fixed depth on demand.
+
+\paragraph{Latent extraction (forward-looking).}
+The UCI interface is sufficient for LLAMIA-Bench (the \emph{verbalized}-access baseline) but does \emph{not} expose hidden activations. The \emph{latent state internalization} path (\S\ref{sec:methodology}) requires a separate forward-pass shim that loads the same BT4 \texttt{.pb.gz} weights into PyTorch and emits the post-attention residual stream we project into $K{=}16$ tokens; this is implemented out of process and is not part of \texttt{lc0\_server}.
+
+%------------------------------------------------------------------------------
+\subsection{Chess Analyst Agent (Inference Harness)}
+\label{app:details:agent}
+
+\tcbuselibrary{breakable}
+
+% ── Shared palette & style presets ───────────────────────────────────────────
+\definecolor{agentslate}{HTML}{2d3748}
+\definecolor{agentteal}{HTML}{234e52}
+\definecolor{agentmint}{HTML}{edf7f5}
+\definecolor{agentlav}{HTML}{f3eeff}
+\definecolor{agentrose}{HTML}{fff0f0}
+\definecolor{agentgold}{HTML}{7c5c00}
+\definecolor{agentgoldbg}{HTML}{fffbec}
+
+\tcbset{
+  % ── floating-title base ────────────────────────────────────────────
+  agentbase/.style={
+    enhanced, breakable,
+    arc=4pt, outer arc=4pt,
+    left=9pt, right=9pt, top=9pt, bottom=9pt,
+    before skip=11pt, after skip=11pt,
+    attach boxed title to top left={xshift=10pt, yshift=-\tcboxedtitleheight/2},
+    boxed title style={arc=3pt, outer arc=3pt, size=small, left=5pt, right=5pt},
+    drop shadow={color=black!18, opacity=0.55, shadow xshift=1.5pt, shadow yshift=-1.5pt},
+  },
+  % ── Prompt / instruction boxes ─────────────────────────────────────
+  promptbox/.style={
+    agentbase,
+    colback=agentlav, colframe=themepurple!80,
+    fonttitle=\bfseries\sffamily\small\color{white},
+    fontupper=\small,
+    boxed title style={colback=themepurple, colframe=themepurple, arc=3pt, size=small, left=5pt, right=5pt},
+  },
+  % ── Tool definition boxes ──────────────────────────────────────────
+  toolbox/.style={
+    agentbase,
+    colback=agentmint, colframe=agentteal,
+    fonttitle=\bfseries\ttfamily\small\color{white},
+    fontupper=\small,
+    boxed title style={colback=agentteal, colframe=agentteal, arc=3pt, size=small, left=5pt, right=5pt},
+  },
+  % ── State / architecture boxes ─────────────────────────────────────
+  statebox/.style={
+    agentbase,
+    colback=black!3, colframe=agentslate!70,
+    fonttitle=\bfseries\sffamily\small\color{white},
+    fontupper=\small,
+    boxed title style={colback=agentslate, colframe=agentslate, arc=3pt, size=small, left=5pt, right=5pt},
+  },
+  % ── Warning / caveat boxes ─────────────────────────────────────────
+  warnbox/.style={
+    agentbase,
+    colback=agentrose, colframe=themered!80,
+    fonttitle=\bfseries\sffamily\small\color{white},
+    fontupper=\small,
+    boxed title style={colback=themered, colframe=themered, arc=3pt, size=small, left=5pt, right=5pt},
+  },
+  % ── Note / insight boxes ───────────────────────────────────────────
+  notebox/.style={
+    agentbase,
+    colback=agentgoldbg, colframe=agentgold!80,
+    fonttitle=\bfseries\sffamily\small\color{agentgold},
+    fontupper=\small,
+    boxed title style={colback=agentgoldbg, colframe=agentgold, arc=3pt, size=small, left=5pt, right=5pt},
+  },
+}
+
+% ── Helper: italic key--value line inside a box ──────────────────────────────
+\newcommand{\toolparam}[2]{%
+  \hspace*{4pt}{\ttfamily\bfseries #1}\,\texttt{:}\;\textit{#2}\\[1pt]}
+\newcommand{\toolret}[1]{%
+  \smallskip\noindent{\color{agentslate}\textbf{Returns:}}\;\textit{#1}}
+\newcommand{\tooldesc}[1]{%
+  \noindent{\color{agentslate}\textbf{Description:}}\;#1\smallskip}
+
+\medskip
+The inference harness connects the LLM to the lc0 engine via a six-tool
+stateful API.  Figure~\ref{fig:LLAMIA} shows the high-level architecture;
+this section records the exact state representation, system prompt, and tool
+schemas used in all LLAMIA-Bench experiments.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsubsection{Agent State}
+\label{app:details:agent:state}
+
+\begin{tcolorbox}[statebox, title={Agent State \textnormal{(\texttt{agents/state.py} — \texttt{ChessState})}},
+  label={box:agentstate}]
+
+\textbf{\textsf{Fields held in memory across tool calls:}}
+
+\smallskip
+\begin{tabular}{@{}lll@{}}
+  \toprule
+  \textbf{Field} & \textbf{Type} & \textbf{Content} \\
+  \midrule
+  \texttt{board} & \texttt{chess.Board} & Full game position (Zobrist hash, castling rights, en-passant, 50-move clock) \\
+  \texttt{\_history} & \texttt{list[str]} & SAN move list from the start of the current episode \\
+  \bottomrule
+\end{tabular}
+
+\medskip
+\textbf{\textsf{Derived properties (computed on demand):}}
+
+\smallskip
+\begin{tabular}{@{}ll@{}}
+  \toprule
+  \textbf{Property} & \textbf{Value} \\
+  \midrule
+  \texttt{fen} & \texttt{board.fen()} — passed to every lc0 API call \\
+  \texttt{info()} & FEN · turn · move number · in-check flag · legal SAN list (up to 24) · last-6 moves \\
+  \bottomrule
+\end{tabular}
+
+\medskip
+\textbf{\textsf{Move parsing priority:}} UCI first (\texttt{e2e4}, \texttt{g1f3}, \ldots),
+then SAN (\texttt{Nf3}, \texttt{Nxd4}, \texttt{O-O}) via \texttt{python-chess}.
+Illegal moves return an \texttt{\{"error": \ldots\}} dict without raising; the
+LLM sees the error and can retry.
+
+\smallskip
+\textbf{\textsf{Persistence scope:}} within a single \texttt{ChessAnalyst.run()} call.
+State is reset at the start of each query or when the LLM calls
+\texttt{reset\_position}.  No cross-query memory is maintained.
+\end{tcolorbox}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsubsection{System Prompt}
+\label{app:details:agent:prompt}
+
+\begin{tcolorbox}[promptbox,
+  title={$\triangleright$\; System Prompt — \textit{Chess Analyst}},
+  label={box:sysprompt}]
+
+\begin{quote}
+\textit{You are a chess expert with access to lc0, a top neural network engine.}
+
+\smallskip
+\textit{You maintain a stateful board.  Tools available:}
+\begin{itemize}[noitemsep, topsep=2pt, leftmargin=14pt]
+  \item \textit{\texttt{get\_position} — current FEN, legal moves, recent history}
+  \item \textit{\texttt{make\_move(move)} — apply UCI (\texttt{e2e4}) or SAN (\texttt{Nf3}) move}
+  \item \textit{\texttt{undo\_move} — take back last move}
+  \item \textit{\texttt{reset\_position(fen)} — set board to FEN}
+  \item \textit{\texttt{analyze(nodes, multipv)} — engine search: centipawn scores, PV lines}
+  \item \textit{\texttt{get\_policy(nodes)} — raw NN priors \(P\) and values \(V\) per move (fast, 1 pass)}
+\end{itemize}
+
+\smallskip
+\textit{Workflow for blunder analysis: check position $\to$ try the move $\to$ analyze $\to$ compare alternatives $\to$ explain the refutation.}
+\end{quote}
+
+\smallskip
+\noindent\textbf{Design rationale.}
+The prompt is deliberately compact (${\approx}100$ tokens) to respect the
+\texttt{max\_model\_len=4000} context budget shared with tool results and the
+response.  The workflow hint seeds the model's reasoning strategy without
+over-constraining it; during the Nxd4 experiment the model generalised the
+hint to an unprompted \texttt{undo\_move}$\to$compare-alternatives pattern.
+\end{tcolorbox}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsubsection{Tool Definitions}
+\label{app:details:agent:tools}
+
+The six tools below are passed to the \texttt{/v1/chat/completions} endpoint in
+the standard OpenAI \texttt{tools} array; vllm injects them into Qwen3.5's
+chat template as the function catalogue.
+
+\medskip
+
+% ── Row 1: position tools ────────────────────────────────────────────────────
+\begin{tcolorbox}[toolbox, title={\texttt{get\_position}()}]
+\tooldesc{Returns a snapshot of the current board state.  No parameters.}
+
+\toolret{\texttt{\{fen, turn, move\_number, in\_check, legal\_moves[0..23], total\_legal, recent\_moves[-6:]\}}}
+
+\smallskip
+\noindent The list of legal moves is truncated to 24 to reduce context consumption;
+\texttt{total\_legal} reports the true count.  Used at the start of analysis to
+orient the LLM before issuing engine queries.
+\end{tcolorbox}
+
+\begin{tcolorbox}[toolbox, title={\texttt{make\_move(move: str)}}]
+\tooldesc{Apply a move to the current board.  Accepts both UCI and SAN notation.
+  The board state is mutated permanently until \texttt{undo\_move} or
+  \texttt{reset\_position}.}
+
+\smallskip
+\begin{tabular}{@{}lll@{}}
+  \toprule
+  \textbf{Parameter} & \textbf{Type} & \textbf{Description} \\
+  \midrule
+  \texttt{move} & \texttt{str} & Move in UCI (\texttt{e2e4}) or SAN (\texttt{Nxd4}, \texttt{O-O-O}) notation \\
+  \bottomrule
+\end{tabular}
+
+\smallskip
+\toolret{\texttt{\{move\_played, fen, turn, in\_check, checkmate\}}}
+
+\noindent Illegal moves return \texttt{\{"error": "Illegal move '\ldots': \ldots"\}} without
+raising; the LLM may retry with a corrected move string.
+\end{tcolorbox}
+
+\begin{tcolorbox}[toolbox, title={\texttt{undo\_move()}}]
+\tooldesc{Revert the last move applied by \texttt{make\_move}.  No parameters.
+  Can be called repeatedly to step back through the variation.  Returns
+  \texttt{\{"error": "No moves to undo"\}} if the stack is empty.}
+
+\toolret{\texttt{\{fen, turn\}}}
+\end{tcolorbox}
+
+\begin{tcolorbox}[toolbox, title={\texttt{reset\_position(fen: str)}}]
+\tooldesc{Replace the current board with a new position given by a FEN string.
+  Clears move history.  A FEN embedded anywhere in the user's query is
+  automatically extracted (\texttt{\_FEN\_RE}) and this tool is called
+  implicitly before the agent loop begins.}
+
+\smallskip
+\begin{tabular}{@{}lll@{}}
+  \toprule
+  \textbf{Parameter} & \textbf{Type} & \textbf{Description} \\
+  \midrule
+  \texttt{fen} & \texttt{str} & Any valid Forsyth–Edwards Notation string \\
+  \bottomrule
+\end{tabular}
+
+\smallskip
+\toolret{\texttt{\{fen, status: "ok"\}} or \texttt{\{error\}}}
+\end{tcolorbox}
+
+\begin{tcolorbox}[toolbox, title={\texttt{analyze(nodes: int = 800, multipv: int = 3)}}]
+\tooldesc{Run lc0 MCTS search on the current position via \texttt{POST /analyze}.
+  Returns the top \texttt{multipv} principal variations with centipawn scores
+  and depths.  Score is in $100\!\cdot\!Q$ units (see \S\ref{app:details:lc0}),
+  positive meaning \emph{good for the side to move}.}
+
+\smallskip
+\begin{tabular}{@{}lll@{}}
+  \toprule
+  \textbf{Parameter} & \textbf{Type} & \textbf{Description} \\
+  \midrule
+  \texttt{nodes} & \texttt{int} & MCTS node budget (default 800; 1\,000–2\,000 for detailed analysis) \\
+  \texttt{multipv} & \texttt{int} & Number of lines to return (default 3) \\
+  \bottomrule
+\end{tabular}
+
+\smallskip
+\toolret{\texttt{\{turn, bestmove, lines: ["1. <pv> score=\ldots depth=\ldots", \ldots]\}}}
+\end{tcolorbox}
+
+\begin{tcolorbox}[toolbox, title={\texttt{get\_policy(nodes: int = auto)}}]
+\tooldesc{Run a minimal search ($\texttt{nodes} \geq \#\text{legal-moves}+2$ by default so
+  every root child is visited exactly once) and return lc0's per-move neural
+  network statistics.  Much faster than \texttt{analyze} and gives raw NN
+  beliefs before MCTS modifies them.}
+
+\smallskip
+\begin{tabular}{@{}lll@{}}
+  \toprule
+  \textbf{Parameter} & \textbf{Type} & \textbf{Description} \\
+  \midrule
+  \texttt{nodes} & \texttt{int} & Budget (default: auto = \(\#\text{legal}+2\)) \\
+  \bottomrule
+\end{tabular}
+
+\smallskip
+\toolret{\texttt{\{turn, value\_root, nodes\_searched, top\_moves: ["<uci> P=\% V=\ldots Q=\ldots N=\ldots", \ldots]\}}}
+
+\smallskip
+\noindent The returned fields per move:
+\begin{itemize}[noitemsep, topsep=2pt, leftmargin=14pt]
+  \item \textbf{P} — NN prior probability in $[0,1]$; reflects the raw policy head (post \texttt{PolicyTemperature=1.36})
+  \item \textbf{V} — single-eval NN value at the child node in $[-1,+1]$
+  \item \textbf{Q} — visit-averaged action-value in $[-1,+1]$ (equals V when $N{=}1$)
+  \item \textbf{N} — MCTS visit count; equal to 1 for every child when nodes$=$auto
+\end{itemize}
+\end{tcolorbox}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsubsection{Tool-Call Format and vLLM Compatibility}
+\label{app:details:agent:format}
+
+\begin{tcolorbox}[warnbox,
+  title={$\mathbf{!}$\; Tool-Call Format — Qwen3.5 XML (not Hermes JSON)},
+  label={box:toolformat}]
+
+\textbf{Root cause.}
+Qwen3.5's chat template instructs the model to generate tool calls in an
+XML-like format:
+
+\smallskip
+\texttt{\phantom{xx}<tool\_call>}\\
+\texttt{\phantom{xxxx}<function=\textit{name}>}\\
+\texttt{\phantom{xxxxxx}<parameter=\textit{key}>\textit{value}</parameter>}\\
+\texttt{\phantom{xxxx}</function>}\\
+\texttt{\phantom{xx}</tool\_call>}
+
+\medskip
+\noindent vllm's \texttt{--tool-call-parser hermes} locates the
+\texttt{<tool\_call>} tags correctly but expects \emph{JSON} inside; failing
+to parse the XML body, it leaves \texttt{msg.tool\_calls = []} and returns the
+raw XML in \texttt{msg.content}.
+
+\medskip
+\textbf{Fix (no server change required).}
+\texttt{\_parse\_qwen\_tool\_calls(content)} in \texttt{agents/chess\_analyst.py}
+uses two regex patterns:
+
+\smallskip
+\texttt{QWEN\_TOOL\_RE} matches \texttt{<tool\_call>{\ldots}<function=(\textbackslash w+)>({\ldots})</function>{\ldots}</tool\_call>}\\
+\texttt{PARAM\_RE} matches \texttt{<parameter=(\textbackslash w+)>({\ldots})</parameter>}
+
+\smallskip
+\noindent Parameter values are coerced via \texttt{json.loads}; on failure they remain
+strings.  Tool results are returned as standard \texttt{role=tool} messages —
+vllm reformats them correctly into Qwen3.5's expected tool-response template
+on the server side, so the model reads results correctly.
+
+\medskip
+\textbf{Consequence for future work.}  Any code that reads \texttt{msg.tool\_calls}
+directly from the OpenAI client will silently drop all tool calls with this
+model and server configuration.  Always use \texttt{\_parse\_qwen\_tool\_calls}
+(or the equivalent) when working with Qwen3.5 via the current vllm setup.
+\end{tcolorbox}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsubsection{Inference Hyperparameters}
+\label{app:details:agent:hparams}
+
+\begin{tcolorbox}[notebox, title={Inference Configuration}]
+\begin{tabular}{@{}llp{7cm}@{}}
+  \toprule
+  \textbf{Parameter} & \textbf{Value} & \textbf{Notes} \\
+  \midrule
+  Model & \texttt{Qwen/Qwen3.5-122B-A10B-FP8} & Served on A100$\times$8, dp=8, FP8 \\
+  \texttt{max\_model\_len} & 4\,000 tokens & Shared budget: system + history + tool I/O + response \\
+  \texttt{max\_tokens} & 700 & Per LLM call; leaves ${\approx}$3\,300 for history \\
+  \texttt{temperature} & 0.0 & Greedy decoding; reproducible tool-call sequences \\
+  \texttt{tool\_choice} & \texttt{"auto"} & Model decides when to stop calling tools \\
+  \texttt{enable\_thinking} & \texttt{False} & Suppressed via \texttt{chat\_template\_kwargs}; saves ${\sim}$400 tokens per call \\
+  \texttt{MAX\_ROUNDS} & 14 & Max LLM calls per query; ~10 tool-call rounds + headroom \\
+  lc0 \texttt{nodes} (analyze) & 800–2\,000 & Default 800; tests used 2\,000 for detailed PV \\
+  lc0 \texttt{nodes} (policy) & auto & $\max(\#\text{legal}+2,\,8)$; one visit per child \\
+  lc0 \texttt{multipv} & 3 & Top-3 lines; reduces output tokens vs multipv=5 \\
+  \bottomrule
+\end{tabular}
+\end{tcolorbox}
+
+\begin{tcolorbox}[notebox, title={Worked Example — Nxd4 Blunder Analysis}]
+
+\noindent\textbf{Query:}
+\textit{``Why is Nxd4 a blunder here, \texttt{rnbqkb1r/pp2pppp/5n2/6B1/2pp4/4PN2/PP3PPP/RN1QKB1R w KQkq - 0 6}''}
+
+\medskip
+\noindent\textbf{Tool call trace} (10 calls across 6 LLM rounds):
+
+\smallskip
+\begin{tabular}{@{}rlp{9cm}@{}}
+  \toprule
+  \textbf{\#} & \textbf{Tool} & \textbf{Key finding} \\
+  \midrule
+  1 & \texttt{reset\_position} & FEN loaded \\
+  2 & \texttt{make\_move(Nxd4)} & Knight lands on d4; Black to move \\
+  3 & \texttt{analyze(2000, 3)} & Best: \texttt{Qa5+} score\,=\,+7.59; confirms losing for White \\
+  4 & \texttt{undo\_move} & Return to pre-blunder position \\
+  5 & \texttt{analyze(2000, 3)} & Best: \texttt{exd4} score\,=\,$-0.08$; position roughly equal \\
+  6 & \texttt{get\_policy(500)} & \texttt{exd4} P\,=\,38\%, \texttt{Nxd4} P\,=\,0.7\%; NN confirms blunder is unusual \\
+  7 & \texttt{make\_move(Nxd4)} & Re-enter blunder position \\
+  8 & \texttt{make\_move(Qa5+)} & Queen checks king; attacks Bg5 along rank 5 \\
+  9 & \texttt{analyze(2000, 3)} & White scores $-7.26$ to $-16.97$; decisive material loss \\
+  10 & \texttt{undo\_move} & Clean up; LLM writes explanation \\
+  \bottomrule
+\end{tabular}
+
+\medskip
+\noindent\textbf{Engine verdict:} \texttt{Nxd4} drops the Bg5 bishop to \texttt{Qa5+} (simultaneous check on e1 diagonal and attack along rank 5); correct was \texttt{exd4} (${\approx}0$ eval).
+\end{tcolorbox}
+
+%------------------------------------------------------------------------------
+\subsection{Prompt Templates}
+\label{app:details:prompts}
+
+% TODO: list training-time prompts (GRPO reward prompt, projector pretraining format,
+%       InvokeAgent trigger format, multi-turn template).
+% Cross-reference with pages/appendix/prompts.tex for extended listings.
