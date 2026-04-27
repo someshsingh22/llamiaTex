@@ -1,13 +1,31 @@
 
 \section{Introduction}
 \vspace{-2mm}
+Large language models (LLMs) are increasingly deployed to collaborate with domain
+agents to solve tasks that demand both general reasoning and
+domain-specific expertise~\cite{wu2023autogen,agentverseXXX}.
+Today this collaboration is primarily mediated through text: the LLM invokes an agent, receives a
+natural-language description of its output, and reasons over that
+description to decide subsequent
+actions~\cite{yao2022react,schick2023toolformerlanguagemodelsteach}.
+Such \emph{verbalized} collaboration is effective when both agents are themselves language models as they are trained in the same input space. However, in many domains like game playing, robotics, autonomous driving, the
+strongest available agents are not language models but pretrained neural networks whose expertise
+is encoded in continuous representations: policy distributions, value
+estimates, and learned features~\cite{silver2017mastering,monroe2024mastering,brohan2023rt2}. This dichotomy instigates a fundamental question:
+\begin{quote}
+\emph{How can LLMs effectively collaborate and jointly reason with pretrained non-language agents?}    
+\end{quote}
 
-% =============================================================================
-% P1: The paradigm — LLMs as orchestrators of external agents
-% =============================================================================
+This problem is central to the LLM based agents paradigm. As LLMs increasingly serve as general purpose orchestrators, the depth of their collaboration with domain experts determines what these systems can ultimately achieve. Effective collaboration has the potential to unlock creative applications that neither agent achieves alone.
+Consider chess: LLMs have been trained on more chess literature than most grandmasters will study in a lifetime, yet they struggle to understand it at the level of an amateur\cite{XXXHLE or ChessBench etc results}, and despite surpassing grandmasters decades ago \cite{campbell2002deep} pretrained engines like AlphaZero~\cite{silver2017mastering} remain difficult to interpret without expert intervention, and require extensive manual analysis to explain the rationale behind a move. 
+Consequently, the most valued applications like imitating human gameplay\cite{MAIACHessWebsite}, understanding and explaining the rationale behind a move\cite{CHESS.com}, strategizing against an opponent's known weaknesses, commentating on a game, or assessing which puzzles are difficult or interesting remain unsolved. These creative applications demand both, the engine's deep positional understanding and the ability to reason over human intent and perception in natural language. Improving how LLMs collaborate with domain agents would not only unlock these applications but make them scalable and accessible.
 
-Large language models are increasingly deployed not as standalone reasoners but as orchestrators of external agents and tools~\cite{wu2023autogen,schick2023toolformerlanguagemodelsteach,shen2024hugginggpt}\somesh{Avoid writing like `not as..but' keep the reading smooth, easy, and precise}. Two complementary paradigms have emerged for this collaboration \somesh{The writing should be active}. The first, \textit{tool calling}, interfaces the LLM with external agents through text: the model queries an agent via a structured API\somesh{`model queries ... via structured API' we should ues better academic terms suitable for Neurips, this sounds more like engineering blogs}, receives a symbolic response, and conditions its next reasoning step on this output~\cite{yao2022react,wu2023autogen}. Recent work\somesh{This is actually a whole field, so we should not pivot on just one work} has shown that reinforcement learning can teach LLMs \textit{when} and \textit{how} to invoke such tools, yielding substantial gains over supervised approaches on mathematical reasoning~\cite{toolrl2025}. The second paradigm, \textit{latent multi-agent collaboration}, replaces text-based communication between language models with continuous representation exchange---passing hidden states or KV caches between agents rather than decoded tokens~\cite{latentmas2025,hao2024training}. Both paradigms share a key assumption: the collaborating agent either communicates in natural language or shares the LLM's representational architecture. \somesh{The climax of this paragraph should very clearly and in quotes or italics elucidate the problem statement `What is the problem?'}
+Prior approaches to solve these tasks have largely been through task specific expert networks \cite{tang2024maia,mcilroy2020aligning,jhamtani-etal-2018-learning},  LLMs \cite{feng2024chessgpt}, or their neurosymbolic integrations where these non language agents get structured inputs and their outputs are 
 
+Studying this problem requires a domain that combines diverse collaborative tasks with verifiable evaluation metrics. Humans have collaborated with superhuman chess engines for decades on tasks beyond optimal play: commentary\cite{XXX}, human-like gameplay\cite{XXX}, puzzle understanding and difficulty assessment\cite{XXX}. These tasks are well-defined, practically relevant, and have established evaluation protocols. Chess has consequently become a model system for studying language model capabilities across planning\cite{XXX}, search~\cite{diffusearch2025}, reasoning~\cite{XXX}. Motivated by this breadth of tasks, baselines, and its long standing history in AI, we use chess as a testbed to study the problem of LLM collaboration with domain agents.
+These tasks demand both the engine's deep positional understanding and the ability to reason about human intent, style, and perception in natural language.
+Millions of players at every skill level already collaborate daily with engines for analysis, preparation, and study, sustaining an industry built around human-engine collaboration.
+Yet extracting meaningful insight from an engine requires substantial domain expertise and manual effort placing the richest forms of collaboration out of reach for the vast majority of players. 
 % =============================================================================
 % P2: The information bottleneck for heterogeneous agents
 % =============================================================================
