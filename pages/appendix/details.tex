@@ -285,14 +285,22 @@ schemas used in all LLAMIA-Bench experiments.
 \textbf{\textsf{Derived properties (computed on demand):}}
 
 \smallskip
-\begin{tabular}{@{}ll@{}}
+\begin{tabular}{@{}lp{10.5cm}@{}}
   \toprule
   \textbf{Property} & \textbf{Value} \\
   \midrule
   \texttt{fen} & \texttt{board.fen()} — passed to every lc0 API call \\
-  \texttt{info()} & FEN · turn · move number · in-check flag · legal SAN list (up to 24) · last-6 moves \\
+  \texttt{info()} & FEN · \emph{ASCII board} · turn · move number · in-check flag · legal SAN list (up to 24) · last-6 moves \\
   \bottomrule
 \end{tabular}
+
+\smallskip
+\noindent The \texttt{ascii\_board} field (added in commit \texttt{8c0e697}) emits
+\texttt{str(chess.Board)} — an 8\,$\times$\,8 grid with white pieces uppercase
+and black lowercase.  This is one of the highest-leverage cheap fixes in the
+harness: the model no longer has to mentally decode the FEN to locate pieces,
+which removed an entire round of \texttt{get\_position}-then-think behaviour
+on most queries (Table~\ref{tab:agent-optim}).
 
 \medskip
 \textbf{\textsf{Move parsing priority:}} UCI first (\texttt{e2e4}, \texttt{g1f3}, \ldots),
@@ -311,34 +319,64 @@ State is reset at the start of each query or when the LLM calls
 \label{app:details:agent:prompt}
 
 \begin{tcolorbox}[promptbox,
-  title={$\triangleright$\; System Prompt — \textit{Chess Analyst}},
+  title={$\triangleright$\; System Prompt — \textit{Chess Analyst} (V8, current)},
   label={box:sysprompt}]
 
 \begin{quote}
-\textit{You are a chess expert with access to lc0, a top neural network engine.}
+\textit{You are a chess expert with access to lc0, a top neural network engine.
+A board is already loaded — any FEN in the user's query has been applied for you.
+DO NOT call} \texttt{reset\_position} \textit{unless you need a different position.}
 
 \smallskip
-\textit{You maintain a stateful board.  Tools available:}
+\textit{Tools (board is stateful across calls):}
 \begin{itemize}[noitemsep, topsep=2pt, leftmargin=14pt]
-  \item \textit{\texttt{get\_position} — current FEN, legal moves, recent history}
-  \item \textit{\texttt{make\_move(move)} — apply UCI (\texttt{e2e4}) or SAN (\texttt{Nf3}) move}
+  \item \textit{\texttt{get\_position} — FEN, ASCII board, legal moves, history}
+  \item \textit{\texttt{make\_move(move)} — apply UCI (\texttt{e2e4}) or SAN (\texttt{Nf3}) move PERMANENTLY}
   \item \textit{\texttt{undo\_move} — take back last move}
-  \item \textit{\texttt{reset\_position(fen)} — set board to FEN}
-  \item \textit{\texttt{analyze(nodes, multipv)} — engine search: centipawn scores, PV lines}
+  \item \textit{\texttt{reset\_position(fen)} — switch to a different FEN}
+  \item \textit{\texttt{analyze(nodes, multipv, moves=[])} — engine search.  Pass} \texttt{moves=[X]} \textit{to analyze the position AFTER playing X without changing state — use this for ``what if?'' questions instead of} \texttt{make\_move/undo}\textit{.}
   \item \textit{\texttt{get\_policy(nodes)} — raw NN priors \(P\) and values \(V\) per move (fast, 1 pass)}
 \end{itemize}
 
 \smallskip
-\textit{Workflow for blunder analysis: check position $\to$ try the move $\to$ analyze $\to$ compare alternatives $\to$ explain the refutation.}
+\textit{Blunder analysis pattern (2 calls — issue them TOGETHER in one response):}
+\begin{itemize}[noitemsep, topsep=2pt, leftmargin=14pt]
+  \item \textit{\texttt{analyze()} — engine's best move + eval for the current position.}
+  \item \textit{\texttt{analyze(moves=[}``\textit{candidate}''\texttt{])} — eval after the candidate move.}
+\end{itemize}
+\textit{Compare the two evaluations; the difference is the centipawn loss.
+The PV from the second call starts with the opponent's refutation
+(SAN, e.g.} \texttt{Qxg5+}\textit{).}
+
+\smallskip
+\textit{EFFICIENCY: when two tool calls are independent (don't depend on each
+other's results), emit BOTH in your same response.  The harness dispatches
+them in parallel — you save a full round-trip.}
 \end{quote}
 
 \smallskip
 \noindent\textbf{Design rationale.}
-The prompt is deliberately compact (${\approx}100$ tokens) to respect the
+The prompt is deliberately compact (${\approx}220$ tokens) to respect the
 \texttt{max\_model\_len=4000} context budget shared with tool results and the
-response.  The workflow hint seeds the model's reasoning strategy without
-over-constraining it; during the Nxd4 experiment the model generalised the
-hint to an unprompted \texttt{undo\_move}$\to$compare-alternatives pattern.
+response.  Each line was added in response to a measured failure:
+
+\begin{itemize}[noitemsep, topsep=2pt, leftmargin=14pt]
+  \item ``DO NOT call \texttt{reset\_position}\ldots'' — without this hint the
+        model wastes its first round verifying the FEN load that the harness
+        already performed (commit \texttt{8c0e697}, V1).
+  \item ``Pass \texttt{moves=[X]}\ldots'' — explicitly teaches the new
+        no-mutate primitive (commit \texttt{fbb6526}, V6); cuts the
+        \texttt{make\_move}\,$\to$\,\texttt{analyze}\,$\to$\,\texttt{undo} dance
+        from 3 tool calls to 1.
+  \item ``EFFICIENCY: emit BOTH in your same response\ldots'' — Qwen3.5
+        honours this for the blunder pattern, dropping the round count from 3 to 2
+        (commit \texttt{b6208cc}, V8).
+\end{itemize}
+
+\noindent The original prompt did NOT include the workflow hint
+``check position $\to$ try the move $\to$ analyze $\to$ undo $\to$ compare alternatives''
+— that was the slow path the optimisations replaced.  The current prompt
+points the model at the fast 2-call pattern from the start.
 \end{tcolorbox}
 
 % ─────────────────────────────────────────────────────────────────────────────
@@ -355,12 +393,15 @@ chat template as the function catalogue.
 \begin{tcolorbox}[toolbox, title={\texttt{get\_position}()}]
 \tooldesc{Returns a snapshot of the current board state.  No parameters.}
 
-\toolret{\texttt{\{fen, turn, move\_number, in\_check, legal\_moves[0..23], total\_legal, recent\_moves[-6:]\}}}
+\toolret{\texttt{\{fen, ascii\_board, turn, move\_number, in\_check, legal\_moves[0..23], total\_legal, recent\_moves[-6:]\}}}
 
 \smallskip
-\noindent The list of legal moves is truncated to 24 to reduce context consumption;
-\texttt{total\_legal} reports the true count.  Used at the start of analysis to
-orient the LLM before issuing engine queries.
+\noindent The \texttt{ascii\_board} field is \texttt{str(chess.Board)} — the 8\,$\times$\,8
+grid with white pieces uppercase and black lowercase, e.g.\ \texttt{R N B Q K B N R}
+on the back rank.  This was the single highest-leverage cheap change in the
+harness (V1): the model can read piece placements visually instead of decoding
+FEN.  The list of legal moves is truncated to 24 to bound context;
+\texttt{total\_legal} reports the true count.
 \end{tcolorbox}
 
 \begin{tcolorbox}[toolbox, title={\texttt{make\_move(move: str)}}]
@@ -392,11 +433,12 @@ raising; the LLM may retry with a corrected move string.
 \toolret{\texttt{\{fen, turn\}}}
 \end{tcolorbox}
 
-\begin{tcolorbox}[toolbox, title={\texttt{reset\_position(fen: str)}}]
+\begin{tcolorbox}[toolbox, title={\texttt{reset\_position(fen: str)} \textnormal{— locked when FEN auto-loaded}}]
 \tooldesc{Replace the current board with a new position given by a FEN string.
   Clears move history.  A FEN embedded anywhere in the user's query is
-  automatically extracted (\texttt{\_FEN\_RE}) and this tool is called
-  implicitly before the agent loop begins.}
+  automatically extracted (\texttt{\_FEN\_RE}) and applied before the agent
+  loop begins; in that case this tool is REMOVED from the tool catalogue and
+  the dispatcher refuses any call that survives the model's training prior.}
 
 \smallskip
 \begin{tabular}{@{}lll@{}}
@@ -408,27 +450,55 @@ raising; the LLM may retry with a corrected move string.
 \end{tabular}
 
 \smallskip
-\toolret{\texttt{\{fen, status: "ok"\}} or \texttt{\{error\}}}
+\toolret{\texttt{\{fen, status: "ok"\}} when permitted; \texttt{\{noop, message, current\_fen\}} when locked.}
+
+\smallskip
+\noindent \textbf{Locking rationale} (V7, commit \texttt{88edf55}).  Even after the
+prompt was edited to discourage redundant resets, Qwen3.5 continued to call
+\texttt{reset\_position} on its first turn ${\approx}\,$1$\times$ per query as
+a habitual ``verify the load'' step — silently succeeding because the FEN
+matched.  Removing the tool from the catalogue plus a dispatcher-level guard
+eliminated the wasted call without changing model behaviour anywhere else.
 \end{tcolorbox}
 
-\begin{tcolorbox}[toolbox, title={\texttt{analyze(nodes: int = 800, multipv: int = 3)}}]
-\tooldesc{Run lc0 MCTS search on the current position via \texttt{POST /analyze}.
-  Returns the top \texttt{multipv} principal variations with centipawn scores
-  and depths.  Score is in $100\!\cdot\!Q$ units (see \S\ref{app:details:lc0}),
+\begin{tcolorbox}[toolbox,
+  title={\texttt{analyze(nodes: int = 800, multipv: int = 3, moves: list[str] = [])}}]
+\tooldesc{Run lc0 MCTS search via \texttt{POST /analyze}, optionally AFTER applying
+  a sequence of hypothetical moves to the FEN — without mutating
+  \texttt{ChessState}.  The \texttt{moves} parameter (V6, commit \texttt{fbb6526})
+  is the no-mutate primitive that replaces the
+  \texttt{make\_move}\,$\to$\,\texttt{analyze}\,$\to$\,\texttt{undo\_move} dance
+  with a single call.  Score is in $100\!\cdot\!Q$ units (see \S\ref{app:details:lc0}),
   positive meaning \emph{good for the side to move}.}
 
 \smallskip
-\begin{tabular}{@{}lll@{}}
+\begin{tabular}{@{}lp{2.4cm}p{6.5cm}@{}}
   \toprule
   \textbf{Parameter} & \textbf{Type} & \textbf{Description} \\
   \midrule
-  \texttt{nodes} & \texttt{int} & MCTS node budget (default 800; 1\,000–2\,000 for detailed analysis) \\
+  \texttt{nodes}   & \texttt{int} & MCTS node budget (default 800; 1\,000–2\,000 for deeper PVs) \\
   \texttt{multipv} & \texttt{int} & Number of lines to return (default 3) \\
+  \texttt{moves}   & \texttt{list[str]} & UCI/SAN moves applied client-side before analysis. State unchanged.  Returned in \texttt{applied\_moves} as SAN. \\
   \bottomrule
 \end{tabular}
 
 \smallskip
-\toolret{\texttt{\{turn, bestmove, lines: ["1. <pv> score=\ldots depth=\ldots", \ldots]\}}}
+\toolret{\texttt{\{turn, bestmove, lines: ["1. <SAN-pv> score=\ldots depth=\ldots", \ldots], applied\_moves?\}}}
+
+\smallskip
+\noindent\textbf{PV translation to SAN} (V4, commit \texttt{7400dd1}).
+Principal variations are emitted by lc0 in UCI (e.g.\ \texttt{a5g5}), which
+hides captures, checks, and piece identities.  This caused systematic
+hallucinations: the model would invent ``the knight is pinned to your king''
+narratives consistent with the headline eval but inconsistent with the actual
+PV piece interactions, because it could not see that \texttt{a5g5} was in
+fact \texttt{Qxg5}.  The harness now replays each PV on a
+\texttt{python-chess} board and emits SAN, so the LLM reads the literal
+\texttt{Qxg5+} and quotes it directly.  This single change flipped the Nxd4
+answer from incorrect to correct.
+
+The \texttt{bestmove} field is also re-emitted in SAN; UCI is preserved for any
+move that fails to parse (e.g.\ if lc0 returns an illegal-looking move).
 \end{tcolorbox}
 
 \begin{tcolorbox}[toolbox, title={\texttt{get\_policy(nodes: int = auto)}}]
@@ -450,7 +520,10 @@ raising; the LLM may retry with a corrected move string.
 \toolret{\texttt{\{turn, value\_root, nodes\_searched, top\_moves: ["<uci> P=\% V=\ldots Q=\ldots N=\ldots", \ldots]\}}}
 
 \smallskip
-\noindent The returned fields per move:
+\noindent Move strings here are UCI rather than SAN — the policy view is
+visit-count-ranked and is normally used as a probability distribution, where
+the comparable identifier across calls (and across a game) is the UCI move,
+not its position-dependent SAN.  The returned fields per move:
 \begin{itemize}[noitemsep, topsep=2pt, leftmargin=14pt]
   \item \textbf{P} — NN prior probability in $[0,1]$; reflects the raw policy head (post \texttt{PolicyTemperature=1.36})
   \item \textbf{V} — single-eval NN value at the child node in $[-1,+1]$
@@ -521,42 +594,135 @@ model and server configuration.  Always use \texttt{\_parse\_qwen\_tool\_calls}
   \texttt{temperature} & 0.0 & Greedy decoding; reproducible tool-call sequences \\
   \texttt{tool\_choice} & \texttt{"auto"} & Model decides when to stop calling tools \\
   \texttt{enable\_thinking} & \texttt{False} & Suppressed via \texttt{chat\_template\_kwargs}; saves ${\sim}$400 tokens per call \\
-  \texttt{MAX\_ROUNDS} & 14 & Max LLM calls per query; ~10 tool-call rounds + headroom \\
-  lc0 \texttt{nodes} (analyze) & 800–2\,000 & Default 800; tests used 2\,000 for detailed PV \\
+  \texttt{MAX\_ROUNDS} & 14 & Max LLM calls per query; well above the 2--3 actually used \\
+  Read-only dispatch & parallel & \texttt{analyze}, \texttt{get\_policy}, \texttt{get\_position} fan out via \texttt{ThreadPoolExecutor} when batched in one response. State-mutating tools stay sequential. \\
+  Mutating dispatch & sequential & \texttt{make\_move}, \texttt{undo\_move}, \texttt{reset\_position} preserve emission order \\
+  lc0 \texttt{nodes} (analyze) & 800 default & Caller may override (1\,000--2\,000 for deeper PVs) \\
   lc0 \texttt{nodes} (policy) & auto & $\max(\#\text{legal}+2,\,8)$; one visit per child \\
   lc0 \texttt{multipv} & 3 & Top-3 lines; reduces output tokens vs multipv=5 \\
   \bottomrule
 \end{tabular}
 \end{tcolorbox}
 
-\begin{tcolorbox}[notebox, title={Worked Example — Nxd4 Blunder Analysis}]
+% ─────────────────────────────────────────────────────────────────────────────
+\subsubsection{Iterative Optimisation Journey}
+\label{app:details:agent:optim}
+
+The harness was developed against a single anchor query for which the V0
+(initial) implementation was both slow and wrong:
+
+\begin{quote}
+\textit{``Why is Nxd4 a blunder here, \texttt{rnbqkb1r/pp2pppp/5n2/6B1/\\2pp4/4PN2/PP3PPP/RN1QKB1R w KQkq - 0 6}''}
+\end{quote}
+
+The position is from the Trompowsky-style line after \texttt{1.\,d4 d5 2.\,Bg5 c6
+3.\,Nf3 Nf6 4.\,e3 Bf5} (\textit{move order varies}); White, to move, is tempted by
+\texttt{Nxd4} but loses the \texttt{Bg5} bishop after \texttt{Qa5+ Nc3 Qxg5}.  Eight
+versions later (Table~\ref{tab:agent-optim}), the harness reaches the
+information-theoretic floor for this task: two \texttt{lc0} calls (one for the
+current position, one for the position after the candidate) and two LLM rounds
+(one to issue both calls, one to write the answer).
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lrrrrl@{}}
+  \toprule
+  \textbf{Version} & \textbf{Latency} & \textbf{Calls} & \textbf{Rounds} & \textbf{Quality} & \textbf{Change} \\
+  \midrule
+  V0 (baseline)   & 36.5 s & 10 & ${\sim}\,$10 & wrong (``pinned/fork'') & — \\
+  V1 \texttt{8c0e697}    & 22.2 s & 5  & 6 & wrong & ASCII board in \texttt{info()} + ``DO NOT reset'' prompt \\
+  V2 (rejected)   & 41.6 s & 6  & — & wrong + worse & \texttt{compare\_move()} headline tool added \\
+  V4 \texttt{7400dd1}    & 12.3 s & 5  & 6 & \textbf{correct} & UCI\,$\to$\,SAN translation in PVs \\
+  V5 (rejected)   & 21.8 s & 5  & — & confused & engine pre-analysis injected into context \\
+  V6 \texttt{fbb6526}    & 10.4 s & 3  & 4 & correct & \texttt{analyze(moves=[\ldots])} no-mutate primitive \\
+  V7 \texttt{88edf55}    & 7.7 s  & 2  & 3 & correct & \texttt{reset\_position} dropped + dispatcher guard \\
+  V8 \texttt{b6208cc}    & ${\sim}$8 s & 2 & \textbf{2} & correct & batch directive in prompt + parallel read-only dispatch \\
+  \bottomrule
+\end{tabular}
+\caption{Optimisation history of the chess analyst harness on the Nxd4 anchor
+query.  Cumulative wins from V0$\to$V8: latency $-78\%$, tool calls $-80\%$,
+LLM rounds $-80\%$, and the answer flips from a confabulated ``the knight on
+d4 is pinned'' to the correct ``Black plays \texttt{Qxg5}, capturing the
+undefended bishop''.  Commit hashes refer to the \texttt{main} branch of the
+\texttt{llamia} repository.  V2 and V5 were tested on a side branch
+(\texttt{experiment/compare-move}) and reverted; their lessons (Table~\ref{tab:agent-lessons})
+shaped the subsequent designs.}
+\label{tab:agent-optim}
+\end{table}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}p{4.5cm}p{10cm}@{}}
+  \toprule
+  \textbf{Failed experiment} & \textbf{Lesson} \\
+  \midrule
+  V2 — adding a one-shot blunder tool (\texttt{compare\_move(move)}) that
+  returned an authoritative verdict.
+  &
+  Adding ``summary'' tools alongside the existing primitives does not
+  remove the slow path — the model uses the new tool \emph{and} runs the
+  old sequence to verify, then writes an answer that takes the headline
+  literally and confabulates around it.  Rule: optimise by removing
+  waste, not by adding shortcuts. \\
+  \addlinespace
+  V5 — pre-running \texttt{analyze} on the loaded FEN and injecting the
+  result as ``[Pre-loaded engine analysis]\ldots'' into the user message.
+  &
+  Giving the model the headline answer before it earns it via tools
+  encourages confabulation.  The model treats the preface as established
+  fact and writes a narrative consistent with the eval but inconsistent
+  with the (uninspected) PV. Rule: tool use is the model's accountability
+  mechanism — do not bypass it. \\
+  \bottomrule
+\end{tabular}
+\caption{Two reverted experiments and the design principles they established.
+Both were merged into the \texttt{experiment/compare-move} branch as
+historical reference; \texttt{main} carries V8.}
+\label{tab:agent-lessons}
+\end{table}
+
+\begin{tcolorbox}[notebox, title={Worked Example — Nxd4 Blunder Analysis (V8 trace)}]
 
 \noindent\textbf{Query:}
-\textit{``Why is Nxd4 a blunder here, \texttt{rnbqkb1r/pp2pppp/5n2/6B1/2pp4/4PN2/PP3PPP/RN1QKB1R w KQkq - 0 6}''}
+\textit{``Why is Nxd4 a blunder here, \texttt{rnbqkb1r/pp2pppp/5n2/6B1/\\2pp4/4PN2/PP3PPP/RN1QKB1R w KQkq - 0 6}''}
 
 \medskip
-\noindent\textbf{Tool call trace} (10 calls across 6 LLM rounds):
+\noindent\textbf{Round 1 — agent emits both calls in one response, dispatched in parallel:}
 
 \smallskip
-\begin{tabular}{@{}rlp{9cm}@{}}
+\begin{tabular}{@{}rlp{9.5cm}@{}}
   \toprule
-  \textbf{\#} & \textbf{Tool} & \textbf{Key finding} \\
+  \textbf{\#} & \textbf{Tool} & \textbf{Key finding (SAN PV from V4)} \\
   \midrule
-  1 & \texttt{reset\_position} & FEN loaded \\
-  2 & \texttt{make\_move(Nxd4)} & Knight lands on d4; Black to move \\
-  3 & \texttt{analyze(2000, 3)} & Best: \texttt{Qa5+} score\,=\,+7.59; confirms losing for White \\
-  4 & \texttt{undo\_move} & Return to pre-blunder position \\
-  5 & \texttt{analyze(2000, 3)} & Best: \texttt{exd4} score\,=\,$-0.08$; position roughly equal \\
-  6 & \texttt{get\_policy(500)} & \texttt{exd4} P\,=\,38\%, \texttt{Nxd4} P\,=\,0.7\%; NN confirms blunder is unusual \\
-  7 & \texttt{make\_move(Nxd4)} & Re-enter blunder position \\
-  8 & \texttt{make\_move(Qa5+)} & Queen checks king; attacks Bg5 along rank 5 \\
-  9 & \texttt{analyze(2000, 3)} & White scores $-7.26$ to $-16.97$; decisive material loss \\
-  10 & \texttt{undo\_move} & Clean up; LLM writes explanation \\
+  1 & \texttt{analyze(multipv=3)} &
+    Best: \texttt{exd4}, score\,=\,$-0.07$, PV \texttt{exd4 Be6 Nbd2 h6 Bxf6 exf6};
+    Black holds equal. \\
+  2 & \texttt{analyze(moves=[Nxd4], multipv=3)} &
+    Best for Black: \texttt{Qa5+}, score\,=\,$+7.89$,
+    PV \texttt{Qa5+ Nc3 Qxg5 Bxc4 Qxg2 Rf1};
+    Black wins the \texttt{Bg5} bishop. \\
   \bottomrule
 \end{tabular}
 
 \medskip
-\noindent\textbf{Engine verdict:} \texttt{Nxd4} drops the Bg5 bishop to \texttt{Qa5+} (simultaneous check on e1 diagonal and attack along rank 5); correct was \texttt{exd4} (${\approx}0$ eval).
+\noindent\textbf{Round 2 — agent writes the answer, no further tool calls:}
+
+\smallskip
+\begin{tcolorbox}[colback=black!4, colframe=black!25, sharp corners, boxrule=0.4pt,
+  left=8pt, right=8pt, top=6pt, bottom=6pt, fontupper=\small\itshape]
+\noindent ``Nxd4 is a blunder because it allows Black to win material with a
+devastating check.\,[\ldots]\, \textbf{Qa5+}\,[\ldots]\, \textbf{Qxg5}, capturing the
+White Bishop on g5.\,[\ldots]\, White should have captured with the pawn
+(\textbf{exd4}) instead.''
+\end{tcolorbox}
+
+\medskip
+\noindent\textbf{Engine verdict:} \texttt{Nxd4} drops the \texttt{Bg5} bishop to
+\texttt{Qa5+} (check on the e1\,diagonal \emph{and} attack along rank 5);
+correct was \texttt{exd4} ($\sim\!0$ eval).  Total: 2 lc0 calls, 2 LLM rounds,
+${\sim}$8 s wall-clock end-to-end.
 \end{tcolorbox}
 
 %------------------------------------------------------------------------------
