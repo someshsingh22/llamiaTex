@@ -49,33 +49,32 @@ in feature space (instruction reproduces what fine-tuning does);
     text closes the gap, C3 fails. The within-system
     \texttt{LLAMIA-static} (no \texttt{<InvokeAgent>}) row of the C1
     table is the matched paired ablation reported in the same place.
-
-    \item \textbf{[C4] Causal steering via a single latent
-    direction.} Modeled on the single-method discipline of
-    \cite{Leela-lookahead-8zg9sO4ttV}: one method, one curated
-    position set, one headline number.
-    \emph{Position set:} $N$ positions where adding an ICP
-    instruction $I$ flips LLAMIA-full's move from $a$ to $a'$ (the
-    instructed move).
-    \emph{Direction:} a single direction $\vd_I \in \mathbb{R}^{1024}$
-    in $\vz_s$-space identified per instruction theme (the SAE is the
-    \emph{instrument} for finding $\vd_I$, not the headline).
-    \emph{Intervention:} strip the language instruction from the
-    prompt -- LLAMIA reverts to $a$; then \emph{add} $\vd_I$ to
-    $\vz_s$ at fixed magnitude.
-    \emph{Headline metric:} fraction of positions on which adding
-    $\vd_I$ alone (no language instruction in context) recovers the
-    instructed move $a'$; reported against a random-direction null
-    and the full-instruction ceiling. Single number per ICP theme,
-    aggregated across themes.
-    \emph{Single main figure:} recovery rate per theme with
-    random-direction null bars and full-instruction ceiling line;
-    one qualitative position panel inset.
-    \emph{Purpose:} the cleanest causal statement of C4 -- a
-    \emph{single} latent direction reproduces the policy effect of
-    the language instruction. ``Instruction reproduces what
-    fine-tuning does'' becomes one experiment, one method, one
-    number, not a five-method bundle.
+    \item \textbf{Acquired Skills/Strats} Over training what collaboration/ strategies are learnt ie. measuring agency using LLM as a judge + Patterns, P1[Any human overlap?]
+    % \item \textbf{[C4] Causal steering via a single latent direction.} Modeled on the single-method discipline of
+    % \cite{Leela-lookahead-8zg9sO4ttV}: one method, one curated
+    % position set, one headline number.
+    % \emph{Position set:} $N$ positions where adding an ICP
+    % instruction $I$ flips LLAMIA-full's move from $a$ to $a'$ (the
+    % instructed move).
+    % \emph{Direction:} a single direction $\vd_I \in \mathbb{R}^{1024}$
+    % in $\vz_s$-space identified per instruction theme (the SAE is the
+    % \emph{instrument} for finding $\vd_I$, not the headline).
+    % \emph{Intervention:} strip the language instruction from the
+    % prompt -- LLAMIA reverts to $a$; then \emph{add} $\vd_I$ to
+    % $\vz_s$ at fixed magnitude.
+    % \emph{Headline metric:} fraction of positions on which adding
+    % $\vd_I$ alone (no language instruction in context) recovers the
+    % instructed move $a'$; reported against a random-direction null
+    % and the full-instruction ceiling. Single number per ICP theme,
+    % aggregated across themes.
+    % \emph{Single main figure:} recovery rate per theme with
+    % random-direction null bars and full-instruction ceiling line;
+    % one qualitative position panel inset.
+    % \emph{Purpose:} the cleanest causal statement of C4 -- a
+    % \emph{single} latent direction reproduces the policy effect of
+    % the language instruction. ``Instruction reproduces what
+    % fine-tuning does'' becomes one experiment, one method, one
+    % number, not a five-method bundle.
 
     \item \textbf{[C5] Cross-domain extension.} \emph{Poker} on
     OpenSpiel (Texas Hold'em or Leduc): hidden information and
@@ -108,10 +107,10 @@ in feature space (instruction reproduces what fine-tuning does);
 \subsubsection*{Supporting [P1, brief mention in main, full in appendix]}
 
 \begin{itemize}[leftmargin=*]
-    \item \textbf{Group~F matched-recipe ablations.}
-    \texttt{LLAMIA-static}, \texttt{Proj-Frozen}, \texttt{No-Proj}
-    rows. One sentence in main; full table in
-    \texttt{appendix/ablations.tex}.
+    % \item \textbf{Group~F matched-recipe ablations.}
+    % \texttt{LLAMIA-static}, \texttt{Proj-Frozen}, \texttt{No-Proj}
+    % rows. One sentence in main; full table in
+    % \texttt{appendix/ablations.tex}.
 
     \item \textbf{Group~G Lc0 architecture cross-check.}
     BT4 / T60 / smaller Lc0 nets. One sentence in discussion
@@ -202,89 +201,58 @@ the main text.
     \cite{CvjXlsBLCX-strength-est}. Move-match accuracy is already
     the primary public-benchmark anchor in main; this lives in
     appendix as the strength-conversion check.
-    \item \textbf{Counterfactual-coverage example.} One annotated
-    game; subset of gold commentary discussing counterfactual lines;
-    LLAMIA vs.\ verbalised-tool baseline coverage. Qualitative
-    illustration of why dynamic re-encoding helps explanation.
-    \item \textbf{Strategy Sankey for ICP themes.} Qualitative
-    storytelling; one appendix figure.
-    \item \textbf{Robotics / Hanabi pilot.} Stretch extension
-    referenced as ``ongoing.''
+
 \end{itemize}
 
-\subsubsection*{Removed (with brief reasons)}
 
-\begin{itemize}[leftmargin=*]
-    \item \textbf{Cross-Elo extrapolation} (train on $\{1300,1700\}$,
-    test on $\{1100,1500,1900\}$). The objective requires too much
-    chess-specific setup to land cleanly with a non-chess reader; the
-    representation-form claim is already cleanly delivered by the
-    [C3] symbolic-rich-vs-latent ablation.
-    \item \textbf{Counter-intuitiveness signal} via shallow-vs-deep
-    Lc0 disagreement. Search-depth disagreement is a noisy proxy for
-    difficulty and the argument requires a multi-paragraph chess
-    aside; the Lichess-rating Spearman in the appendix difficulty
-    sweep already does the calibration job.
-    \item \textbf{Difficulty + rationale joint scoring (rationale
-    branch).} The rater-judged rationale-correctness score is
-    expensive, subjective, and redundant with \textsc{Annot-Move} /
-    \textsc{Comm-Move}; only the Spearman branch survives, in
-    appendix.
-    \item \textbf{AIME-style OOD micro-experiment.} Out of scope
-    given the [C5] poker extension already delivers the
-    cross-domain claim; AIME adds a non-chess, non-game reader load
-    for marginal evidence.
-\end{itemize>
-
-% =============================================================================
 \subsection{Analyses}
 \label{sec:todo_analyses}
 % =============================================================================
 
-Two analyses live in the main paper -- the bench scalars (VG / DCS /
-RY, brief~\ref{brief:metrics}) reported alongside the [C1] table, and
-the single causal-steering protocol that \emph{is} the [C4] anchor
-experiment. Modeled on \cite{Leela-lookahead-8zg9sO4ttV}'s
-single-method discipline: one method, one curated position set, one
-headline number; convergent-method checks are appendix support, not
-co-headlines. Everything else is appendix.
+% Two analyses live in the main paper -- the bench scalars (VG / DCS /
+% RY, brief~\ref{brief:metrics}) reported alongside the [C1] table, and
+% the single causal-steering protocol that \emph{is} the [C4] anchor
+% experiment. Modeled on \cite{Leela-lookahead-8zg9sO4ttV}'s
+% single-method discipline: one method, one curated position set, one
+% headline number; convergent-method checks are appendix support, not
+% co-headlines. Everything else is appendix.
 
 \subsubsection*{Main-paper analyses [P0]}
 
 \begin{itemize}[leftmargin=*]
-    \item \textbf{Bench scalars (VG / DCS / RY).} Computed directly
-    from the [C1] table; reported in the same table caption with
-    bootstrap CIs. No separate experimental run.
+    % \item \textbf{Bench scalars (VG / DCS / RY).} Computed directly
+    % from the [C1] table; reported in the same table caption with
+    % bootstrap CIs. No separate experimental run.
 
-    \item \textbf{Causal-steering protocol (the [C4] method, in
-    full).} The single method behind the C4 anchor experiment;
-    everything else interpretability-related is appendix support.
-    \emph{Position set construction:} $N\!\geq\!200$ positions per
-    instruction theme where ICP-instructed LLAMIA picks
-    $a' \neq a$ and base LLAMIA picks $a$; balanced across phases
-    and material; held out from training.
-    \emph{Direction identification:} train an SAE on $\vz_s$ over
-    the Stage-1 corpus (top-$k$ or JumpReLU; dictionary
-    $\in\{8\text{k},32\text{k}\}$, $L_0\!\approx\!32$, ghost-grad;
-    hyperparameters chosen for reconstruction loss only, not
-    downstream metric, to avoid circularity); for each instruction
-    $I$, fit a sparse linear classifier over SAE activations to
-    predict the binary instruction-vs-base label on the position
-    set; the largest-magnitude coefficient defines $\vd_I$ (a
-    \emph{single} SAE direction). The SAE is the dictionary, not
-    the result.
-    \emph{Intervention and metric:} ablate the language instruction
-    from the prompt; add $\vd_I$ to $\vz_s$ at the magnitude that
-    matches the average $\|\Delta\vz_s\|$ between instructed and
-    base on a held-out tuning split; report (i) instructed-move
-    recovery rate, (ii) random-direction null at the same magnitude
-    ($\geq 50$ random unit-norm directions, percentile reported),
-    (iii) full-instruction ceiling, (iv) \textsc{ICP-Win} win-rate
-    recovery on a held-out game set when the language instruction
-    is replaced by the steering vector throughout play.
-    \emph{Pre-registered success criterion:} recovery
-    $\geq 0.5\!\times$ ceiling and $> 95$th percentile of
-    random-direction null on $\geq 4$ of 5 instruction themes.
+    % \item \textbf{Causal-steering protocol (the [C4] method, in
+    % full).} The single method behind the C4 anchor experiment;
+    % everything else interpretability-related is appendix support.
+    % \emph{Position set construction:} $N\!\geq\!200$ positions per
+    % instruction theme where ICP-instructed LLAMIA picks
+    % $a' \neq a$ and base LLAMIA picks $a$; balanced across phases
+    % and material; held out from training.
+    % \emph{Direction identification:} train an SAE on $\vz_s$ over
+    % the Stage-1 corpus (top-$k$ or JumpReLU; dictionary
+    % $\in\{8\text{k},32\text{k}\}$, $L_0\!\approx\!32$, ghost-grad;
+    % hyperparameters chosen for reconstruction loss only, not
+    % downstream metric, to avoid circularity); for each instruction
+    % $I$, fit a sparse linear classifier over SAE activations to
+    % predict the binary instruction-vs-base label on the position
+    % set; the largest-magnitude coefficient defines $\vd_I$ (a
+    % \emph{single} SAE direction). The SAE is the dictionary, not
+    % the result.
+    % \emph{Intervention and metric:} ablate the language instruction
+    % from the prompt; add $\vd_I$ to $\vz_s$ at the magnitude that
+    % matches the average $\|\Delta\vz_s\|$ between instructed and
+    % base on a held-out tuning split; report (i) instructed-move
+    % recovery rate, (ii) random-direction null at the same magnitude
+    % ($\geq 50$ random unit-norm directions, percentile reported),
+    % (iii) full-instruction ceiling, (iv) \textsc{ICP-Win} win-rate
+    % recovery on a held-out game set when the language instruction
+    % is replaced by the steering vector throughout play.
+    % \emph{Pre-registered success criterion:} recovery
+    % $\geq 0.5\!\times$ ceiling and $> 95$th percentile of
+    % random-direction null on $\geq 4$ of 5 instruction themes.
 
     \item \textbf{Train/test data-leakage audit.} Per benchmark: FEN
     overlap, instruction overlap, Lichess game-ID overlap, Stage-1

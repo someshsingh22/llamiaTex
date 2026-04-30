@@ -67,7 +67,15 @@
 \definecolor{themeharini}{RGB}{50,128,128}
 \newcommand{\yaman}[1]{{\scriptsize\textcolor{red}{[Yaman: #1]}}}
 \newcommand{\harini}[1]{{\scriptsize\textcolor{blue}{[Harini: #1]}}}
+\usepackage{xcolor}
 
+\definecolor{StateColor}{HTML}{F94892}
+\definecolor{LanguageColor}{HTML}{FF7F3F}
+\definecolor{ActionColor}{HTML}{02B9F1}
+
+\newcommand{\state}[1]{\textcolor{StateColor}{\textbf{#1}}}
+\newcommand{\lang}[1]{\textcolor{LanguageColor}{\textbf{#1}}}
+\newcommand{\action}[1]{\textcolor{ActionColor}{\textbf{#1}}}
 
 
 
@@ -196,6 +204,8 @@ We propose \textit{latent state internalization}: projecting a heterogeneous age
 
 \somesh{The framing here is too narrowing and the reasoning is not very convincing, begin with motivation and then say we validate on chess}We validate on chess---a domain with deterministic dynamics, calibrated evaluation via Elo ratings, and superhuman pretrained agents. A single 13B model with an internalized chess engine \somesh{The list of results and choice of benchmarks seems like an arbitrary laundry list, what do we want to achieve with these evaluations? Why these benchmarks or axes of evaluation?}achieves 2279$\pm$41 Elo without search, 55\% behavior cloning accuracy across skill levels, 0.61 G-eval on game commentary, and a 17\% win-rate gain from instruction-conditioned planning---matching or exceeding task-specific specialists and 30$\times$ larger LLMs with tool access \somesh{Reviewers will rarely understand the meaning of these chess specific terminology, we need to make these results easier to understand}. \somesh{Again passive, and motivation is not clear, why do we conduct these ablations? These are our baselines instead, here we are explaining our setup and affirming that our setup/baselines are perfect and demonstrate that the gain is only a result of internalization}Ablations confirm that dynamic re-encoding is the critical mechanism: removing it causes 64\% degradation on planning tasks but only 1--4\% on single-step predictions. These results establish latent internalization as a more efficient and capable paradigm than tool calling for integrating heterogeneous agents into LLM reasoning. \somesh{The takeaway should be stronger, with exact impact and framing, dont overclaim or generalize, but make it clear and patent to the reader}
 \end{abstract}
+
+
 
 
 \begin{figure}[!h]
