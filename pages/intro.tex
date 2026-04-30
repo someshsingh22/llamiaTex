@@ -19,7 +19,7 @@ As LLMs increasingly serve as general purpose orchestrators, the depth of their 
 Consider chess: LLMs have been trained on more chess literature than most experts will study in a lifetime, yet they cannot leverage it to play the game competently, trailing far behind even amateur players~\cite{XXXChessBench}. Conversely, pretrained engines surpassed human grandmasters decades ago~\cite{campbell2002deep}, yet they remain narrow specialists that are unable to explain the rationale behind a move or strategize under different contexts. The most valued applications commentating on a game, preparing against an opponent's known weaknesses, assessing puzzle creativity therefore remain unsolved, because they demand both the engine's deep positional understanding and the LLM's ability to reason over human intent in natural language. Improving how LLMs collaborate with domain agents would unlock these applications and make them scalable.
 
 
-Earlier approaches aimed to solve these tasks by training dedicated models per task~\cite{jhamtani-etal-2018-learning,mcilroy2020aligning,mcilroy2021detecting}. While these remain strong baselines, each model is applicable only to the task it was trained on and does not transfer to new settings. To overcome this limitation of generalization, subsequent works attempt fine-tuning LLMs on interleaved language and verbalized policy tokens like next actions and value estimates in natural language ~\cite{feng2024chessgpt}. While this grounds the model in domain-specific behavior, these methods are compute inefficient and lag far behind pretrained domain experts. More recently, the rise of LLMs as general-purpose orchestrators has fueled interest in multi-agent systems~\cite{lee2022improving,zang2019automated,kim2024bridging}; however, this collaboration is mediated entirely through language, collapsing the agent's rich latent representations into surface-level tokens such as next-best actions. These lines of work share a common limitation: the multi agent collaboration fails to effectively leverage the rich latent representations of domain agents. Prior multi-agent RL research has addressed similar information loss by co-training agents to share representations~\cite{sukhbaatar2016learning,jiang2018learning,das2019tarmac}, but in the LLM setting both systems are independently pretrained and co-training at pretraining scale is impractical. These limitations are further compounded because of the multi-step settings in these tasks.
+Earlier approaches aimed to solve these tasks by training dedicated models per task~\cite{jhamtani-etal-2018-learning,mcilroy2020aligning,mcilroy2021detecting}. While these remain strong baselines, each model is applicable only to the task it was trained on and does not transfer to new settings. To overcome this limitation of generalization, subsequent works attempt fine-tuning LLMs on interleaved language and verbalized policy tokens like next actions and value estimates in natural language ~\cite{feng2024chessgpt}. While this grounds the model in domain-specific behavior, these methods are compute inefficient and lag far behind pretrained domain experts. Another line of work instantiates domain agents through verbalization~\cite{lee2022improving,zang2019automated,kim2024bridging}; however this collapses the agent's rich latent representations into surface-level tokens such as next-best actions. These lines of work share a common limitation: the multi agent collaboration fails to effectively leverage the rich latent representations of domain agents. Prior multi-agent RL research has addressed similar information loss by co-training agents to share representations~\cite{sukhbaatar2016learning,jiang2018learning,das2019tarmac}, but in the LLM setting both systems are independently pretrained and co-training at pretraining scale is impractical. These limitations are further compounded because of the multi-step settings in these tasks.\somesh{Last sentence needs slight elaboration}
 
 In this work we introduce the concept of \textit{latent state internalization} to bridge this gap. Rather than verbalizing the domain agent's output, we inject its internal representations directly into the LLM's chain of thought as contiguous \textit{latent tokens}. A lightweight projection module \textbf{LatentBridge}, projects these representations into the LLM's embedding space. This enables the model to reason autoregressively over both agents' latent space simultaneously. \somesh{Open to alternate name suggestions for LatentBridge}
 
@@ -27,13 +27,13 @@ In this work we introduce the concept of \textit{latent state internalization} t
 
 We instantiate this framework as \textbf{LLAMIA} (\textbf{L}arge \textbf{L}anguage and \textbf{A}ction \textbf{M}odels with \textbf{I}nternal \textbf{A}gents), pairing [LLM backbone] with Leela Chess Zero's BT4 network (240M parameters), and evaluate on \textsc{LLAMIA-Bench}---our curated benchmark spanning [XXX] public benchmarks and we extend it to in-the-wild settings with [XXX] tasks. This spans [XXX] tasks including behavior cloning across skill levels, behavioral stylometry, difficulty estimation, move and game commentary, and conditional planning. We ablate our method against dedicated task experts, frontier reasoning models and RL trained baselines with access to the domain agent. LLAMIA matches or exceeds all task experts and baselines with a single model, with [XXX\%] gains on [XXX]. We observe that the margin grows for tasks requiring deeper collaboration and multi-step interactions like game level commentary and conditional planning. Commentary produced through internalization shows highest overlaps with the lines discussed by grandmasters. While imitating gameplay we observe that LLAMIA even imitates tricks and blunders akin to humans under time pressure. RL with LLAMIA shows quicker and substantially higher performance gains. Our baselines and experiments conclusively prove the bottleneck of verbalization even when controlled for compute and data.
 
-Beyond task performance, the internalized representations are themselves interpretable: a single direction in the latent space, identified via sparse autoencoders, recovers the effect of a natural-language instruction when injected without any language prompt. We validate these findings primarily in chess, with a cross-domain pilot on poker providing initial evidence of transferability.
+Beyond task performance, we adopt activation patching introduced by \cite{jenner2024evidence} to interpret and analyze the evolving policy and internal representations of the domain agent throughout the LLM's chain of thought. We find intriguing evidence that the policy and latent states adapt dynamically based on the target task instructions. When imitating gameplay under time pressure, squares around the king's position, and forcing lines are prioritized. This shows that the internalized representations are themselves interpretable and used to guide the LLM's reasoning.
 
 % =============================================================================
 % Why chess? (Testbed motivation)
 % =============================================================================
 
-Despite growing interest in latent agent communication~\cite{XXXlatentsurvey} coordination with non language agents remain unaddressed. We hypothesize that a central reason is a lack of environments and structured evaluations that offer the necessary combination: diverse collaborative tasks with verifiable metrics, large-scale public data, and pre-trained agents. Chess, with its longstanding history in AI, is therefore uniquely positioned to provide all three. Humans have collaborated with engines for decades across commentary, opponent preparation, puzzle curation, and difficulty assessment--- real world tasks with established evaluation protocols, documented at scale through public game databases\cite{Lichess,Caissabase,Gameknot} and annotated corpora~\cite{feng2024chessgpt}. \somesh{Comment that connects to broader literature insights and poker}
+Despite growing interest in latent agent communication~\cite{XXXlatentsurvey} coordination with non language agents remain unaddressed. We hypothesize that a central reason is a lack of environments and structured evaluations that offer the necessary combination: diverse collaborative tasks with verifiable metrics, large-scale public data, and pre-trained agents. Chess, with its longstanding history in AI, is therefore uniquely positioned to provide all three. Humans have collaborated with engines for decades across commentary, opponent preparation, puzzle curation, and difficulty assessment--- real world tasks with established evaluation protocols, documented at scale through public game databases\cite{Lichess,Caissabase,Gameknot} and annotated corpora~\cite{feng2024chessgpt}. We validate these findings primarily in chess, with a cross-domain pilot on poker providing initial evidence of transferability. \somesh{Struggling to position this in the paper, most likely instead of a separate defensive section, lets distribute it across paras}
 
 % Summary of Contributions
 % =============================================================================
@@ -42,16 +42,19 @@ Despite growing interest in latent agent communication~\cite{XXXlatentsurvey} co
 \subsection{Summary of Contributions}
 \vspace{-1mm}
 
+\noindent Our contributions address each stage of this gap: \somesh{A statement about broader literature and impact should be added here}
+
 \begin{enumerate}[leftmargin=*, labelsep=0.5em, topsep=2pt, itemsep=2pt]
-    \item \textbf{\textsc{LLAMIA-Bench} (Section~\ref{sec:experiments}):} A multi-task evaluation suite for LLM collaboration with non-language domain agents, spanning behavior cloning, behavioral stylometry, difficulty estimation, commentary, and instruction-conditioned planning.
+    \item \textbf{Latent state internalization (Section~\ref{sec:methodology}):} A novel paradigm that replaces verbal agent communication with direct latent representation injection, enabling end-to-end reinforcement learning over interleaved \lang{language}, \action{action}, and \state{latent tokens} in Chain of Thoughts. The resulting framework, \textbf{LLAMIA}, achieves state-of-the-art performance across diverse tasks and baselines.
 
-    \item \textbf{Systematic bottleneck analysis (Section~\ref{sec:experiments}):} Through controlled comparisons between verbalized and internalized access under matched training, we establish that verbalization is the binding constraint for multi-step collaboration.
+    \item \textbf{\textsc{LLAMIA-Bench} (Section~\ref{sec:experiments}):} To evaluate LLM and domain-agent collaboration, we curate [XXX] chess benchmarks, spanning [XXX] tasks spanning behavior cloning, stylometry, difficulty estimation, commentary, and instruction-conditioned planning.
 
-    \item \textbf{Latent state internalization with dynamic re-encoding (Section~\ref{sec:methodology}):} A novel paradigm for integrating pretrained non-language agents into LLM reasoning through latent token injection and dynamic re-encoding.
+    \item \textbf{Verbalization as the bottleneck (Section~\ref{sec:experiments}):} Controlled ablations show that verbalized communication is suboptimal both in terms of performance and compute efficiency, and the gap grows for tasks requiring deeper collaboration and multi-step interactions.
 
-    \item \textbf{RL-trained agent-in-the-loop reasoning (Section~\ref{sec:methodology}):} Training augmented chain-of-thought traces containing latent tokens with DAPO, extending tool-use learning from text-only to mixed language-action-latent traces.
+    \item \textbf{Generalization to unseen tasks (Section~\ref{sec:experiments}):} We demonstrate LLAMIA's ability to solve complex tasks in zero or few demonstrations on tasks that were completely unseen during training.
 \end{enumerate}
 
+\vspace{-2mm}
 
 % We introduce \textit{latent state internalization} to bridge this gap without co-training. The LLM updates the 
 
@@ -89,32 +92,32 @@ Despite growing interest in latent agent communication~\cite{XXXlatentsurvey} co
 % P6: Key results
 % =============================================================================
 
-\begin{itemize}[leftmargin=*, topsep=2pt, itemsep=2pt]
-    \item \textbf{Internalization outperforms tool calling across all tasks:} LLAMIA-13B achieves 0.61 G-eval on commentary vs.\ 0.52 for GPT-4o with Lc0 tool access, and 17\% win-rate gain on instruction-conditioned planning vs.\ 10\% for LLaMA-3 405B with Lc0---while being 30$\times$ smaller (Table~\ref{tab:chess_benchmarks}).
+% \begin{itemize}[leftmargin=*, topsep=2pt, itemsep=2pt]
+%     \item \textbf{Internalization outperforms tool calling across all tasks:} LLAMIA-13B achieves 0.61 G-eval on commentary vs.\ 0.52 for GPT-4o with Lc0 tool access, and 17\% win-rate gain on instruction-conditioned planning vs.\ 10\% for LLaMA-3 405B with Lc0---while being 30$\times$ smaller (Table~\ref{tab:chess_benchmarks}).
 
-    \item \textbf{A single model matches or exceeds task-specific specialists:} LLAMIA-13B achieves 55\% behavior cloning accuracy with one model vs.\ 53\% for Maia's 5-model ensemble trained on 12$\times$ more data, and 2279$\pm$41 Elo without search, comparable to the 270M Transformer (2299 Elo) trained on 500$\times$ more positions (Table~\ref{tab:gameplay-performance}).
+%     \item \textbf{A single model matches or exceeds task-specific specialists:} LLAMIA-13B achieves 55\% behavior cloning accuracy with one model vs.\ 53\% for Maia's 5-model ensemble trained on 12$\times$ more data, and 2279$\pm$41 Elo without search, comparable to the 270M Transformer (2299 Elo) trained on 500$\times$ more positions (Table~\ref{tab:gameplay-performance}).
 
-    \item \textbf{Dynamic re-encoding is the critical mechanism:} Removing \texttt{<InvokeAgent>} causes 64\% degradation on conditional planning and 22\% on commentary, but only 1--4\% on single-step tasks (gameplay, move prediction). This asymmetry precisely isolates the contribution of iterative latent re-encoding to multi-step reasoning (Table~\ref{tab:invoke_ablation}).
+%     \item \textbf{Dynamic re-encoding is the critical mechanism:} Removing \texttt{<InvokeAgent>} causes 64\% degradation on conditional planning and 22\% on commentary, but only 1--4\% on single-step tasks (gameplay, move prediction). This asymmetry precisely isolates the contribution of iterative latent re-encoding to multi-step reasoning (Table~\ref{tab:invoke_ablation}).
 
-    \item \textbf{Both training stages are necessary:} Stage~1 (projector alignment on 50M state-policy pairs) alone achieves strong gameplay (2198 Elo) but poor language tasks (0.31 G-eval). Stage~2 without Stage~1 is unstable and plateaus 190 Elo below the full system. The staged approach leverages abundant synthetic data for stable initialization before instruction-tuning (Table~\ref{tab:stage_ablation}).
-\end{itemize}
+%     \item \textbf{Both training stages are necessary:} Stage~1 (projector alignment on 50M state-policy pairs) alone achieves strong gameplay (2198 Elo) but poor language tasks (0.31 G-eval). Stage~2 without Stage~1 is unstable and plateaus 190 Elo below the full system. The staged approach leverages abundant synthetic data for stable initialization before instruction-tuning (Table~\ref{tab:stage_ablation}).
+% \end{itemize}
 
 % =============================================================================
 % P7: Contributions
 % =============================================================================
 
-\vspace{-1mm}
-\subsection{Contributions}
-\vspace{-1mm}
+% \vspace{-1mm}
+% \subsection{Contributions}
+% \vspace{-1mm}
 
-\begin{enumerate}[leftmargin=*, labelsep=0.5em, topsep=2pt, itemsep=2pt]
-    \item \textbf{Latent state internalization for heterogeneous agents (Section~\ref{sec:methodology}):} We formalize and instantiate a paradigm for coupling LLMs with pretrained non-language agents by projecting their internal representations into the LLM's reasoning trace via learned adapters. Unlike tool calling, this preserves continuous policy and value information. Unlike latent multi-agent systems, this bridges architecturally heterogeneous models through a lightweight projector.
+% \begin{enumerate}[leftmargin=*, labelsep=0.5em, topsep=2pt, itemsep=2pt]
+%     \item \textbf{Latent state internalization for heterogeneous agents (Section~\ref{sec:methodology}):} We formalize and instantiate a paradigm for coupling LLMs with pretrained non-language agents by projecting their internal representations into the LLM's reasoning trace via learned adapters. Unlike tool calling, this preserves continuous policy and value information. Unlike latent multi-agent systems, this bridges architecturally heterogeneous models through a lightweight projector.
 
-    \item \textbf{Dynamic re-encoding with \texttt{InvokeAgent} (Section~\ref{sec:methodology}):} We introduce a mechanism for iterative reasoning over evolving states: the LLM generates actions, transitions the environment, and receives fresh agent encodings mid-generation. Ablations confirm this is the critical differentiator---removing it causes 64\% degradation on multi-step planning but only 1--4\% on single-step tasks.
+%     \item \textbf{Dynamic re-encoding with \texttt{InvokeAgent} (Section~\ref{sec:methodology}):} We introduce a mechanism for iterative reasoning over evolving states: the LLM generates actions, transitions the environment, and receives fresh agent encodings mid-generation. Ablations confirm this is the critical differentiator---removing it causes 64\% degradation on multi-step planning but only 1--4\% on single-step tasks.
 
-    \item \textbf{GRPO-trained agent-in-the-loop reasoning (Section~\ref{sec:methodology}):} We train augmented chain-of-thought traces with GRPO, enabling the model to learn optimal agent invocation strategies---including routing between multiple agent configurations of different depths. This optimizes over full reasoning rollouts containing latent tokens, rather than bare action prediction.
+%     \item \textbf{GRPO-trained agent-in-the-loop reasoning (Section~\ref{sec:methodology}):} We train augmented chain-of-thought traces with GRPO, enabling the model to learn optimal agent invocation strategies---including routing between multiple agent configurations of different depths. This optimizes over full reasoning rollouts containing latent tokens, rather than bare action prediction.
 
-    \item \textbf{Comprehensive empirical validation (Section~\ref{sec:experiments}):} On chess as a controlled testbed, a single LLAMIA model matches or exceeds task-specific specialists across five evaluation categories while outperforming 30$\times$ larger LLMs with tool access. We release LLAMIA-Bench for evaluating LLM-agent integration on sequential decision tasks.
-\end{enumerate}
+%     \item \textbf{Comprehensive empirical validation (Section~\ref{sec:experiments}):} On chess as a controlled testbed, a single LLAMIA model matches or exceeds task-specific specialists across five evaluation categories while outperforming 30$\times$ larger LLMs with tool access. We release LLAMIA-Bench for evaluating LLM-agent integration on sequential decision tasks.
+% \end{enumerate}
 
-\vspace{-2mm}
+% \vspace{-2mm}
