@@ -3,11 +3,14 @@
 \vspace{-2mm}
 Large language models (LLMs) are increasingly deployed to collaborate with domain
 agents to solve tasks that demand their world knowledge and
-domain-specific expertise respectively. Yet their collaboration with domain agents remains bottlenecked by language~\cite{wu2023autogen,agentverseXXX}.
-Concretely, the LLM reasons through a chain of thought (CoT) that interleaves its own deliberation with the outputs of agents it invokes~\cite{yao2022react,schick2023toolformerlanguagemodelsteach}. The LLM reasons these interleaved language and actions to plan and reason further.
-Such \emph{verbalized} collaboration is effective when both agents are themselves language models, as they share the same input space. However, in many domains such as game playing, robotics, autonomous driving the
+domain-specific expertise respectively. 
+Today this collaboration with domain agents is primarily mediated through language: the LLM invokes another agent, receives a
+natural language \emph{verbalization} of its output, and reasons over that
+description to decide subsequent
+actions~\cite{yao2022react,schick2023toolformerlanguagemodelsteach}.
+Such verbalized collaboration is effective when both agents are themselves language models, as they share the same input space. However, in many domains such as game playing, robotics, autonomous driving the
 strongest available agents are not language models but pretrained neural networks whose expertise
-is encoded in their internal representations: latent states that encode the agent's policy, value estimation, and learned features~\cite{silver2017mastering,monroe2024mastering,brohan2023rt2}. Text-mediated collaboration forces these representations through a lossy verbalization bottleneck, collapsing the agent's rich internal state into surface-level descriptions. This raises a fundamental question:
+is encoded in their internal representations: latent states that encode the agent's policy, value estimation, and learned features~\cite{silver2017mastering,monroe2024mastering,brohan2023rt2}. Verbalized collaboration forces these representations through a lossy bottleneck, collapsing the agent's rich internal state into surface-level descriptions. This raises a fundamental question:
 \begin{quote}
 \emph{How can LLMs effectively collaborate and jointly reason with pretrained non-language agents?}    
 \end{quote}
@@ -21,23 +24,17 @@ Earlier approaches aimed to solve these tasks by training dedicated models per t
 In this work we introduce the concept of \textit{latent state internalization} to bridge this gap. Rather than verbalizing the domain agent's output, we inject its internal representations directly into the LLM's chain of thought as contiguous \textit{latent tokens}. A lightweight projection module \textbf{LatentBridge}, projects these representations into the LLM's embedding space. This enables the model to reason autoregressively over both agents' latent space simultaneously. \somesh{Open to alternate name suggestions for LatentBridge}
 
 \ref{XXXfig1} describes the multi-step flow. At each step the LLM (1) generates language to reason verbally, (2) updates the environment with actions, or (3) queries the domain agent. At each query the domain agent processes the updated state and its latent state is projected as $K=32$ contiguous latent tokens. These latent tokens are appended to the reasoning trace giving the LLM a growing record of the agent's evaluations as the multi step interaction progresses. This creates a closed loop: the agent operates inside the generation process, updating its perspective after each action. We train on these interleaved traces of \lang{language}, \action{action}, and \state{latent tokens} with reinforcement learning, enabling the model to collaborate strategically with the domain agent.
+
+We instantiate this framework as \textbf{LLAMIA} (\textbf{L}arge \textbf{L}anguage and \textbf{A}ction \textbf{M}odels with \textbf{I}nternal \textbf{A}gents), pairing [LLM backbone] with Leela Chess Zero's BT4 network (240M parameters), and evaluate on \textsc{LLAMIA-Bench}---our curated benchmark spanning [XXX] public benchmarks and we extend it to in-the-wild settings with [XXX] tasks. This spans [XXX] tasks including behavior cloning across skill levels, behavioral stylometry, difficulty estimation, move and game commentary, and conditional planning. We ablate our method against dedicated task experts, frontier reasoning models and RL trained baselines with access to the domain agent. LLAMIA matches or exceeds all task experts and baselines with a single model, with [XXX\%] gains on [XXX]. We observe that the margin grows for tasks requiring deeper collaboration and multi-step interactions like game level commentary and conditional planning. Commentary produced through internalization shows highest overlaps with the lines discussed by grandmasters. While imitating gameplay we observe that LLAMIA even imitates tricks and blunders akin to humans under time pressure. RL with LLAMIA shows quicker and substantially higher performance gains. Our baselines and experiments conclusively prove the bottleneck of verbalization even when controlled for compute and data.
+
+Beyond task performance, the internalized representations are themselves interpretable: a single direction in the latent space, identified via sparse autoencoders, recovers the effect of a natural-language instruction when injected without any language prompt. We validate these findings primarily in chess, with a cross-domain pilot on poker providing initial evidence of transferability.
+
 % =============================================================================
 % Why chess? (Testbed motivation)
 % =============================================================================
 
-Eva
+Despite growing interest in latent agent communication~\cite{XXXlatentsurvey} coordination with non language agents remain unaddressed. We hypothesize that a central reason is a lack of environments and structured evaluations that offer the necessary combination: diverse collaborative tasks with verifiable metrics, large-scale public data, and pre-trained agents. Chess, with its longstanding history in AI, is therefore uniquely positioned to provide all three. Humans have collaborated with engines for decades across commentary, opponent preparation, puzzle curation, and difficulty assessment--- real world tasks with established evaluation protocols, documented at scale through public game databases\cite{Lichess,Caissabase,Gameknot} and annotated corpora~\cite{feng2024chessgpt}. \somesh{Comment that connects to broader literature insights and poker}
 
-Evaluating this paradigm requires a domain with diverse collaborative tasks, verifiable metrics, and agents whose continuous representations can be extracted---a combination not previously available in a single system. Chess provides all three. Humans have collaborated with engines for decades on tasks beyond optimal play: commentary, behavioral analysis, puzzle curation, difficulty assessment, and strategic planning---all well-defined with established evaluation protocols. Neural engines like Leela Chess Zero~\cite{monroe2024mastering} produce rich continuous representations encoding positional features, piece interactions, and strategic patterns~\cite{mcgrath2022acquisition,jenner2024evidence} that can be extracted and projected into other architectures.
-
-% =============================================================================
-% P5: Instantiation and results
-% =============================================================================
-
-We instantiate this framework as \textbf{LLAMIA} (\textbf{L}arge \textbf{L}anguage and \textbf{A}ction \textbf{M}odels with \textbf{I}nternal \textbf{A}gents), pairing [LLM backbone] with Leela Chess Zero's BT4 network (240M parameters), and evaluate on \textsc{LLAMIA-Bench}---a suite spanning behavior cloning across skill levels, behavioral stylometry, difficulty estimation, move and game commentary, and instruction-conditioned planning---against frontier reasoning models, the same models augmented with verbalized engine access, RL-trained tool-using LLMs, and per-task domain specialists. LLAMIA matches or exceeds dedicated systems across the suite with a single model, achieving [XX] Elo without search, [XX]\% move-match accuracy on behavior cloning, and human-preferred commentary over all baselines. The margin over verbalized baselines grows with interaction depth: modest on single-step tasks like move classification, but widening substantially on multi-turn commentary and strategic planning. This gap persists even when the text interface transmits the agent's complete output, confirming that the bottleneck is the representation form, not the information content. Ablating the \texttt{InvokeAgent} loop isolates the mechanism: [XX]\% degradation on multi-step planning versus only [XX]\% on single-step tasks, pinpointing the closed loop as the driver of sustained-collaboration gains.
-
-Internalization also enables capabilities that verbalized interfaces cannot support. Verbalized pipelines transmit only the agent's top-ranked actions, discarding its preferences across all candidates; latent tokens preserve this full output, making tasks like difficulty estimation and player-style identification accessible for the first time. Commentary produced through internalization is grounded in features the agent actually evaluates rather than hallucinated analysis; behavior cloning reproduces not just move accuracy but the characteristic error patterns of a target skill level; and instruction-conditioned planning demonstrably reshapes play in response to natural-language strategic directives. Beyond task performance, the internalized representations are themselves interpretable: a single direction in the latent space, identified via sparse autoencoders, recovers the effect of a natural-language instruction when injected without any language prompt. We validate these findings primarily in chess, with a cross-domain pilot on poker providing initial evidence of transferability.
-
-% =============================================================================
 % Summary of Contributions
 % =============================================================================
 
@@ -91,8 +88,6 @@ Internalization also enables capabilities that verbalized interfaces cannot supp
 % =============================================================================
 % P6: Key results
 % =============================================================================
-
-We instantiate this framework as \textbf{LLAMIA} (Large Language and Action Models with Internal Agents), combining Vicuna-7B/13B~\cite{zheng2023judging} with Leela Chess Zero's BT4 network (240M parameters). Key findings: \somesh{Key findings should be in the paragraph before contributions, right now it looks like contribution itself,}
 
 \begin{itemize}[leftmargin=*, topsep=2pt, itemsep=2pt]
     \item \textbf{Internalization outperforms tool calling across all tasks:} LLAMIA-13B achieves 0.61 G-eval on commentary vs.\ 0.52 for GPT-4o with Lc0 tool access, and 17\% win-rate gain on instruction-conditioned planning vs.\ 10\% for LLaMA-3 405B with Lc0---while being 30$\times$ smaller (Table~\ref{tab:chess_benchmarks}).
