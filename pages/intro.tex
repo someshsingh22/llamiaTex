@@ -1,12 +1,8 @@
 
 \section{Introduction}
-Large language models (LLMs) are increasingly deployed to collaborate with domain
-agents to solve tasks that demand their world knowledge and
-domain-specific expertise respectively. 
-Today this collaboration with domain agents is primarily mediated through language: the LLM invokes another agent, receives a
-natural language \emph{verbalization} of its output, and reasons over that
-description to decide subsequent
-actions~\cite{yao2022react,schick2023toolformerlanguagemodelsteach}.
+Large language models (LLMs) are increasingly deployed to collaborate with subagents\cite{AnthropicXXX} and solve increasingly complex tasks.
+This collaboration allows them to utilize their domain specific intelligence\cite{metagptXXX} and preserve their contexts\cite{chainofagentsXXX} aiding them in multi step and long horizon reasoning and planning.
+Today this collaboration with domain agents is primarily mediated through language: the LLM invokes another agent, receives a natural language \emph{verbalization} of its output, and reasons over that description to decide subsequent actions~\cite{XXX}.
 Such verbalized collaboration is effective when both agents are themselves language models, as they share the same input space. However, in many domains such as game playing, robotics, autonomous driving the
 strongest available agents are not language models but pretrained neural networks whose expertise
 is encoded in their internal representations: latent states that encode the agent's policy, value estimation, and learned features~\cite{silver2017mastering,monroe2024mastering,brohan2023rt2}. Verbalized collaboration forces these representations through a lossy bottleneck, collapsing the agent's rich internal state into surface-level descriptions. This raises a fundamental question:
