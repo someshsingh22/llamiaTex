@@ -63,19 +63,19 @@
 \definecolor{themegreen}{HTML}{365956}
 \definecolor{themepurple}{HTML}{3c1b48}
 \definecolor{themered}{HTML}{b43748}
-% === Result placeholders (fill with actual numbers) ===
-\newcommand{\benchmarkcount}{5}          % number of LLAMIA-Bench task categories
-\newcommand{\scalecompare}{30}           % how many times larger is the best LLM baseline
-\newcommand{\multideg}{64}               % multi-step degradation without InvokeAgent (%)
-\newcommand{\singledeg}{1--4}            % single-step degradation without InvokeAgent (%)
-\newcommand{\eloscore}{2279$\pm$41}      % Elo without search
-\newcommand{\bcacc}{55}                  % behavior cloning accuracy (%)
-\newcommand{\gevalcomm}{0.61}            % G-eval commentary score
 \newcommand{\somesh}[1]{\textcolor{red}{[Somesh: #1]}}
 \definecolor{themeharini}{RGB}{50,128,128}
 \newcommand{\yaman}[1]{{\scriptsize\textcolor{red}{[Yaman: #1]}}}
 \newcommand{\harini}[1]{{\scriptsize\textcolor{blue}{[Harini: #1]}}}
+\usepackage{xcolor}
 
+\definecolor{StateColor}{HTML}{F94892}
+\definecolor{LanguageColor}{HTML}{FF7F3F}
+\definecolor{ActionColor}{HTML}{02B9F1}
+
+\newcommand{\state}[1]{\textcolor{StateColor}{\textbf{#1}}}
+\newcommand{\lang}[1]{\textcolor{LanguageColor}{\textbf{#1}}}
+\newcommand{\action}[1]{\textcolor{ActionColor}{\textbf{#1}}}
 
 
 
@@ -182,15 +182,13 @@
 
 
 
+
+
+
+
 \begin{abstract}
-Multi-agent systems coordinate specialized agents to solve complex tasks requiring both general reasoning and domain-specific expertise. Because these systems communicate primarily through natural language, research has focused on language-based agents where LLMs collaborate with other LLMs through text. However, many domains like game plaing and robotics rely on state-of-the-art pretrained non-language agents, whose capabilities are encoded in continuous learned representations rather than text. When integrated into LLM-based systems, these domain agents are accessed through text interfaces that compress their policy distributions, value estimates, and learned features into sparse symbolic summaries. The extent to which \textit{verbalization} solves this multi-agent collaboration remains an open question.
-
-Evaluating emergent behaviors and diverse collaboration strategies in multi-agent systems has been a persistent challenge, largely due to the lack of domains that combine verifiable metrics with meaningful collaborative tasks. Chess, with its long history of human-agent collaboration, naturally provides both: humans have collaborated with engines for decades on commentary, behavioral analysis, difficulty assessment, and strategic planning, producing well-defined tasks with established evaluation protocols. Alongside this, state-of-the-art pretrained engines offer extractable neural representations, making chess an ideal testbed for studying this bottleneck. We curate \textsc{LLAMIA-Bench}, spanning \benchmarkcount{} collaborative tasks that stress different facets of LLM-agent interaction. We first show that verbalized agent access, even with RL-optimized invocation, yields underwhelming performance on tasks requiring sustained collaboration, establishing this bottleneck. 
-
-To address this, we introduce \textit{latent state internalization}, a novel integration paradigm that projects the agent's continuous representations into $K{=}16$ tokens within the LLM's chain of thought, with dynamic re-encoding as the LLM's actions evolve the environment state. Through internalization, a single 13B model matches or exceeds task-specific specialists across all benchmark categories while outperforming \scalecompare{}$\times$ larger LLMs with text-mediated access.
-
-To assess the contribution of dynamic re-encoding, we ablate the \texttt{internalization} mechanism and find \multideg{}\% degradation on multi-step planning but only \singledeg{}\% on single-step predictions, confirming that the bottleneck compounds over sequential interactions.
-\end{abstract}
+Multi-agent systems coordinate specialized agents to solve complex tasks requiring both general reasoning and domain-specific expertise. Because these systems communicate primarily through natural language, research has focused on language-based agents where LLMs collaborate with other LLMs through text. However, many domains like game plaing and robotics rely on state-of-the-art pretrained non-language agents, whose capabilities are encoded in latent state representations rather than text. When integrated into LLM-based systems, these domain agents are accessed through \emph{verbalization} that compress their rich policy distributions, value estimates, and learned features into sparse symbolic summaries. The extent to which verbalization solves this multi-agent collaboration remains an open question.
+Evaluating emergent behaviors and diverse collaboration strategies in multi-agent systems has been a persistent challenge, largely due to the lack of domains that combine verifiable metrics with meaningful collaborative tasks. Chess, with its long history of human-agent collaboration, naturally provides both: humans have collaborated with engines for decades on commentary, analysis, and planning, producing well-defined tasks with established evaluation protocols. We curate \textsc{LLAMIA-Bench}, spanning [XXX] collaborative tasks that stress different facets of LLM-agent interaction. We first show that verbalized agent collaboration, even with RL, yields underwhelming performance on tasks requiring deeper collaboration. To address this, we introduce \textit{latent state internalization}, a novel integration paradigm that projects the agent's continuous representations into $K{=}32$ tokens within the LLM's chain of thought, with dynamic re-encoding as the LLM's actions evolve the environment state. Through internalization, a single 13B model matches or exceeds task-specific specialists across all benchmark categories while outperforming [XXX]$\times$ larger LLMs
 
 
 \begin{figure}[!h]
