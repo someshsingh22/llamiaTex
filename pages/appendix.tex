@@ -7,7 +7,7 @@ Here we describe the quantitative results, baselines and evaluation setups compr
 \paragraph{ICL + Tool Calling: Few Shot LLM + Tool Calling}
 Here we use ReACT \cite{wu2023autogen} and Autogen \cite{wu2023autogen} to implement tool calling and ICL.
 \paragraph{IFT: ChessGPT}
-Here we use \cite{feng2024chessgpt} for the 3B models to test the improvement compared to only IFT with text tokens as described in \cref{eq:llm_agent_objective}. However, the complete dataset was not made public, and they only provide checkpoints for 2b and 3b model, so for a fair comparison we finetune 7B and 13B models with our dataset. To replace the agent, we add the FEN, the complete verbalization as shown in \cref{listing:pretraining_instruction_format}, and next best moves and evaluations alongside while finetuning and doing inference.
+Here we use \cite{feng2024chessgpt} for the 3B models to test the improvement compared to only IFT with text tokens as described in \cref{sec:formulation}. However, the complete dataset was not made public, and they only provide checkpoints for 2b and 3b model, so for a fair comparison we finetune 7B and 13B models with our dataset. To replace the agent, we add the FEN, the complete verbalization as shown in \cref{listing:pretraining_instruction_format}, and next best moves and evaluations alongside while finetuning and doing inference.
 \paragraph{LoRA: LLAMIA LoRA models} We use LoRA with Rank 32 for our experiments.
 
 
@@ -438,6 +438,8 @@ approximately eight days of computational budget.
     \item Deepspeed config: Deepspeed Zero2 with Offload
   \end{itemize}
 
+\end{enumerate}
+
 \section{SALT Training Efficiency}
 \label{sec:fsdp_impl}
 
@@ -457,5 +459,3 @@ The capabilities demonstrated in chess generalize to other sequential decision d
 
 \somesh{TODO: Add link to released code repository}
 \input{pages/appendix/todo}
-
-\end{enumerate}

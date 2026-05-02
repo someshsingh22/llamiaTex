@@ -1,0 +1,309 @@
+% =============================================================================
+% SCRATCH NOTES — Experiments, analyses, and open questions for LLAMIA
+% =============================================================================
+
+% =============================================================================
+% CRITICAL EXPERIMENTS NEEDED FOR THE NEW NARRATIVE
+% =============================================================================
+
+% 1. RL-OPTIMIZED TOOL CALLING BASELINE (THE KEY NEGATIVE RESULT)
+%    - Train GRPO on text-based tool calling: same training setup, same GRPO,
+%      but agent communicates through text (top-k moves + scores) instead of
+%      latent tokens
+%    - Must demonstrate THREE things:
+%      (a) GRPO tool calling >> vanilla tool calling (shows RL helps)
+%      (b) GRPO tool calling << internalization (shows channel is bottleneck)
+%      (c) Gap scales with task horizon (multi-step >> single-step gap)
+%    - This is THE differentiating experiment. Without it, the paper is a
+%      method proposal. With it, it's an investigation with a finding.
+%    - Expected results: ~60-70% of internalization on multi-step tasks,
+%      ~85-90% on single-step tasks
+% \somesh{Yes, we do it, infact we ablate by adding noise to the latent tokens}
+
+% 2. BOTTLENECK SCALING ANALYSIS (Figure~\ref{fig:bottleneck})
+%    - Plot: (internalization - tool calling) performance gap vs task horizon
+%    - X-axis: task horizon (move prediction=1 step, behavior cloning=few,
+%      commentary=many, instruction planning=most)
+%    - Y-axis: normalized performance gap
+%    - Should show monotonically increasing gap
+%    - This is the money figure — directly visualizes the bottleneck compounding
+
+% 3. DIFFICULTY ESTIMATION (EMERGENT CAPABILITY)
+%    - Data: Lichess puzzle ratings + human solve rates stratified by Elo
+%    - Task: Given a position, predict difficulty for players at Elo X
+%    - Why internalization helps: difficulty depends on the SHAPE of the move
+%      distribution — how many "reasonable" alternatives exist, how close they
+%      are in evaluation. Text gives top-3 moves; latent gives the full policy.
+%    - Metric: Spearman correlation with human difficulty ratings
+%    - Key control: show text-based system CANNOT do this well because it
+%      lacks distributional information
+
+% 4. BEHAVIORAL STYLOMETRY (EMERGENT CAPABILITY)
+%    - Data: Lichess player games (players with 100+ games each)
+%    - Task: Given N games, identify player's skill level, style
+%      (aggressive/positional/tactical), or match games to player
+%    - Why internalization helps: style = systematic deviation from optimal
+%      policy. Requires comparing human moves against full policy distribution.
+%      Text interface loses the "road not taken" (moves considered but not played)
+%    - Metrics: Elo prediction MAE, style classification accuracy
+%    - Compare against: text-based (limited to top-k engine outputs),
+%      Maia-style dedicated models
+
+% 5. INFORMATION-THEORETIC BOTTLENECK MEASUREMENT *** NOW CRITICAL ***
+%    *** ALL 4 REVIEWERS DEMANDED THIS. NOT OPTIONAL. ***
+%    - Directly measure: MI(agent_repr; text_summary) vs MI(agent_repr; latent_tokens)
+%    - Proxy: train probes on text summaries vs latent tokens to predict
+%      various board/game properties; gap in probe accuracy = information loss
+%    - Properties to probe: piece placement, king safety, pawn structure,
+%      tactical motifs, material balance, player to move advantage
+%    - This would give a BITS measurement of the bottleneck — very compelling
+%      for the "information bottleneck" narrative
+%    - R2: "Calling it 'concrete and measurable' without actually measuring
+%      it in information-theoretic terms is overclaiming"
+%    - R3: "Even a simple probe comparison would substantially strengthen
+%      the claim"
+
+% 5b. "MAXIMAL TEXT" BASELINE *** NOW CRITICAL ***
+%    *** R2 + R4 both flagged the bandwidth confound as the #1 technical issue ***
+%    - Serialize FULL policy distribution as structured text (all ~30 moves
+%      with probabilities, value estimates, top features)
+%    - Must show internalization still wins even when text gets the SAME info
+%    - This isolates channel FORMAT from channel BANDWIDTH
+%    - Without this, central claim is underdetermined (R4: "impossible to
+%      disentangle 'text is lossy' from 'the particular text summarization
+%      chosen is lossy'")
+%    - Also test: multi-turn querying where LLM can request additional info
+%    - The intro now PROMISES this experiment (P3 + P5 + results bullet 1)
+
+% =============================================================================
+% ADDITIONAL ANALYSES (strengthen existing contributions)
+% =============================================================================
+
+% 6. CROSS-AGENT TRANSFER
+%    - Does the adapter work across Lc0 network configs? (BT4 vs BT3 vs T80)
+%    - Even showing 2-3 configs strengthens "general method" claim
+%    - Stretch: can we internalize Stockfish NNUE representations?
+%      (different architecture, different representation space)
+
+% 7. ROUTING ANALYSIS
+%    - When does the model choose which agent config?
+%    - Hypothesis: routes to stronger configs for tactical positions,
+%      weaker for positional/quiet positions (matching human intuition)
+%    - Visualize: routing decisions overlaid on position characteristics
+%    - Important for the "RL-trained invocation" contribution
+
+% 8. K (NUM TOKENS) SENSITIVITY
+%    - How does performance vary with K? (K=4, 8, 16, 32, 64)
+%    - Does more tokens always help? Is there diminishing returns?
+%    - At what K does internalization match text-based? (upper bound on text info)
+
+% 9. TOKEN CONTENT ANALYSIS
+%    - What do the 32 latent tokens encode?
+%    - Linear probes on individual tokens → which encodes policy, value, features?
+%    - Does the model learn to "read" specific tokens for specific info?
+%    - Connects to interpretability literature (chess as model system)
+
+% =============================================================================
+% LLAMIA-BENCH TASK DEFINITIONS
+% =============================================================================
+
+% Category 1: DECISION MAKING
+%   - Gameplay (Elo measurement against known engines)
+%   - Behavior cloning (move prediction across Elo buckets: 1000-2500)
+
+% Category 2: BEHAVIORAL MODELING
+%   - Stylometric profiling (identify player from game characteristics)
+%   - Difficulty estimation (predict human success rate on positions by Elo)
+%   - Interestingness estimation (predict which positions humans find engaging)
+
+% Category 3: COMMUNICATION
+%   - Move commentary (explain individual moves, G-eval + human eval)
+%   - Game commentary (summarize/analyze full games)
+
+% Category 4: PLANNING
+%   - Instruction-conditioned planning (play to achieve specific goals:
+%     "trade into a won endgame", "maintain pressure on the kingside")
+
+% Category 5: STATE UNDERSTANDING
+%   - Position evaluation (assess who is winning and why)
+%   - Board comprehension (answer questions about the current state)
+
+% =============================================================================
+% ANTICIPATED REVIEWER OBJECTIONS (from 16-paper review analysis)
+% =============================================================================
+
+% Q: "Will this work beyond chess?"
+% A: Method requires only: (1) pretrained agent with extractable representations,
+%    (2) lightweight adapter, (3) GRPO training on augmented traces.
+%    All three are domain-agnostic. Chess enables MEASUREMENT of the bottleneck
+%    because agent representations are well-characterized via interp work.
+%    The bottleneck itself is domain-agnostic.
+%    NOTE: Do NOT claim chess performance predicts general reasoning.
+%    DO claim: the insight (text is the bottleneck) and the method (internalization)
+%    transfer. Chess provides the controlled setting to PROVE this.
+
+% Q: "This is a chess paper, not an ML paper"
+% A: Chess is the testbed, not the contribution. The contributions are:
+%    (1) systematic analysis establishing text as the bottleneck (not invocation)
+%    (2) a general method for closing the bottleneck
+%    (3) a benchmark for studying heterogeneous MAS
+%    Cite chess-as-model-system literature: Chessformer, DiffuSearch,
+%    Transcendence, Lc0 look-ahead, Creative Puzzles.
+
+% Q: "Why not test on another domain?"
+% A: Measuring the bottleneck requires knowing what the agent's representations
+%    contain (to quantify what text discards). Chess is the only domain where
+%    interpretability work has mapped these representations. Testing on another
+%    domain would show the method works but couldn't explain WHY.
+%    Future work: robotics (RT-2), reward models, scientific simulation.
+
+% Q: "Is this just multimodal projection (LLaVA)?"
+% A: Unlike static projection, our approach uses DYNAMIC re-encoding — fresh
+%    tokens at each state transition. The InvokeAgent ablation (64% vs 1-4%)
+%    proves this is the critical differentiator. LLaVA-style projection
+%    would degrade to "static multimodal projection" (our P3 baseline).
+
+% Q: "The negative result (tool calling fails) — isn't that obvious?"
+% A: No. RL-optimized tool calling (GRPO) substantially improves over naive
+%    approaches. The non-obvious finding is that this improvement has a ceiling:
+%    no amount of invocation strategy optimization compensates for channel loss.
+%    This is analogous to discovering that no amount of compression can recover
+%    information lost at the source.
+
+% =============================================================================
+% TITLE ALTERNATIVES (for discussion)
+% =============================================================================
+
+% Current: "Internalizing Heterogeneous Agents in Language Model Reasoning"
+%   + "Heterogeneous" signals non-language agents specifically
+%   + Method-forward but not chess-forward
+%   - Doesn't foreground the investigation/question angle
+
+% Alt 1: "Beyond Text: The Information Bottleneck in LLM-Agent Collaboration"
+%   + Question-forward
+%   - Vague, could mean many things
+
+% Alt 2: "The Text Bottleneck: Why Tool Calling Fails for Neural Agent Collaboration"
+%   + Provocative, foregrounds the negative result
+%   - Might alienate tool-calling community
+
+% Alt 3: "From Tools to Teammates: Internalizing Neural Agent Representations
+%         in Language Model Reasoning"
+%   + Captures the tools-vs-agents distinction
+%   - Long
+
+% RECOMMENDATION: Keep current title. It's precise and appropriately scoped.
+
+% =============================================================================
+% STRUCTURAL SUGGESTIONS (for methodology/experiments sections)
+% =============================================================================
+
+% The experiments section should be restructured to match the new narrative:
+%
+% Section X.1: LLAMIA-Bench (task definitions, metrics, data)
+% Section X.2: Baselines
+%   - Language-only (ChessGPT-style fine-tuning)
+%   - Vanilla tool calling (text interface, no RL)
+%   - RL-optimized tool calling (GRPO, text interface)  ← NEW, critical
+%   - Static projection (LLaVA-style, no dynamic re-encoding)
+%   - Task-specific specialists (Maia, dedicated engines)
+% Section X.3: Main Results (Table spanning all tasks x all methods)
+% Section X.4: Bottleneck Analysis
+%   - Gap vs task horizon (Figure~\ref{fig:bottleneck})
+%   - Information-theoretic measurement (if available)
+% Section X.5: Ablations
+%   - InvokeAgent removal (existing)
+%   - Stage 1 vs Stage 2 (existing)
+%   - K sensitivity (new)
+%   - Routing analysis (new)
+% Section X.6: Emergent Capabilities
+%   - Difficulty estimation (new)
+%   - Behavioral stylometry (new)
+
+% =============================================================================
+% SIMULATED REVIEWER FEEDBACK (4 NeurIPS reviewers, 2026-04-23)
+% Scores: R1=5, R2=5, R3=6, R4=5 → borderline reject
+% =============================================================================
+
+% WHAT ALL 4 REVIEWERS AGREED ON:
+% 1. The research QUESTION is important and well-motivated
+% 2. The ablation (64% vs 1-4%) is the strongest result
+% 3. Need formal info-theoretic bottleneck measurement
+% 4. Need "maximal text" baseline controlling for bandwidth
+% 5. Generalization claims need hedging (done in revision)
+% 6. Dynamic re-encoding is the genuine novelty, not the adapter
+
+% UNIQUE CONCERNS BY REVIEWER:
+% R1 (generalizability): "Three requirements not unique to chess" → ADDRESSED
+%     by strengthening interpretability as the key differentiator (revision P4)
+% R2 (technical): "Is this bandwidth or format?" → ADDRESSED by promising
+%     maximal-text baseline; NEED TO ACTUALLY RUN IT
+% R3 (big picture): "Reach > grasp but question matters" → best ally,
+%     gave 6/10. Address empty citations + TODOS (done)
+% R4 (MAS expert): "CommNet/TarMAC already studied this" → ADDRESSED by
+%     distinguishing co-trained MARL from independently-pretrained LLM setting
+%     (revision P2). Also: "GRPO text experiment may not exist yet" → MUST RUN
+
+% CITATIONS NEEDED (from R4 + general):
+% \cite{sukhbaatar2016learning} — CommNet: Learning Multiagent Communication
+% \cite{jiang2018learning} — ATOC/Learning Attentional Communication
+% \cite{das2019tarmac} — TarMAC: Targeted Multi-Agent Communication
+% \cite{diffusearch2025} — DiffuSearch: implicit search via diffusion
+% \cite{searchlesschess2024} — Searchless Chess / Transcendence
+% \cite{mcilroyyoung2020maia} — Maia: human-like chess engine
+% \cite{karvonen2024chessformer} — Chessformer architecture
+
+% =============================================================================
+% PATH TO ACCEPTANCE: PRIORITIZED ACTION ITEMS
+% After 2 rounds of simulated review: 6/5/6/5 → need 7/7/7/6
+% =============================================================================
+
+% TIER 1 — MUST HAVE (blockers for all reviewers):
+%
+% (a) MAXIMAL-TEXT BASELINE *** THE SINGLE MOST IMPORTANT EXPERIMENT ***
+%     - Serialize full Lc0 policy (all ~30 move probs), value head, top
+%       features as structured JSON/text
+%     - Train with same GRPO setup, same compute budget as LLAMIA
+%     - Show internalization still wins, especially on multi-step tasks
+%     - THIS PROVES "format not bandwidth" — currently just a promise
+%     - R2: "I cannot raise when the central claim lacks supporting data"
+%     - R3: "This alone would likely be sufficient to move me to 7"
+%     - R4: "impossible to disentangle without this baseline"
+%
+% (b) GRPO TEXT TOOL-CALLING BASELINE (distinct row in main table)
+%     - Must show: GRPO text >> vanilla text (RL helps) but << internalization
+%     - R4 caught that this experiment may not exist yet
+%     - The negative result the entire narrative is built on
+%
+% (c) FIX K=32 vs K=16 INCONSISTENCY
+%     - Abstract/intro say K=32, methodology says K=16
+%     - R2 and R4 both flagged this — undermines confidence
+
+% TIER 2 — STRONGLY RECOMMENDED (moves R2→7, R4→6):
+%
+% (d) INFO-THEORETIC PROBES
+%     - Linear probes on latent tokens vs text embeddings predicting:
+%       piece placement, king safety, pawn structure, tactical motifs
+%     - Report accuracy gap = bits-level bottleneck measurement
+%     - Grounds "concrete and measurable" claim formally
+%
+% (e) BOTTLENECK SCALING FIGURE (Figure~\ref{fig:bottleneck})
+%     - Gap (internalization - text) vs task horizon
+%     - Intro REFERENCES this figure — it must exist
+%     - Ordered: move prediction < behavior cloning < commentary < planning
+
+% TIER 3 — NICE TO HAVE (moves R1→7+, R4→7):
+%
+% (f) Surface cross-domain results in intro (image pref + persuasion)
+% (g) Non-chess pilot experiment (Atari/gridworld — even negative is useful)
+% (h) Shared-workspace MAS literature (ChatDev, Generative Agents)
+% (i) Gradient flow clarification: does GRPO backprop through adapter?
+%     If yes → partial co-training, address honestly
+%     If no → explain how model learns to use latent tokens
+% (j) Token content analysis / what do the K tokens encode
+% (k) Dedicated "Bottleneck Analysis" subsection in experiments
+%
+% ESTIMATED SCORE IMPACT:
+% Tier 1 alone:        6/5/6/5 → 6/6/7/6 (borderline accept)
+% Tier 1 + Tier 2:     → 7/7/7/6 (solid accept)
+% Tier 1 + 2 + 3:      → 7/7/8/7 (strong accept)

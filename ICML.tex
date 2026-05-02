@@ -76,6 +76,10 @@
 \newcommand{\state}[1]{\textcolor{StateColor}{\textbf{#1}}}
 \newcommand{\lang}[1]{\textcolor{LanguageColor}{\textbf{#1}}}
 \newcommand{\action}[1]{\textcolor{ActionColor}{\textbf{#1}}}
+% Math-mode color macros (for equations, matching figure color scheme)
+\newcommand{\mstate}[1]{{\color{StateColor}#1}}
+\newcommand{\mlang}[1]{{\color{LanguageColor}#1}}
+\newcommand{\maction}[1]{{\color{ActionColor}#1}}
 
 
 
@@ -203,7 +207,7 @@
 % LLM chess: https://github.com/maxim-saplin/llm\_chess
 
 \input{pages/intro}
-\input{pages/bg}
+% \input{pages/bg}  % Replaced by §3.1 Formulation inside methodology.tex
 \input{pages/methodology}
 \input{pages/experiment}
 \input{pages/related}

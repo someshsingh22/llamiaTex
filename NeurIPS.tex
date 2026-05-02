@@ -1,0 +1,158 @@
+%%%%%%%% NeurIPS 2025 SUBMISSION FILE %%%%%%%%%%%%%%%%%
+
+\documentclass{article}
+
+% if you need to pass options to natbib, use, e.g.:
+%     \PassOptionsToPackage{numbers, compress}{natbib}
+% before loading neurips_2025
+
+% Use the following line for the initial blind version submitted for review:
+\usepackage{neurips_2025}
+
+% For camera-ready / accepted version, use instead:
+% \usepackage[final]{neurips_2025}
+
+% For preprint, use:
+% \usepackage[preprint]{neurips_2025}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+
+% Recommended packages for figures and better typesetting:
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{adjustbox}
+\usepackage{multirow}
+\usepackage{placeins}
+\usepackage{float}
+\usepackage{etoolbox}
+\patchcmd{\quote}{\rightmargin}{\leftmargin 0.2em \rightmargin}{}{}
+
+% Math packages
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
+\usepackage{wrapfig}
+\usepackage{enumitem}
+\usepackage{makecell}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usetikzlibrary{shadows}
+\usepackage[capitalize,noabbrev]{cleveref}
+
+% Color definitions for tables
+\newcommand{\best}[1]{\colorbox{black!10}{#1}}
+\definecolor{valbest}{HTML}{d9ead3}
+\newcommand{\valbest}[1]{\colorbox{valbest}{#1}}
+\definecolor{valgood}{HTML}{cfe6ec}
+\newcommand{\valgood}[1]{\colorbox{valgood}{#1}}
+\definecolor{valmid}{HTML}{fce5cd}
+\newcommand{\valmid}[1]{\colorbox{valmid}{#1}}
+\definecolor{valbad}{HTML}{ead1dc}
+\newcommand{\valbad}[1]{\colorbox{valbad}{#1}}
+\definecolor{llamiabench}{HTML}{D8D4F2}
+\newcommand{\llamiabench}[1]{\colorbox{llamiabench}{#1}}
+
+% Theme colors
+\definecolor{themegreen}{HTML}{365956}
+\definecolor{themepurple}{HTML}{3c1b48}
+\definecolor{themered}{HTML}{b43748}
+
+% Author comment macros
+\newcommand{\somesh}[1]{\textcolor{red}{[Somesh: #1]}}
+\definecolor{themeharini}{RGB}{50,128,128}
+\newcommand{\yaman}[1]{{\scriptsize\textcolor{red}{[Yaman: #1]}}}
+\newcommand{\harini}[1]{{\scriptsize\textcolor{blue}{[Harini: #1]}}}
+
+% State/language/action color macros
+\definecolor{StateColor}{HTML}{F94892}
+\definecolor{LanguageColor}{HTML}{FF7F3F}
+\definecolor{ActionColor}{HTML}{02B9F1}
+
+\newcommand{\state}[1]{\textcolor{StateColor}{\textbf{#1}}}
+\newcommand{\lang}[1]{\textcolor{LanguageColor}{\textbf{#1}}}
+\newcommand{\action}[1]{\textcolor{ActionColor}{\textbf{#1}}}
+\newcommand{\mstate}[1]{{\color{StateColor}#1}}
+\newcommand{\mlang}[1]{{\color{LanguageColor}#1}}
+\newcommand{\maction}[1]{{\color{ActionColor}#1}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% THEOREMS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\input{math_commands.tex}
+
+\usepackage[textsize=tiny]{todonotes}
+
+\renewcommand{\arraystretch}{0.95}
+
+\title{Internalizing Heterogeneous Agents in Language Model Reasoning}
+
+% The \author macro works with any number of authors. There are two commands
+% used to separate the names and addresses of multiple authors: \And and \AND.
+\author{%
+  Anonymous Authors
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  Multi-agent systems coordinate specialized agents to solve complex tasks requiring both general reasoning and domain-specific expertise. Because these systems communicate primarily through natural language, research has focused on language-based agents where LLMs collaborate with other LLMs through text. However, many domains like game playing and robotics rely on state-of-the-art pretrained non-language agents, whose capabilities are encoded in latent state representations rather than text. When integrated into LLM-based systems, these domain agents are accessed through \emph{verbalization} that compress their rich policy distributions, value estimates, and learned features into sparse symbolic summaries. The extent to which verbalization solves this multi-agent collaboration remains an open question.
+  Evaluating emergent behaviors and diverse collaboration strategies in multi-agent systems has been a persistent challenge, largely due to the lack of domains that combine verifiable metrics with meaningful collaborative tasks. Chess, with its long history of human-agent collaboration, naturally provides both: humans have collaborated with engines for decades on commentary, analysis, and planning, producing well-defined tasks with established evaluation protocols. We curate \textsc{LLAMIA-Bench}, spanning [XXX] collaborative tasks that stress different facets of LLM-agent interaction. We first show that verbalized agent collaboration, even with RL, yields underwhelming performance on tasks requiring deeper collaboration. To address this, we introduce \textit{latent state internalization}, a novel integration paradigm that projects the agent's continuous representations into $K{=}32$ tokens within the LLM's chain of thought, with dynamic re-encoding as the LLM's actions evolve the environment state. Through internalization, a single 13B model matches or exceeds task-specific specialists across all benchmark categories while outperforming [XXX]$\times$ larger LLMs.
+\end{abstract}
+
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=0.98\linewidth]{llamia-fig (5).pdf}
+    \caption{\textbf{Latent State Internalization.} Given a state $S_0$ and a language instruction, the agent's encoder representation $h_{S_0}$ is projected into the LLM's embedding space via $H_\phi$ (indicated by \textcolor[HTML]{8C25FF}{\(\rightarrow\)}) as $K{=}32$ continuous tokens $z_{S_0}$, interleaved with language and \texttt{<action>} tokens. Stage~1 trains only the projector $H_\phi$ on state-policy pairs; Stage~2 fine-tunes both LLM and projector on diverse instruction data. At inference, the \texttt{<InvokeAgent>} token triggers dynamic re-encoding: the LLM's generated action transitions the state, and the agent produces fresh latent tokens for the updated position, enabling iterative reasoning over evolving states.
+}
+    \vspace{-3mm}
+    \label{fig:LLAMIA}
+
+\end{figure}
+
+\input{pages/intro}
+% \input{pages/bg}  % Replaced by §3.1 Formulation inside methodology.tex
+\input{pages/methodology}
+\input{pages/experiment}
+\input{pages/related}
+
+
+\section*{Impact Statement}
+
+This paper presents work whose goal is to advance the field of Machine Learning. There are many potential societal consequences of our work, none which we feel must be specifically highlighted here.
+
+\bibliography{sample}
+\bibliographystyle{neurips_2025}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% APPENDIX
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\appendix
+\section*{Appendix}
+\input{pages/appendix}
+\end{document}

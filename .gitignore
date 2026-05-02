@@ -1,1 +1,9 @@
 paper_reviews/
+plots/
+papers/
+*.aux
+*.log
+*.out
+revs/
+*.md
+.DS_Store
