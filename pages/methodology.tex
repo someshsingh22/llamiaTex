@@ -1,5 +1,17 @@
 \section{Methodology}
 \label{sec:methodology}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=0.98\linewidth]{llamia-fig (5).pdf}
+    \caption{\textbf{Latent State Internalization.} Given a state $S_0$ and a language instruction, the agent's encoder representation $h_{S_0}$ is projected into the LLM's embedding space via $H_\phi$ (indicated by \textcolor[HTML]{8C25FF}{\(\rightarrow\)}) as $K{=}32$ continuous tokens $z_{S_0}$, interleaved with language and \texttt{<action>} tokens. Stage~1 trains only the projector $H_\phi$ on state-policy pairs; Stage~2 fine-tunes both LLM and projector on diverse instruction data. At inference, the \texttt{<InvokeAgent>} token triggers dynamic re-encoding: the LLM's generated action transitions the state, and the agent produces fresh latent tokens for the updated position, enabling iterative reasoning over evolving states.
+}
+    \vspace{-3mm}
+    \label{fig:LLAMIA}
+
+\end{figure}
+
+
 \vspace{-2mm}
 
 We formalize LLM--agent collaboration as autoregressive generation over a mixed-modality trace of \lang{language}, \action{action}, and \state{state} tokens. This formulation isolates the \emph{integration interface}---how the agent’s internal state enters the LLM’s reasoning---as a single controlled variable, and connects directly to the reinforcement learning objective that optimizes it.

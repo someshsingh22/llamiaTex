@@ -121,17 +121,6 @@
   Evaluating emergent behaviors and diverse collaboration strategies in multi-agent systems has been a persistent challenge, largely due to the lack of domains that combine verifiable metrics with meaningful collaborative tasks. Chess, with its long history of human-agent collaboration, naturally provides both: humans have collaborated with engines for decades on commentary, analysis, and planning, producing well-defined tasks with established evaluation protocols. We curate \textsc{LLAMIA-Bench}, spanning [XXX] collaborative tasks that stress different facets of LLM-agent interaction. We first show that verbalized agent collaboration, even with RL, yields underwhelming performance on tasks requiring deeper collaboration. To address this, we introduce \textit{latent state internalization}, a novel integration paradigm that projects the agent's continuous representations into $K{=}32$ tokens within the LLM's chain of thought, with dynamic re-encoding as the LLM's actions evolve the environment state. Through internalization, a single 13B model matches or exceeds task-specific specialists across all benchmark categories while outperforming [XXX]$\times$ larger LLMs.
 \end{abstract}
 
-
-\begin{figure}[!h]
-    \centering
-    \includegraphics[width=0.98\linewidth]{llamia-fig (5).pdf}
-    \caption{\textbf{Latent State Internalization.} Given a state $S_0$ and a language instruction, the agent's encoder representation $h_{S_0}$ is projected into the LLM's embedding space via $H_\phi$ (indicated by \textcolor[HTML]{8C25FF}{\(\rightarrow\)}) as $K{=}32$ continuous tokens $z_{S_0}$, interleaved with language and \texttt{<action>} tokens. Stage~1 trains only the projector $H_\phi$ on state-policy pairs; Stage~2 fine-tunes both LLM and projector on diverse instruction data. At inference, the \texttt{<InvokeAgent>} token triggers dynamic re-encoding: the LLM's generated action transitions the state, and the agent produces fresh latent tokens for the updated position, enabling iterative reasoning over evolving states.
-}
-    \vspace{-3mm}
-    \label{fig:LLAMIA}
-
-\end{figure}
-
 \input{pages/intro}
 % \input{pages/bg}  % Replaced by §3.1 Formulation inside methodology.tex
 \input{pages/methodology}
