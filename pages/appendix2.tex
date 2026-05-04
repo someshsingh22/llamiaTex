@@ -1,0 +1,312 @@
+\appendix
+
+% =============================================================================
+\section{Implementation Details}
+\label{sec:app_implementation}
+% =============================================================================
+
+\subsection{Model Architecture and LatentBridge}
+\label{sec:app_architecture}
+
+\subsubsection{Backbone LLM}
+\label{sec:app_backbone}
+
+\subsubsection{LatentBridge Projector}
+\label{sec:app_projector}
+
+\subsection{Training Configuration}
+\label{sec:app_training}
+
+\subsubsection{Stage 1: Projector Alignment}
+\label{sec:app_stage1}
+
+\subsubsection{Stage 2: Reinforcement Learning (DAPO)}
+\label{sec:app_stage2}
+
+\subsection{Chess Specialist: Lc0-BT4}
+\label{sec:app_lc0}
+
+\subsubsection{Engine Configuration}
+\label{sec:app_lc0_config}
+
+\subsubsection{Latent Extraction}
+\label{sec:app_lc0_latent}
+
+\subsection{Inference Harness and Tool-Call Protocol}
+\label{sec:app_toolcall}
+
+\subsubsection{Agent State}
+\label{sec:app_toolcall_state}
+
+\subsubsection{System Prompt}
+\label{sec:app_toolcall_prompt}
+
+\subsubsection{Tool Definitions}
+\label{sec:app_toolcall_tools}
+
+\subsection{Training Efficiency (FSDP)}
+\label{sec:app_efficiency}
+
+% =============================================================================
+\section{LLAMIA-Bench: Task Definitions}
+\label{sec:app_bench}
+% =============================================================================
+
+\subsection{Behavior Cloning}
+\label{sec:app_bench_bc}
+
+\subsubsection{Maia Benchmark (Elo Buckets)}
+\label{sec:app_bench_bc_maia}
+
+\subsubsection{GM-25}
+\label{sec:app_bench_bc_gm}
+
+\subsubsection{Low-Time}
+\label{sec:app_bench_bc_time}
+
+\subsubsection{Elo Gap}
+\label{sec:app_bench_bc_elo}
+
+\subsection{Behavioral Stylometry}
+\label{sec:app_bench_stylometry}
+
+\subsection{Puzzle Interest and Difficulty Estimation}
+\label{sec:app_bench_puzzle}
+
+\subsubsection{Difficulty}
+\label{sec:app_bench_puzzle_diff}
+
+\subsubsection{Interest}
+\label{sec:app_bench_puzzle_int}
+
+\subsubsection{Themes}
+\label{sec:app_bench_puzzle_themes}
+
+\subsection{Move Annotation}
+\label{sec:app_bench_annotation}
+
+\subsection{Game-Level Commentary}
+\label{sec:app_bench_commentary}
+
+\subsection{Instruction-Conditioned Planning}
+\label{sec:app_bench_icp}
+
+\subsubsection{Motif Categories}
+\label{sec:app_bench_icp_motifs}
+
+\subsubsection{Detection Criteria}
+\label{sec:app_bench_icp_detection}
+
+\subsubsection{Statistical Protocol}
+\label{sec:app_bench_icp_stats}
+
+\subsection{Public Benchmark Anchors}
+\label{sec:app_bench_public}
+
+% =============================================================================
+\section{Baselines}
+\label{sec:app_baselines}
+% =============================================================================
+
+\subsection{Group A --- Frontier Text-Only}
+\label{sec:app_baseline_a}
+
+\subsection{Group B --- Frontier with Verbalized Tools}
+\label{sec:app_baseline_b}
+
+\subsection{Group C --- RL-Trained Tool-Using LLMs}
+\label{sec:app_baseline_c}
+
+\subsection{Group D --- Domain Specialists (Per-Task Ceilings)}
+\label{sec:app_baseline_d}
+
+\subsection{Group E --- Matched-Recipe LLAMIA Ablations}
+\label{sec:app_baseline_e}
+
+\subsection{Group F --- Lc0 Architecture Cross-Check}
+\label{sec:app_baseline_f}
+
+\subsection{Decoding Protocol and Compute Parity}
+\label{sec:app_decoding}
+
+% =============================================================================
+\section{Extended Results}
+\label{sec:app_results}
+% =============================================================================
+
+\subsection{Full LLAMIA-Bench Results Table}
+\label{sec:app_results_full}
+
+\subsection{Gameplay}
+\label{sec:app_results_gameplay}
+
+\subsubsection{Action Ranking (Kendall's $\tau$)}
+\label{sec:app_results_gameplay_kt}
+
+\subsubsection{Puzzle Accuracy}
+\label{sec:app_results_gameplay_puzzle}
+
+\subsubsection{Playing Strength (Elo)}
+\label{sec:app_results_gameplay_elo}
+
+\subsection{Behavior Cloning}
+\label{sec:app_results_bc}
+
+\subsubsection{Per-Elo Move-Match Curves}
+\label{sec:app_results_bc_elo}
+
+\subsubsection{Per-Move Strength Curves}
+\label{sec:app_results_bc_strength}
+
+\subsection{Move-Level Commentary}
+\label{sec:app_results_movecomm}
+
+\subsection{Game-Level Commentary}
+\label{sec:app_results_gamecomm}
+
+\subsubsection{G-eval}
+\label{sec:app_results_gamecomm_geval}
+
+\subsubsection{Quality (Eval RMSE)}
+\label{sec:app_results_gamecomm_quality}
+
+\subsubsection{Highlight (Replay RMSE)}
+\label{sec:app_results_gamecomm_highlight}
+
+\subsection{Puzzle Understanding}
+\label{sec:app_results_puzzle}
+
+\subsection{Instruction-Conditioned Planning}
+\label{sec:app_results_icp}
+
+\subsubsection{Turn-by-Turn Win-Rate}
+\label{sec:app_results_icp_turnbyturn}
+
+\subsubsection{Failure Mode Analysis}
+\label{sec:app_results_icp_failure}
+
+\subsubsection{Out-of-Distribution Instructions}
+\label{sec:app_results_icp_ood}
+
+% =============================================================================
+\section{Cross-Domain: Poker}
+\label{sec:app_poker}
+% =============================================================================
+
+% =============================================================================
+\section{Ablations}
+\label{sec:app_ablations}
+% =============================================================================
+
+\subsection{Dynamic Re-Encoding (InvokeAgent)}
+\label{sec:app_abl_invoke}
+
+\subsubsection{Static vs.\ Dynamic}
+\label{sec:app_abl_invoke_static}
+
+\subsubsection{Invocation Frequency}
+\label{sec:app_abl_invoke_freq}
+
+\subsection{Latent vs.\ Symbolic-Rich Matched Information (C3)}
+\label{sec:app_abl_symbolic}
+
+\subsection{Projection Token Count}
+\label{sec:app_abl_tokens}
+
+\subsection{Agent Size and Playing Strength}
+\label{sec:app_abl_agentsize}
+
+\subsection{Sensitivity Sweeps}
+\label{sec:app_abl_sweeps}
+
+\subsubsection{Projector Capacity}
+\label{sec:app_abl_sweeps_projector}
+
+\subsubsection{Data-Axis Scaling}
+\label{sec:app_abl_sweeps_data}
+
+\subsubsection{LoRA vs.\ Full Fine-Tuning}
+\label{sec:app_abl_sweeps_lora}
+
+\subsubsection{Decoding Robustness}
+\label{sec:app_abl_sweeps_decoding}
+
+% =============================================================================
+\section{Interpretability}
+\label{sec:app_interp}
+% =============================================================================
+
+\subsection{Activation Patching}
+\label{sec:app_interp_patching}
+
+\subsection{Feature-Delta Analysis ($\pi$ vs.\ $\pi'$)}
+\label{sec:app_interp_delta}
+
+% =============================================================================
+\section{Human Evaluation Study}
+\label{sec:app_human}
+% =============================================================================
+
+\subsection{Participants and Protocol}
+\label{sec:app_human_protocol}
+
+\subsection{Commentary Evaluation Tasks}
+\label{sec:app_human_tasks}
+
+\subsubsection{Position Evaluation from Commentary}
+\label{sec:app_human_tasks_eval}
+
+\subsubsection{Move Prediction from Commentary}
+\label{sec:app_human_tasks_move}
+
+\subsubsection{Quality (Engagement)}
+\label{sec:app_human_tasks_quality}
+
+\subsection{Results and Analysis}
+\label{sec:app_human_results}
+
+% =============================================================================
+\section{Failure-Mode Analyses}
+\label{sec:app_failure}
+% =============================================================================
+
+\subsection{Verbalized-Tool Failure Taxonomy (F1--F6)}
+\label{sec:app_failure_verb}
+
+\subsection{LLAMIA-Side Failure Modes}
+\label{sec:app_failure_llamia}
+
+% =============================================================================
+\section{Data and Contamination}
+\label{sec:app_data}
+% =============================================================================
+
+\subsection{Dataset Construction}
+\label{sec:app_data_construction}
+
+\subsubsection{Stage 1: Projector Alignment Data}
+\label{sec:app_data_stage1}
+
+\subsubsection{Stage 2: Task-Specific RL Data}
+\label{sec:app_data_stage2}
+
+\subsection{Train/Test Leakage Audit}
+\label{sec:app_data_leakage}
+
+\subsection{Pre-Cutoff vs.\ Post-Cutoff Contamination Tests}
+\label{sec:app_data_cutoff}
+
+% =============================================================================
+\section{Prompts and Templates}
+\label{sec:app_prompts}
+% =============================================================================
+
+% =============================================================================
+\section{Limitations}
+\label{sec:app_limitations}
+% =============================================================================
+
+% =============================================================================
+\section{Qualitative Examples}
+\label{sec:app_examples}
+% =============================================================================

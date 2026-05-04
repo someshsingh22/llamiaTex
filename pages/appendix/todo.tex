@@ -7,36 +7,42 @@
 
 \textbf{Claims.}
 \textbf{C1} -- LLAMIA-Bench provides comprehensive ground-truth-anchored
-evaluation of LM--specialist collaboration across seven facets, in a
+evaluation of LM--specialist collaboration across six facets, in a
 single environment;
 \textbf{C2} (corollary) -- the verbalisation gap survives matched
 backbone, matched compute, and matched RL recipe -- it is an
 \emph{interface} property, not a scale or recipe artefact;
 \textbf{C3} -- dynamic re-encoding is the load-bearing mechanism of
 the latent-internalisation interface;
-\textbf{C4} -- the latent space is interpretable and instruction-steerable
-in feature space (instruction reproduces what fine-tuning does);
-\textbf{C5} -- the integration paradigm is not chess-specific.
+\textbf{C4} -- the latent space encodes interpretable chess concepts and is
+modulated by natural-language instructions, visible via linear probes and
+attention analysis; LLAMIA's board-attention reproduces human expert
+saliency in a skill-stratified manner across training;
+\textbf{C5} -- the integration paradigm is not chess-specific;
+\textbf{C6} -- LLAMIA develops emergent collaboration agency: it learns
+\emph{when} to invoke the subagent and which strategies to employ,
+recovering known human--engine centaur patterns and discovering novel ones.
 
 \subsubsection*{Claim-anchor experiments [P0]}
 
 \begin{itemize}[leftmargin=*]
     \item \textbf{[C1] Full LLAMIA-Bench evaluation.} All baselines
-    (Groups A--F, brief~\ref{brief:baselines}) over the seven-facet
+    (Groups A--F, brief~\ref{brief:baselines}) over the six-facet
     suite; one task per facet in the main-paper table
-    (\textsc{Move-Class}, \textsc{Eval-Rat}, \textsc{Annot-Move},
-    \textsc{Comm-Game}, \textsc{BC-Maia}, \textsc{ICP-Win},
-    \textsc{ICP-Adversarial}). VG / DCS / RY scalars
+    (\textsc{Move Classification}, \textsc{Evaluation Rationalization}, \textsc{Move Annotation},
+    \textsc{Game Commentary}, \textsc{Maia Behavior Cloning}, \textsc{Instruction-Conditioned Play: Win}). Verbalization Gap / Depth-Compounding Slope / Re-encoding Yield scalars
     (brief~\ref{brief:metrics}) summarise the integration-interface
     corollary on this same table -- no separate experiment.
     \emph{Purpose:} the single source of truth for every quantitative
     claim downstream; the headline radar visualises this row-set.
 
     \item \textbf{[C2] Three matched RL runs:
-    LLAMIA-text / LLAMIA-tool / LLAMIA-full.}
+    LLAMIA-text / LLAMIA-Verb / LLAMIA-full.}
     Identical backbone, reward, rollout count, RL recipe; only the
-    integration mode differs. Reported as one row block in the C1
-    table. See brief~\ref{brief:methodology}.
+    integration mode differs. (\texttt{LLAMIA-Verb} = RL-trained with
+    verbalized engine output only; matches intro nomenclature.)
+    Reported as one row block in the C1 table.
+    See brief~\ref{brief:methodology}.
     \emph{Purpose:} settles the interface-vs-scale-vs-recipe confound
     that frontier-system comparisons (Groups A/B) cannot.
 
@@ -49,46 +55,82 @@ in feature space (instruction reproduces what fine-tuning does);
     text closes the gap, C3 fails. The within-system
     \texttt{LLAMIA-static} (no \texttt{<InvokeAgent>}) row of the C1
     table is the matched paired ablation reported in the same place.
-    \item \textbf{Acquired Skills/Strats} Over training what collaboration/ strategies are learnt ie. measuring agency using LLM as a judge + Patterns, P1[Any human overlap?]
-    % \item \textbf{[C4] Causal steering via a single latent direction.} Modeled on the single-method discipline of
-    % \cite{Leela-lookahead-8zg9sO4ttV}: one method, one curated
-    % position set, one headline number.
-    % \emph{Position set:} $N$ positions where adding an ICP
-    % instruction $I$ flips LLAMIA-full's move from $a$ to $a'$ (the
-    % instructed move).
-    % \emph{Direction:} a single direction $\vd_I \in \mathbb{R}^{1024}$
-    % in $\vz_s$-space identified per instruction theme (the SAE is the
-    % \emph{instrument} for finding $\vd_I$, not the headline).
-    % \emph{Intervention:} strip the language instruction from the
-    % prompt -- LLAMIA reverts to $a$; then \emph{add} $\vd_I$ to
-    % $\vz_s$ at fixed magnitude.
-    % \emph{Headline metric:} fraction of positions on which adding
-    % $\vd_I$ alone (no language instruction in context) recovers the
-    % instructed move $a'$; reported against a random-direction null
-    % and the full-instruction ceiling. Single number per ICP theme,
-    % aggregated across themes.
-    % \emph{Single main figure:} recovery rate per theme with
-    % random-direction null bars and full-instruction ceiling line;
-    % one qualitative position panel inset.
-    % \emph{Purpose:} the cleanest causal statement of C4 -- a
-    % \emph{single} latent direction reproduces the policy effect of
-    % the language instruction. ``Instruction reproduces what
-    % fine-tuning does'' becomes one experiment, one method, one
-    % number, not a five-method bundle.
+    \item \textbf{[C4] Interpretability: linear probes and instruction
+    modulation.}
+    Train lightweight linear classifiers on $\vz_s$ (LLM-side projected
+    latent) to decode chess concepts: material balance, king safety,
+    pawn structure, tactical motif class. Report accuracy on held-out
+    positions vs.\ a random-projection baseline and raw $\vh_s$.
+    Instruction-modulation check: on $N \geq 200$ ICP-instructed vs.\
+    base LLAMIA-full positions, measure linear separability of
+    $\Delta\vz_s = \vz_s^{\text{instr}} - \vz_s^{\text{base}}$ in
+    the concept-probe basis; one number per ICP theme.
+    Main-paper panel: probe accuracy bars + per-theme $\Delta\vz_s$
+    separability. The claim is representational, not causal; causal
+    steering deferred to future work.
 
-    \item \textbf{[C5] Cross-domain extension.} \emph{Poker} on
-    OpenSpiel (Texas Hold'em or Leduc): hidden information and
+    \item \textbf{[C4-saliency] Human saliency alignment across skill
+    levels and training.}
+    Using the SARFA chess saliency dataset \cite{sarfa2020} paired with
+    per-Elo human annotation data, compute Spearman rank-correlation
+    between human board-attention maps and LLAMIA's last-layer attention
+    over $\vz_s$ tokens at each training checkpoint. Report per-Elo-bin
+    curves (1100--1900) and a single main-paper panel comparing LLAMIA
+    vs.\ LLAMIA-Verb on matched positions.
+    \emph{Purpose:} the most direct visual evidence that internalized
+    representations align with how humans of matching strength attend
+    to the board; skill-stratification distinguishes internalization
+    from generic position compression.
+
+    \item \textbf{[C4-time] Time-pressure behavioral signatures.}
+    Within the BC suite, isolate positions where the opponent's clock
+    falls below $T_{\text{low}}$ (e.g.\ 30\,s in rapid play).
+    Measure: (i) rate of speculative piece sacrifices forcing check
+    sequences; (ii) stalemate-seeking pawn sacrifices; (iii)
+    attention-map concentration around the opponent's king and
+    clock-sensitive pieces vs.\ baseline positions at matched material.
+    Compare LLAMIA, Maia-matched baseline, and LLAMIA-Verb.
+    Main-paper figure: example board with attention overlay + behavior-
+    frequency bar chart. Qualitative gallery in appendix.
+    \emph{Purpose:} demonstrates that internalized representations
+    encode human-like strategic opportunism under resource pressure --
+    one of the intro's headline qualitative findings.
+
+    \item \textbf{[C6] Emergent collaboration agency.}
+    Over training checkpoints, measure: (i) InvokeAgent call rate and
+    positional selectivity (does the model learn to invoke at
+    decision-critical moments?); (ii) strategy catalog via LLM-as-judge
+    classification of collaboration patterns (engine-consult-then-
+    override, engine-follow-exactly, counterfactual-query, etc.);
+    (iii) overlap between LLAMIA-discovered strategies and documented
+    human--engine centaur patterns. Main-paper paragraph with one
+    strategy frequency histogram; full catalog appendix.
+    \emph{Purpose:} establishes that LLAMIA actively coordinates rather
+    than merely retrieves, and that some discovered patterns are novel
+    relative to prior human--engine collaboration literature.
+
+    \item \textbf{[Human study] Commentary preference study.}
+    Rated chess players ($\geq$1700 Elo, $n \geq 60$) compare
+    side-by-side outputs from LLAMIA and the strongest verbalized
+    baseline on matched positions (commentary + move rationale),
+    blind to system identity. Primary metric: preference rate with
+    95\% CI; one main-paper figure. Rater--judge agreement
+    ($\kappa$ with GPT-4o scores on the same items) reported in
+    caption, simultaneously validating the LLM judge.
+    \emph{Purpose:} headline human validation of commentary quality;
+    the intro claims this result directly.
+
+    \item \textbf{[C5] Cross-domain extension: Poker.} \emph{Poker}
+    on OpenSpiel (Texas Hold'em or Leduc): hidden information and
     bluffing add what chess cannot show; one main-paper figure
     comparing LLAMIA-poker, the same backbone with verbalised tool
     access to a poker specialist, and frontier baselines on a single
-    opponent-modelling task. Vision and persuasion extension results
-    move to \S\ref{sec:cross_domain} / appendix as already-existing
-    evidence.
+    opponent-modelling task.
     \emph{Purpose:} demonstrates the paradigm is not chess-specific;
     one figure, one paragraph.
 
     \item \textbf{[C2 visual] Three-method GRPO training curves.}
-    Reward and \textsc{ICP-Win} win-rate vs.\ training step for the
+    Reward and \textsc{Instruction-Conditioned Play: Win} win-rate vs.\ training step for the
     three matched RL runs.
     \emph{Purpose:} the methodology figure; replaces the legacy
     \texttt{kt}/\texttt{comm}/\texttt{icp} subfigure trio. Single
@@ -107,12 +149,12 @@ in feature space (instruction reproduces what fine-tuning does);
 \subsubsection*{Supporting [P1, brief mention in main, full in appendix]}
 
 \begin{itemize}[leftmargin=*]
-    % \item \textbf{Group~F matched-recipe ablations.}
+    % \item \textbf{Group~E matched-recipe ablations.}
     % \texttt{LLAMIA-static}, \texttt{Proj-Frozen}, \texttt{No-Proj}
     % rows. One sentence in main; full table in
     % \texttt{appendix/ablations.tex}.
 
-    \item \textbf{Group~G Lc0 architecture cross-check.}
+    \item \textbf{Group~F Lc0 architecture cross-check.}
     BT4 / T60 / smaller Lc0 nets. One sentence in discussion
     (``the integration story holds across Lc0 architectures, see
     Tab.~X''); single appendix table; no main-text figure.
@@ -141,23 +183,7 @@ in feature space (instruction reproduces what fine-tuning does);
     Per-baseline cutoff date; $z$/Fisher tests on the gap. One row
     in the rigor audit (\S\ref{sec:todo_infra}); appendix detail.
 
-    \item \textbf{Group~D latent-CoT baselines.} Coconut, latentmas,
-    2025--2026 implicit-reasoning baselines. One row block in the C1
-    table; setup and prompt details appendix.
-
-    \item \textbf{Human preference study.} Rated chess players
-    ($\geq$1700 Elo, $n \geq 60$) see side-by-side outputs from
-    LLAMIA and the strongest verbalized baseline on matched positions
-    (commentary + move rationale). Raters choose which explanation
-    they would trust to improve their own play, blind to system
-    identity. Preference rate (with 95\% CI) is the single reported
-    number; one figure in main. Simultaneously validates subjective
-    quality and grounds our judge-based metrics: rater agreement with
-    GPT-4o scores on the same items ($\kappa$) is reported in the
-    caption.
-    \emph{Purpose:} one study that both demonstrates human-perceived
-    quality of LLAMIA over verbalized tool-calling \emph{and}
-    validates the LLM judge, without needing separate experiments.
+    % Human preference study moved to P0 -- intro claims this result directly.
 \end{itemize}
 
 \subsubsection*{Appendix-only / qualitative galleries [P2]}
@@ -176,23 +202,11 @@ the main text.
     Pareto (LM-side vs.\ agent-side search budget); LoRA vs.\ full
     FT; top-$p$/temperature robustness; reasoning-budget
     $\times$ task difficulty.
-    \item \textbf{Latent-form controls.} $\vz_s$ vs.\ $\vh_s$
-    (raw vs.\ projected, token-padded); random / zeroed / corrupted
-    / weak-engine latents; future-paradigm latent ablation
-    (S-AA / S-ASA / S-AVAV / S-AVSAV).
-    \item \textbf{Diagnostic decompositions.} Phase-of-game
-    (opening/middle/end); $k$-step rollout BC at
-    $k\in\{1,3,5,8\}$; multi-step commentary fidelity vs.\ horizon;
-    audience conditioning (1200 vs.\ 2200 prompts);
-    verbosity-binned commentary scores; move-level vs.\ game-level
-    commentary delta on the same model; three-stage CoT-error
-    decomposition (\cite{yRxX01oRIi-cot-hurts}) on verbalised-tool
-    baselines.
     \item \textbf{Difficulty (Spearman-only).} Spearman-$\rho$
     against Lichess puzzle ratings on \textsc{Diff-1pos} /
     \textsc{Diff-Rat}. The rater-judged \emph{rationale-correctness}
     branch is dropped; the rationale contribution is already covered
-    by \textsc{Annot-Move} / \textsc{Comm-Move} under Explanation.
+    by \textsc{Move Annotation} / \textsc{Comm-Move} under Explanation.
     \item \textbf{Hard-puzzle subset.} Top-decile Lichess
     ($\sim$3000+) and an evergreen ``unseen-after-$T$'' subset.
     Anti-saturation and contamination control. One appendix table.
@@ -209,8 +223,8 @@ the main text.
 \label{sec:todo_analyses}
 % =============================================================================
 
-% Two analyses live in the main paper -- the bench scalars (VG / DCS /
-% RY, brief~\ref{brief:metrics}) reported alongside the [C1] table, and
+% Two analyses live in the main paper -- the bench scalars (Verbalization Gap / Depth-Compounding Slope /
+% Re-encoding Yield, brief~\ref{brief:metrics}) reported alongside the [C1] table, and
 % the single causal-steering protocol that \emph{is} the [C4] anchor
 % experiment. Modeled on \cite{Leela-lookahead-8zg9sO4ttV}'s
 % single-method discipline: one method, one curated position set, one
@@ -220,7 +234,7 @@ the main text.
 \subsubsection*{Main-paper analyses [P0]}
 
 \begin{itemize}[leftmargin=*]
-    % \item \textbf{Bench scalars (VG / DCS / RY).} Computed directly
+    % \item \textbf{Bench scalars (Verbalization Gap / Depth-Compounding Slope / Re-encoding Yield).} Computed directly
     % from the [C1] table; reported in the same table caption with
     % bootstrap CIs. No separate experimental run.
 
@@ -247,7 +261,7 @@ the main text.
     % base on a held-out tuning split; report (i) instructed-move
     % recovery rate, (ii) random-direction null at the same magnitude
     % ($\geq 50$ random unit-norm directions, percentile reported),
-    % (iii) full-instruction ceiling, (iv) \textsc{ICP-Win} win-rate
+    % (iii) full-instruction ceiling, (iv) \textsc{Instruction-Conditioned Play: Win} win-rate
     % recovery on a held-out game set when the language instruction
     % is replaced by the steering vector throughout play.
     % \emph{Pre-registered success criterion:} recovery
@@ -269,40 +283,20 @@ evidence for the steering direction'') answering ``is the same
 $\vd_I$ visible from independent vantage points.''
 
 \begin{itemize}[leftmargin=*]
-    \item \textbf{[Convergent] Linear probes for chess concepts on
-    $\vz_s$ and $\vh_s$.} \cite{BLOIB8CwBI-soundness}-style
-    decodability sanity; one table.
     \item \textbf{[Convergent] Activation patching} between (clean,
     corrupted) FEN pairs where Lc0's top move flips but a weak
     engine's does not (\cite{Leela-lookahead-8zg9sO4ttV}-style);
     locates which $\vz_s$ token positions carry the steering
-    signal.
+    signal. Includes linear-probe figures (per-concept, per-token
+    accuracy on $\vz_s$ vs.\ $\vh_s$;
+    \cite{BLOIB8CwBI-soundness}-style).
     \item \textbf{[Convergent] $\pi$-vs-$\pi'$ feature-delta.}
-    SAE-decompose $\Delta\vz_s$ between base, ICP, and Maia-X
+    Decompose $\Delta\vz_s$ between base, ICP, and Maia-X
     instruction conditions on a fixed position; show sparse
-    $\Delta f$ overlapping with the chosen $\vd_I$.
-    \item \textbf{Future-square probes} on $\vz_s$ for
-    principal-variation squares at 1, 3, 5 moves ahead
-    (\cite{Leela-lookahead-8zg9sO4ttV} \S 3.3 adaptation; mate-in-$N$
-    vs.\ quiet split).
-    \item \textbf{Per-token attribution.} Ablate each of $K{=}16$
-    tokens; plot log-odds reduction; group tokens by ablation
-    effect.
-    \item \textbf{Adversarial soundness in commentary.}
-    Factual-board-error count per 1000 commentary tokens with and
-    without dynamic re-encoding; quantifies the F5 elimination claim.
-    \item \textbf{First-$N$ non-cherry-picked SAE feature catalog.}
-    First 40 features by firing frequency annotated; remainder behind
-    anonymized URL (\cite{chessformer-2ltBRzEHyd}-style).
-    \item \textbf{Human ecological-validity check on SAE features.}
-    Two annotated games to chess-experienced raters; identify which
-    followed an instruction.
+    $\Delta f$ overlapping with the identified direction.
     \item \textbf{LLAMIA-side failure-mode analysis.}
     LLM-side / agent-side / interface mis-conditioning; confusion
     matrix; balances the verbalised-tool taxonomy.
-    \item \textbf{Communication Efficiency (CE) per task.}
-    Score / (LLM tokens + InvokeAgent calls + tool-call tokens);
-    pairs with the test-time-compute Pareto.
     \item \textbf{Verbosity-conditional commentary score.}
     Re-express commentary scores conditional on token count; defends
     against ``wins by writing more.''
@@ -326,15 +320,15 @@ $\vd_I$ visible from independent vantage points.''
     \emph{Purpose:} the bench section currently lacks soul; the brief
     is the spec.
 
-    \item \textbf{Rewrite the methodology section as
-    SALT(SFT) + SALT(RL) per brief~\ref{brief:methodology}.}
-    SFT becomes the warm-start; RL is the headline. Reward
-    decomposition: outcome, format, collaboration-shape.
+    \item \textbf{Rewrite the methodology section as two stages per
+    brief~\ref{brief:methodology}.} Stage~1 (Projector Alignment) is the
+    warm-start; Stage~2 (DAPO) is the headline. Reward decomposition:
+    outcome, format, collaboration-shape.
     \emph{Purpose:} 2026-vintage methodology; SFT-only is no longer
     publishable as the headline.
 
     \item \textbf{Rewrite the baselines section per
-    brief~\ref{brief:baselines}.} Seven groups (A--G); explicit
+    brief~\ref{brief:baselines}.} Six groups (A--F); explicit
     access-mode and recipe tags; protocol box for tool calling.
     \emph{Purpose:} replaces the 2024-vintage baseline grid;
     establishes Group~C as the strawman the thesis attacks.
@@ -395,18 +389,17 @@ $\vd_I$ visible from independent vantage points.''
 Hard cap: every claim gets one figure or one table, not both.
 
 \begin{itemize}[leftmargin=*]
-    \item \textbf{[C1] Headline radar.} Seven spokes grouped into
-    seven facet-arcs (perception, calibration, explanation, sustained
-    planning, style/identity, instruction-conditioned adaptation,
-    adversarial robustness); three systems overlaid
-    (\texttt{LLAMIA-full}, the strongest Group~C verbalised-tool-RL
-    baseline, the strongest Group~A frontier reasoning model);
-    per-spoke specialist ceilings as separate dots; depth tag
-    (D1/D2/D3) as a secondary spoke annotation. See
-    brief~\ref{brief:radar}.
+    \item \textbf{[C1] Headline radar.} Six spokes grouped into
+    six facet-arcs (perception, calibration, explanation, sustained
+    planning, style/identity, instruction-conditioned adaptation);
+    three systems overlaid (\texttt{LLAMIA-full}, the strongest
+    Group~C verbalised-tool-RL baseline, the strongest Group~A
+    frontier reasoning model); per-spoke specialist ceilings as
+    separate dots; depth tag (D1/D2/D3) as a secondary spoke
+    annotation. See brief~\ref{brief:radar}.
 
     \item \textbf{[C1] LLAMIA-Bench results table.} One row per
-    system (Groups A--F), one column per facet plus VG / DCS / RY
+    system (Groups A--F), one column per facet plus Verbalization Gap / Depth-Compounding Slope / Re-encoding Yield
     summary columns; the body the radar summarises.
 
     \item \textbf{[C1] Public-benchmark anchor table.} One row per
@@ -415,26 +408,44 @@ Hard cap: every claim gets one figure or one table, not both.
     dismissed as a niche-bench winner.
 
     \item \textbf{[C2] Three-method GRPO training curves.} Reward
-    and \textsc{ICP-Win} vs.\ training step. The methodology figure.
+    and \textsc{Instruction-Conditioned Play: Win} vs.\ training step. The methodology figure.
 
     \item \textbf{[C2] Verbalised-tool failure-mode stacked bar.}
     F1--F6 across integration modes per facet category;
     visualises ``F1--F5 are exclusively verbalisation failures.''
 
-    \item \textbf{[C4] Causal-steering recovery figure.} Bar chart
-    of instructed-move recovery rate per ICP theme under three
-    conditions: random-direction null (with 95\% percentile band),
-    single-direction $\vd_I$ steering (no language instruction),
-    and full-language-instruction ceiling. One inset position panel
-    showing the move flip under steering. The interpretability
-    headline -- one method, one number per theme.
+    \item \textbf{[C4] Interpretability panel.} (a) Linear-probe
+    accuracy bars for chess concepts on $\vz_s$ vs.\ random-projection
+    baseline; per-ICP-theme $\Delta\vz_s$ separability inset.
+    (b) Board-attention heatmaps: LLAMIA vs.\ LLAMIA-Verb on matched
+    instruction-conditioned positions. One qualitative example board
+    with attention overlay.
+
+    \item \textbf{[C4-saliency] Human saliency alignment figure.}
+    Spearman correlation vs.\ training step, per-Elo-bin curves
+    (1100--1900) for LLAMIA and LLAMIA-Verb; one matched-position
+    panel with human vs.\ LLAMIA attention overlay.
+    \emph{Data:} SARFA chess saliency dataset \cite{sarfa2020}.
+
+    \item \textbf{[C4-time] Time-pressure behavioral figure.}
+    Example board with attention overlay (clock-pressure vs.\ normal
+    position) + behavior-frequency bar: speculative-sacrifice and
+    stalemate-attempt rates for LLAMIA vs.\ Maia-matched and
+    LLAMIA-Verb.
+
+    \item \textbf{[C6] Collaboration strategy figure.} InvokeAgent
+    pattern frequency histogram across tasks; human--engine centaur
+    overlap annotation.
+
+    \item \textbf{[Human study] Preference figure.} Side-by-side
+    preference rates (LLAMIA vs.\ strongest verbalized baseline) with
+    95\% CI bars; $\kappa$ rater--GPT-4o agreement in caption.
 
     \item \textbf{[C5] LLM size $\times$ agent strength heatmap.}
     Four facet panels.
 
-    \item \textbf{[C5] Cross-domain extension figure.} One panel
-    (poker opponent-modelling task); supporting vision/persuasion
-    table referenced from \S\ref{sec:cross_domain}.
+    \item \textbf{[C5] Cross-domain: Poker figure.} One panel
+    (poker opponent-modelling task).
 \end{itemize}
 
 \subsubsection*{Appendix figures and tables [P1/P2]}
@@ -451,10 +462,7 @@ Hard cap: every claim gets one figure or one table, not both.
     \item Strategy Sankey for ICP themes (qualitative).
     \item Per-move strength curves (BC sustained-quality).
     \item LLAMIA-side failure-mode confusion matrix.
-    \item CC-AUC heatmap for SAE features.
     \item Verbosity-binned commentary comparison.
-    \item $k$-step rollout BC degradation curve.
-    \item Feature-frequency / dead-feature histogram.
     \item Cost-per-game (\$ / tokens) panel.
 \end{itemize}
 
@@ -466,7 +474,7 @@ Hard cap: every claim gets one figure or one table, not both.
     \item \textbf{Limitations expansion.} \cite{lnIlH0hfek-mom}
     reject lesson; the prior limitations section is too thin.
     \item \textbf{Concrete bench description in abstract and intro
-    contributions.} Name the seven facets and one task per facet so
+    contributions.} Name the six facets and one task per facet so
     claims and evidence match (\cite{TIGQIem1na-comma} reviewer Pdtk
     lesson).
 \end{itemize}
@@ -560,8 +568,6 @@ Hard cap: every claim gets one figure or one table, not both.
     \cite{lnIlH0hfek-mom}-style.
     \emph{Purpose:} eliminates ``you got 7 retries per move.''
 
-    \item \textbf{Full SAE feature catalog at anonymized URL.}
-
 \end{itemize}
 
 % =============================================================================
@@ -577,7 +583,7 @@ Hard cap: every claim gets one figure or one table, not both.
 
     \item \textbf{LLAMIA loses to Group~A (frontier reasoning) at any
     spoke.} Possible (e.g.\ Claude Opus 4.7 on commentary).
-    \emph{Plan:} report honestly; lean on the matched-recipe Group~F
+    \emph{Plan:} report honestly; lean on the matched-recipe Group~E
     comparison for the structural claim.
 
     \item \textbf{The counter-intuitive prediction does not hold} --
@@ -587,10 +593,10 @@ Hard cap: every claim gets one figure or one table, not both.
     \emph{efficient} than tool-calling at matched performance''
     (Communication Efficiency / CE becomes the headline).
 
-    \item \textbf{SAE features on the LLM-side projection are not
+    \item \textbf{Linear probes on the LLM-side projection are not
     interpretable.}
-    \emph{Plan:} dual SAE (agent-side $\vh_s$ and LLM-side $\vz_s$);
-    report alignment; lean on causal interventions which only need
+    \emph{Plan:} dual probes (agent-side $\vh_s$ and LLM-side $\vz_s$);
+    report alignment; lean on activation patching which only needs
     \emph{some} identifiable directions; frame as existence proof.
 
     \item \textbf{LLM-size $\times$ agent-strength scaling is flat in
@@ -638,11 +644,11 @@ specialist should be wired together.
 
 \paragraph{One-line positioning.}
 \emph{LLAMIA-Bench is the broadest ground-truth-anchored suite for
-evaluating LLM--specialist-agent collaboration; chess is the only
-present-day environment that supports its full breadth.}
+evaluating LLM--specialist-agent collaboration across six facets;
+chess is the only present-day environment that supports its full breadth.}
 
 \paragraph{Why chess (and only chess).}
-The seven collaboration facets below all need a single environment to
+The six collaboration facets below all need a single environment to
 be measured \emph{jointly} -- otherwise cross-facet comparisons
 collapse into apples-to-oranges. Chess is the only domain that
 satisfies all of the following at once:
@@ -692,28 +698,28 @@ confounds; multi-agent simulation lacks superhuman specialists. The
 \emph{framework} -- evaluating collaboration along these facets --
 is portable; the \emph{benchmark}, today, is chess by necessity.
 
-\paragraph{The seven collaboration facets (organising axis).}
+\paragraph{The six collaboration facets (organising axis).}
 Every task in the suite operationalises exactly one facet:
 \begin{itemize}[leftmargin=*]
     \item \textbf{Perception.} Does the LM see what the specialist
-    sees? \textsc{Move-Class}, \textsc{Eval-1pos}, \textsc{Diff-1pos},
+    sees? \textsc{Move Classification}, \textsc{Eval-1pos}, \textsc{Diff-1pos},
     \textsc{BC-1pos}.
     \item \textbf{Calibration.} Does the LM convey the specialist's
-    confidence and strength faithfully? \textsc{Eval-Rat},
+    confidence and strength faithfully? \textsc{Evaluation Rationalization},
     \textsc{Diff-Rat}, \textsc{BC-Elo}.
     \item \textbf{Explanation.} Can the LM produce a multi-aspect
     rationale that is grounded in the specialist's state and useful
-    to a human consumer? \textsc{Annot-Move}, \textsc{Int-Rat},
+    to a human consumer? \textsc{Move Annotation}, \textsc{Int-Rat},
     \textsc{Comm-Move}.
     \item \textbf{Sustained planning.} Does the joint system stay
-    coherent across an evolving sequence of states? \textsc{Comm-Game},
-    \textsc{BC-Game}, \textsc{ICP-Win}.
+    coherent across an evolving sequence of states? \textsc{Game Commentary},
+    \textsc{BC-Game}, \textsc{Instruction-Conditioned Play: Win}.
     \item \textbf{Style and identity imitation.} Can the LM bend the
-    specialist toward a target persona? \textsc{BC-Maia},
+    specialist toward a target persona? \textsc{Maia Behavior Cloning},
     \textsc{BC-GM}, \textsc{Stylo-ID}.
     \item \textbf{Instruction-conditioned adaptation.} Can a
     natural-language strategic instruction reshape the joint policy?
-    \textsc{ICP-Win}, \textsc{ICP-Theme}.
+    \textsc{Instruction-Conditioned Play: Win}, \textsc{ICP-Theme}.
 \end{itemize}
 Tasks carry a secondary tag for interaction depth
 (\textsc{D1}/\textsc{D2}/\textsc{D3}) used by analyses that look
@@ -724,12 +730,12 @@ organising axis of the benchmark.
 Maia-1900 BC, ChessBench Elo, Lichess solve rate, ChessQA, HPDv2 and
 the cross-domain suites used in the persuasion / image-preference
 section. They \emph{anchor} our systems on shared external scales
-but they do not span the seven facets jointly; LLAMIA-Bench
+but they do not span the six facets jointly; LLAMIA-Bench
 complements them, it does not replace them.
 
 \paragraph{Inclusion rule.}
 A task enters LLAMIA-Bench iff (i) it operationalises exactly one of
-the seven facets with externally verifiable ground truth, and (ii)
+the six facets with externally verifiable ground truth, and (ii)
 its inputs and outputs are identical across integration regimes (so
 the same task can be re-run with text-only, verbalized-tool, or
 latent-internalised access). Tasks failing (i) move to the public
@@ -740,17 +746,17 @@ goal.} The bench is built to evaluate collaboration; integration
 regimes are evaluated \emph{through} it. Because every task has the
 same I/O surface across regimes, the same suite can be re-run with
 the integration mode swapped. The finding -- that interfaces degrade
-differentially across the seven facets, with the verbalisation
-penalty growing on sustained planning, instruction-conditioned
-adaptation, and adversarial robustness -- emerges as a corollary of
+differentially across the six facets, with the verbalisation
+penalty growing on sustained planning and instruction-conditioned
+adaptation -- emerges as a corollary of
 running an existing comprehensive suite, not as the bench's purpose.
 We accordingly report it as a finding (with the metrics in
 \ref{brief:metrics} and the failure-mode taxonomy in
 \ref{brief:failure}), not as the suite's reason for being.
 
 \paragraph{Falsifiable, counter-intuitive prediction (a corollary).}
-On the sustained-planning, instruction-conditioning, and adversarial
-facets, frontier reasoning models (Claude Opus 4.7, GPT-5,
+On the sustained-planning and instruction-conditioning facets,
+frontier reasoning models (Claude Opus 4.7, GPT-5,
 Gemini 2.5 Pro, DeepSeek-R1) augmented with the strongest available
 chess engine through verbalized tools score no better than the same
 models without engine access; latent internalisation at the same
@@ -760,7 +766,7 @@ can. Falsified if Group~B saturates these facets; equally
 informative either way.
 
 \paragraph{Real-world relevance.}
-The seven facets recur wherever a generalist LM collaborates with a
+The six collaboration facets recur wherever a generalist LM collaborates with a
 domain specialist (medical decision support, scientific simulation
 steering, embodied control, security analysis, code review against
 a static analyser). Today, chess is the only environment in which
@@ -776,7 +782,7 @@ discriminator (that is a downstream use of the same data).
 LM-judge dependence on explanation tasks (calibrated against a
 human-rated subset; rule-based scoring used where feasible);
 single-engine-class dependence (replicated across Lc0 nets and
-Stockfish~17 in Group~G); chess-player human raters drawn from
+Stockfish~17 in Group~F); chess-player human raters drawn from
 community programmes rather than the authors; the ``why chess''
 claim is sufficiency, not necessity -- the framework should port,
 the benchmark itself does not.
@@ -786,17 +792,17 @@ Existing chess benchmarks (ChessQA, ChessBench, LLM-CHESS) score
 \emph{whether} an LLM solves a task; \cite{TIGQIem1na-comma} (COMMA)
 treats inter-LM communication under information asymmetry as the
 controlled variable in a multi-agent setting. LLAMIA-Bench is the
-first to (i) span the seven LM--specialist collaboration facets
-jointly under one environment, (ii) carry external ground truth at
-every facet, and (iii) make integration-interface findings
-recoverable as corollaries from a single comprehensive suite rather
-than via purpose-built per-finding tasks.
+first to (i) span six LM--specialist collaboration facets jointly
+under one environment, (ii) carry external ground truth at every
+facet, and (iii) make integration-interface findings recoverable as
+corollaries from a single comprehensive suite rather than via
+purpose-built per-finding tasks.
 
 \paragraph{Minimum-viable bench.}
-One task per facet -- \textsc{Move-Class} (perception),
-\textsc{Eval-Rat} (calibration), \textsc{Annot-Move} (explanation),
-\textsc{Comm-Game} (sustained planning), \textsc{BC-Maia} (style and
-identity), \textsc{ICP-Win} (instruction-conditioned adaptation). Six tasks, full
+One task per facet -- \textsc{Move Classification} (perception),
+\textsc{Evaluation Rationalization} (calibration), \textsc{Move Annotation} (explanation),
+\textsc{Game Commentary} (sustained planning), \textsc{Maia Behavior Cloning} (style and
+identity), \textsc{Instruction-Conditioned Play: Win} (instruction-conditioned adaptation). Six tasks, full
 facet coverage, one radar.
 
 \subsubsection*{Brief: thesis-aligned custom metrics}
@@ -841,20 +847,21 @@ facet coverage, one radar.
 Argument: \textbf{F1--F5 are exclusively verbalization failures;
 LLAMIA structurally eliminates them; only F6 remains.}
 
-\subsubsection*{Brief: methodology re-frame (SALT(SFT) + SALT(RL))}
+\subsubsection*{Brief: methodology (Projector Alignment + DAPO)}
 \label{brief:methodology}
 
-\textbf{Phase 1 -- SALT(SFT).} Stage 1 (projector alignment on
-abundant synthetic data, LLM frozen) + Stage 2 (interleaved instruction
-tuning). Warm-start; no longer the headline.
+\textbf{Stage 1 -- Projector Alignment.} Self-supervised pretraining
+on abundant synthetic state--policy pairs; LLM frozen, only
+LatentBridge projector trains. Aligns agent representations into
+the LLM embedding space.
 
-\textbf{Phase 2 -- SALT(RL).} GRPO (or DAPO) over rollouts that
-include latent tokens and \texttt{<InvokeAgent>} calls. Reward
-decomposed as: outcome reward (game result, BC accuracy, ICP win-rate,
-calibrated judge-score on commentary), format reward (legal moves,
-valid invocations), \emph{collaboration-shape reward} (encourages
-invocation at decision-relevant moments). Diversity filtering against
-entropy collapse.
+\textbf{Stage 2 -- Reinforcement Learning (DAPO).} End-to-end RL
+over rollouts that include latent tokens and \texttt{<InvokeAgent>}
+calls. Reward decomposed as: outcome reward (game result, BC
+accuracy, ICP win-rate, calibrated judge-score on commentary), format
+reward (legal moves, valid invocations), \emph{collaboration-shape
+reward} (encourages invocation at decision-relevant moments).
+Diversity filtering against entropy collapse.
 
 \textbf{Backbone.} Qwen3-13B-Instruct or Llama-4 8B/70B (decided by
 inference economics + InvokeAgent compatibility). Vicuna-13B retained
@@ -879,23 +886,22 @@ Re-Tool, ToolRL, Search-R1, AgentR1 applied to the chess tools, on
 the same backbone as LLAMIA, matched compute. Access-mode
 \texttt{verbalized-tool-rl}. The thesis-defining comparison.
 
-\textbf{Group D -- Latent-CoT / continuous-reasoning.}
-Coconut, latentmas, 2025--2026 implicit-reasoning baselines.
-
-\textbf{Group E -- Domain specialists (per-task ceilings).}
-\textsc{BC-Maia} = Maia-2; \textsc{BC-Time}/\textsc{BC-Elo} = Allie;
+\textbf{Group D -- Domain specialists (per-task ceilings).}
+\textsc{Maia Behavior Cloning} = Maia-2; \textsc{BC-Time}/\textsc{BC-Elo} = Allie;
 \textsc{BC-GM} = best-of-cohort per-GM model; gameplay = Lc0-BT4 /
 Stockfish~17 / ChessFormer; \textsc{Diff-Rat}/\textsc{Int-Rat} =
 generative-chess predictors (no rationale baseline -- the gap is the
-contribution); \textsc{Comm-Move} = SCC; \textsc{Comm-Game} = none
+contribution); \textsc{Comm-Move} = SCC; \textsc{Game Commentary} = none
 (we introduce the task).
 
-\textbf{[P1, appendix] Group F -- Matched-recipe LLAMIA ablations.}
-\texttt{LLAMIA-text}, \texttt{LLAMIA-tool}, \texttt{LLAMIA-static},
-\texttt{LLAMIA-full}. Same backbone, Stage-2 data, RL recipe; only
-the projection differs. Appendix table; brief mention in main text only.
+\textbf{[P1, appendix] Group E -- Matched-recipe LLAMIA ablations.}
+\texttt{LLAMIA-text}, \texttt{LLAMIA-Verb}, \texttt{LLAMIA-static},
+\texttt{LLAMIA-full}. \texttt{LLAMIA-Verb} = RL-trained with verbalized
+engine output only (matches intro nomenclature; distinct from Group~C
+external baselines). Same backbone, RL recipe; only integration mode
+differs. Appendix table; brief mention in main text only.
 
-\textbf{Group G -- Lc0 architecture cross-check.}
+\textbf{Group F -- Lc0 architecture cross-check.}
 LLAMIA with Lc0-BT4 / T60 / smaller Lc0 nets (varied depth/width).
 
 \textbf{Decoding-protocol matrix.} Every baseline reported under
@@ -908,12 +914,11 @@ text-equivalent in the ``effective context'' column.
 \subsubsection*{Brief: headline radar figure spec}
 \label{brief:radar}
 
-Single radar; spokes grouped around the circle in seven contiguous
+Single radar; spokes grouped around the circle in six contiguous
 arcs by collaboration facet (perception, calibration, explanation,
 sustained planning, style/identity, instruction-conditioned
-adaptation, adversarial robustness), in that order. Arc background
-labels the facet; depth tag (D1/D2/D3) printed under each spoke
-label as a secondary annotation. Three systems overlaid as connected
+adaptation), in that order. Arc background labels the facet; depth
+tag (D1/D2/D3) printed under each spoke label as a secondary annotation. Three systems overlaid as connected
 polygons: \texttt{LLAMIA-full}, the strongest Group~C
 verbalized-tool-RL baseline, the strongest Group~A frontier reasoning
 model. Per-spoke specialist ceilings drawn as separate dots, not a
