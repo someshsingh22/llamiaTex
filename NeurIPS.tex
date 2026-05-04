@@ -24,6 +24,7 @@
 \usepackage{nicefrac}       % compact symbols for 1/2, etc.
 \usepackage{microtype}      % microtypography
 \usepackage{xcolor}         % colors
+\usepackage{colortbl}       % \cellcolor, \rowcolor in tables
 
 % Recommended packages for figures and better typesetting:
 \usepackage{graphicx}
@@ -47,6 +48,7 @@
 \tcbuselibrary{skins,breakable}
 \usetikzlibrary{shadows}
 \usepackage[capitalize,noabbrev]{cleveref}
+\usepackage{etoc}
 
 % Color definitions for tables
 \newcommand{\best}[1]{\colorbox{black!10}{#1}}
@@ -115,7 +117,6 @@
 }
 
 \begin{document}
-
 \maketitle
 
 \begin{abstract}
@@ -144,7 +145,9 @@ This paper presents work whose goal is to advance the field of Machine Learning.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
 \appendix
-\section*{Appendix}
-% \input{pages/appendix}
+% Inject a sentinel into the .toc file; etoc executes it when building
+% the appendix TOC, triggering \inappendixtrue so only appendix entries
+% (written after this point) are displayed.
+\addtocontents{toc}{\protect\appendixmark}
 \input{pages/appendix2}
 \end{document}
