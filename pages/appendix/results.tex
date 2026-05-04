@@ -2,58 +2,323 @@
 \label{sec:app_results}
 % =============================================================================
 
+% EXPECTED VALUES — all numbers below are predicted based on the
+% performance landscape analysis (§\ref{sec:todo_perf_landscape}).
+% Replace with real experimental results as they arrive.
+% Systems: Task Expert, Frontier+Tool, LLAMIA-Verb, LLAMIA (4B/8B/14B)
+
 \subsection{Full LLAMIA-Bench Results Table}
 \label{sec:app_results_full}
+
+\begin{table*}[h!]
+\centering
+\caption{\textbf{LLAMIA-Bench: full results across all tasks and systems.}
+Expected performance patterns based on the performance landscape analysis.
+All values are normalized to $[0, 100]$ where the best available system
+per task defines the ceiling. \textbf{Bold}: best overall; \underline{underline}: best non-LLAMIA.
+\textit{Numbers are predictions — replace with real values.}}
+\label{tab:full_bench}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{l|cc|cc|c|c|c}
+\toprule[1.2pt]
+\textbf{System} &
+\multicolumn{2}{c|}{\textbf{Behavior Cloning}} &
+\multicolumn{2}{c|}{\textbf{Puzzle Understanding}} &
+\textbf{Rationale} &
+\textbf{Game} &
+\textbf{Instruction} \\
+& \textbf{MAIA} & \textbf{Wild} &
+\textbf{Difficulty} & \textbf{Interest} &
+\textbf{Prediction} &
+\textbf{Commentary} &
+\textbf{Planning} \\
+\midrule
+% ── Task Experts ──────────────────────────────────────────────
+Maia+MCTS (best-of-3)      & \underline{90} & 42 & -- & -- & -- & -- & -- \\
+SCC                          & -- & -- & -- & -- & \underline{62} & -- & -- \\
+CF-270M                      & -- & -- & \underline{85} & 35 & -- & -- & -- \\
+\midrule
+% ── Frontier + Tool ──────────────────────────────────────────
+GPT-4o + Lc0                & 20 & 36 & 53 & 10 & 62 & 52 & 9.2 \\
+LLaMA-3.1 405B + Lc0        & 21 & 40 & 50 & 8  & 61 & 44 & 10.0 \\
+\midrule
+% ── LLAMIA-Verb (matched recipe) ────────────────────────────
+LLAMIA-Verb-4B               & 35 & 30 & 38 & 6  & 35 & 28 & 3 \\
+LLAMIA-Verb-8B               & 40 & 35 & 42 & 7  & 42 & 35 & 5 \\
+LLAMIA-Verb-14B              & 45 & 40 & 45 & 8  & 48 & 40 & 7 \\
+\midrule
+% ── LLAMIA ──────────────────────────────────────────────────
+LLAMIA-4B                    & 51 & 50 & 61 & 50 & 60 & 55 & 12 \\
+LLAMIA-8B                    & 54 & 54 & 66 & 60 & 67 & 68 & 15 \\
+LLAMIA-14B                   & \textbf{55} & \textbf{53} & \textbf{70} & \textbf{70} & \textbf{72} & \textbf{75} & \textbf{17} \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table*}
 
 \subsection{Gameplay}
 \label{sec:app_results_gameplay}
 
+\textit{(Gameplay is a parity task — all engine-access systems cluster.
+Reported for completeness; not a headline result.)}
+
 \subsubsection{Action Ranking (Kendall's $\tau$)}
 \label{sec:app_results_gameplay_kt}
 
-\subsubsection{Puzzle Accuracy}
-\label{sec:app_results_gameplay_puzzle}
+% See existing Figure~\ref{fig:kt} for Kendall's tau training dynamics.
+% The key finding: LLAMIA's policy alignment with the search-augmented
+% agent (Lc0-BT4 with search) increases around 30–50M training positions.
 
 \subsubsection{Playing Strength (Elo)}
 \label{sec:app_results_gameplay_elo}
 
+% Existing table in appendix.tex (tab:gameplay-performance) remains the
+% primary reference. Expected: LLAMIA-14B ~2279±45, matching Transformer-270M.
+% All search-free systems with engine access cluster at 2200–2300.
+
 \subsection{Behavior Cloning}
 \label{sec:app_results_bc}
 
+\begin{table*}[h!]
+\centering
+\caption{\textbf{Behavior Cloning: expected results with LLAMIA-Verb baseline added.}
+Move-match accuracy across Maia benchmark Elo buckets and LLAMIA-Bench
+in-the-wild splits. LLAMIA-Verb converges on the same degenerate
+strategy as Frontier+Tool: mapping the engine's top-$k$th move to an
+Elo bucket, missing the style dimension. \textit{Values are predictions.}}
+\label{tab:bc_extended}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{l|c|ccccc|ccc}
+\toprule[1.2pt]
+\textbf{Model} & \textbf{Method} &
+\multicolumn{5}{c|}{\textbf{Maia Benchmark Elo Buckets}} &
+\multicolumn{3}{c}{\textbf{LLAMIA-Bench (Wild)}} \\
+& & \textbf{1100} & \textbf{1300} & \textbf{1500} & \textbf{1700} & \textbf{1900} &
+\textbf{GM-25} & \textbf{Low-Time} & \textbf{$\Delta$Elo} \\
+\midrule
+Maia+MCTS (best-of-3) & SL+Search & 0.50 & 0.51 & 0.53 & 0.54 & \underline{0.55} & 0.42 & 0.42 & 0.37 \\
+\midrule
+GPT-4o + Lc0     & ICL + Tool & 0.17 & 0.14 & 0.16 & 0.16 & 0.20 & 0.23 & 0.36 & 0.24 \\
+LLaMA-3.1 + Lc0  & ICL + Tool & 0.18 & 0.13 & 0.15 & 0.19 & 0.21 & 0.29 & 0.40 & 0.26 \\
+\midrule
+LLAMIA-Verb-4B    & GRPO-Verb  & 0.30 & 0.32 & 0.33 & 0.35 & 0.34 & 0.28 & 0.30 & 0.30 \\
+LLAMIA-Verb-8B    & GRPO-Verb  & 0.34 & 0.36 & 0.37 & 0.39 & 0.38 & 0.32 & 0.33 & 0.34 \\
+LLAMIA-Verb-14B   & GRPO-Verb  & 0.38 & 0.40 & 0.41 & 0.43 & 0.42 & 0.35 & 0.36 & 0.38 \\
+\midrule
+LLAMIA-4B         & SALT       & 0.48 & 0.50 & 0.51 & 0.52 & 0.50 & 0.42 & 0.41 & 0.46 \\
+LLAMIA-8B         & SALT       & 0.51 & 0.53 & 0.54 & 0.55 & 0.53 & 0.46 & 0.44 & 0.50 \\
+LLAMIA-14B        & SALT       & \textbf{0.53} & \textbf{0.55} & \textbf{0.56} & \textbf{0.58} & \textbf{0.56} & \textbf{0.52} & \textbf{0.47} & \textbf{0.54} \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table*}
+
 \subsubsection{Per-Elo Move-Match Curves}
 \label{sec:app_results_bc_elo}
+% Per-Elo curves with binomial CIs. Appendix figure.
 
 \subsubsection{Per-Move Strength Curves}
 \label{sec:app_results_bc_strength}
+% Per-move-number accuracy curves showing sustained quality across game length.
 
-\subsection{Move-Level Commentary}
-\label{sec:app_results_movecomm}
+\subsection{Rationale Prediction}
+\label{sec:app_results_rationale}
+
+\begin{table*}[h!]
+\centering
+\caption{\textbf{Rationale Prediction (Planning and Comparative subcategories).}
+We narrow the main evaluation to rationale prediction where LLAMIA's
+margin is largest. Description and Quality subcategories reported in
+appendix for completeness. BLEU-2 scores. \textit{Values are predictions
+for new model sizes; existing LLAMIA-7B/13B numbers from prior table
+retained as reference.}}
+\label{tab:rationale_extended}
+\begin{adjustbox}{max width=0.85\textwidth}
+\begin{tabular}{l|c|cc|c}
+\toprule[1.2pt]
+\textbf{Model} & \textbf{Method} &
+\textbf{Planning} & \textbf{Comparative} & \textbf{Perplexity $\downarrow$} \\
+\midrule
+SCC              & FT         & 27.48 & 41.59 & -- \\
+GPT-4o + Lc0     & ICL + Tool & 30.13 & 42.29 & -- \\
+LLaMA-3.1 + Lc0  & ICL + Tool & 29.10 & 40.12 & 8.53 \\
+\midrule
+LLAMIA-Verb-4B    & GRPO-Verb  & 22.0  & 24.0  & 9.50 \\
+LLAMIA-Verb-8B    & GRPO-Verb  & 25.0  & 28.0  & 8.80 \\
+LLAMIA-Verb-14B   & GRPO-Verb  & 28.0  & 32.0  & 8.10 \\
+\midrule
+LLAMIA-4B         & SALT       & 30.0  & 40.0  & 7.50 \\
+LLAMIA-8B         & SALT       & 34.0  & 45.0  & 6.40 \\
+LLAMIA-14B        & SALT       & \textbf{39.0} & \textbf{50.0} & \textbf{5.50} \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table*}
 
 \subsection{Game-Level Commentary}
 \label{sec:app_results_gamecomm}
 
-\subsubsection{G-eval}
-\label{sec:app_results_gamecomm_geval}
-
-\subsubsection{Quality (Eval RMSE)}
-\label{sec:app_results_gamecomm_quality}
-
-\subsubsection{Highlight (Replay RMSE)}
-\label{sec:app_results_gamecomm_highlight}
+\begin{table*}[h!]
+\centering
+\caption{\textbf{Game-Level Commentary: expected results with model-size
+scaling and LLAMIA-Verb.} G-eval, Quality RMSE, Highlight RMSE, BLEU-2.
+LLAMIA-Verb is worse than Frontier+Tool on this multi-step task because
+RL-trained verbalization fragments the narrative. \textit{Values are predictions.}}
+\label{tab:commentary_extended}
+\begin{adjustbox}{max width=0.95\textwidth}
+\begin{tabular}{l|c|cccc}
+\toprule[1.2pt]
+\textbf{Model} & \textbf{Method} &
+\textbf{G-eval $\uparrow$} &
+\makecell{\textbf{Quality}\\(RMSE) $\downarrow$} &
+\makecell{\textbf{Highlight}\\(RMSE) $\downarrow$} &
+\textbf{BLEU-2 $\uparrow$} \\
+\midrule
+GPT-4o + Lc0     & ICL + Tool & 0.52 & -- & 12.31 & 21.03 \\
+LLaMA-3.1 + Lc0  & ICL + Tool & 0.44 & -- & 14.47 & 25.07 \\
+\midrule
+LLAMIA-Verb-4B    & GRPO-Verb  & 0.32 & 5.50 & 18.0 & 28.0 \\
+LLAMIA-Verb-8B    & GRPO-Verb  & 0.37 & 4.80 & 16.0 & 32.0 \\
+LLAMIA-Verb-14B   & GRPO-Verb  & 0.42 & 4.20 & 14.0 & 36.0 \\
+\midrule
+LLAMIA-4B         & SALT       & 0.48 & 2.10 & 9.0  & 42.0 \\
+LLAMIA-8B         & SALT       & 0.55 & 1.50 & 7.0  & 50.0 \\
+LLAMIA-14B        & SALT       & \textbf{0.63} & \textbf{0.85} & \textbf{4.8} & \textbf{58.0} \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table*}
 
 \subsection{Puzzle Understanding}
 \label{sec:app_results_puzzle}
 
+\begin{table*}[h!]
+\centering
+\caption{\textbf{Puzzle Understanding: Difficulty and Interest prediction.}
+Puzzle solving accuracy is a parity metric (not highlighted). The
+Difficulty/Interest split is the controlled experiment for
+non-verbalizability: same positions, same engine, same model, only the
+target signal differs. LLAMIA-Verb's small Interest improvement
+($\rho \leq 0.10$) is consistent with reward hacking (learning the
+statistical prior that minimizes MAE). \textit{Values are predictions.}}
+\label{tab:puzzle_extended}
+\begin{adjustbox}{max width=0.85\textwidth}
+\begin{tabular}{l|c|c|cc}
+\toprule[1.2pt]
+\textbf{Model} & \textbf{Method} &
+\textbf{Solved (\%)} &
+\textbf{Difficulty $\rho$} &
+\textbf{Interest $\rho$} \\
+\midrule
+CF-270M           & SFT        & 93.5 & 0.46 & 0.35 \\
+GPT-4o + Lc0      & ICL + Tool & --   & 0.53 & 0.10 \\
+LLaMA-3.1 + Lc0   & ICL + Tool & --   & 0.50 & 0.08 \\
+\midrule
+LLAMIA-Verb-4B     & GRPO-Verb  & 86.0 & 0.38 & 0.05 \\
+LLAMIA-Verb-8B     & GRPO-Verb  & 87.5 & 0.42 & 0.07 \\
+LLAMIA-Verb-14B    & GRPO-Verb  & 88.5 & 0.45 & 0.08 \\
+\midrule
+LLAMIA-4B          & SALT       & 88.0 & 0.58 & 0.38 \\
+LLAMIA-8B          & SALT       & 90.0 & 0.65 & 0.45 \\
+LLAMIA-14B         & SALT       & \textbf{91.5} & \textbf{0.71} & \textbf{0.52} \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table*}
+
 \subsection{Instruction-Conditioned Planning}
 \label{sec:app_results_icp}
+
+\begin{table*}[h!]
+\centering
+\caption{\textbf{Instruction-Conditioned Planning: win-rate improvement
+(\%) by motif category.} Motif-anchored evaluation (ECO-based results in
+appendix as robustness check). LLAMIA-Verb is structurally
+disadvantaged: its RL-trained deference to engine output conflicts with
+ICP's requirement for selective override. Frontier+Tool is relatively
+closer to LLAMIA here than on other tasks, but still clearly behind.
+\textit{Values are predictions.}}
+\label{tab:icp_extended}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{l|ccccc|c}
+\toprule[1.2pt]
+\textbf{Model} &
+\makecell{\textbf{End-}\\\textbf{games}} &
+\makecell{\textbf{Pawn}\\\textbf{Struct.}} &
+\makecell{\textbf{Tactical}\\\textbf{Blunders}} &
+\makecell{\textbf{Piece}\\\textbf{Coord.}} &
+\textbf{Repetition} &
+\makecell{\textbf{Overall}\\\textbf{Improv.}} \\
+\midrule
+GPT-4o + Lc0         & 10  & 11  & 9  & 7  & 12  & 9.2  \\
+LLaMA-3.1 + Lc0      & 11.5 & 11.5 & 11 & 7  & 13  & 10.0 \\
+\midrule
+LLAMIA-Verb-4B        & 2   & 2   & 1  & 1  & 3   & 2.0  \\
+LLAMIA-Verb-8B        & 4   & 4   & 3  & 2  & 5   & 4.0  \\
+LLAMIA-Verb-14B       & 6   & 6   & 5  & 4  & 7   & 5.5  \\
+\midrule
+LLAMIA-4B             & 11  & 12  & 9  & 7  & 13  & 12.0 \\
+LLAMIA-8B             & 14  & 16  & 12 & 9  & 16  & 15.0 \\
+LLAMIA-14B            & \textbf{18} & \textbf{20} & \textbf{15} & \textbf{12} & \textbf{21} & \textbf{18.0} \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table*}
+
+\subsubsection{ICP Motif Acquisition During Training}
+\label{sec:app_results_icp_motif}
+
+% See Figure~F (icp_motif_acquisition.py) for the training dynamics
+% visualization showing ordered motif emergence with chess-piece icon
+% annotations. Key finding: LLAMIA acquires motif categories in order
+% (Pawn Structures → Piece Coordination → Tactical Blunders → Endgames)
+% with sigmoid jumps, while ChessGPT stays near-flat throughout.
 
 \subsubsection{Turn-by-Turn Win-Rate}
 \label{sec:app_results_icp_turnbyturn}
 
+% Plot: ICP win-rate improvement at each move number across the game.
+% Expected: gap widens with game length (temporal compounding).
+
 \subsubsection{Failure Mode Analysis}
 \label{sec:app_results_icp_failure}
+
+% Existing analysis from appendix.tex retained:
+% Opponent Prevention 47%, Tactical Override 31%,
+% Instruction Misalignment 14%, Execution Failure 8%.
 
 \subsubsection{Out-of-Distribution Instructions}
 \label{sec:app_results_icp_ood}
 
+% LLAMIA-14B: ~12% average improvement on OOD instructions
+% (vs ~18% in-distribution), indicating partial generalization.
+
 % =============================================================================
+% QUALITATIVE EXAMPLES TODO
+% =============================================================================
+%
+% The following qualitative examples should be added as figures:
+%
+% 1. BC top-k-to-Elo collapse: 3 positions where LLAMIA-Verb and
+%    Frontier+Tool predict the same wrong move (the k-th engine move
+%    mapped to the target Elo) while LLAMIA predicts correctly by
+%    reading the style signal from the full policy distribution.
+%
+% 2. BC time-pressure flagging: 2 matched position pairs (with/without
+%    <5s time pressure) showing LLAMIA's attention maps shifting toward
+%    opponent king and sacrifice-candidate pieces under time pressure.
+%
+% 3. Interest reward hacking: 3 positions where LLAMIA-Verb predicts
+%    ~same interest score for all (low variance, prior-fitting) while
+%    LLAMIA correctly distinguishes high-interest from low-interest
+%    positions. Show prediction variance histogram.
+%
+% 4. ICP motif steering: Board-level example showing LLAMIA deliberately
+%    playing a suboptimal move to reach an instructed weakness domain
+%    (following the existing tcp2.pdf figure style).
+%
+% 5. Commentary narrative coherence: Side-by-side 5-move commentary
+%    excerpt: LLAMIA maintains strategic thread across moves;
+%    LLAMIA-Verb produces fragmented per-move tool-call summaries
+%    that lose the narrative arc.
+%

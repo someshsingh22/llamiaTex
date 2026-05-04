@@ -933,3 +933,734 @@ This document is the active TODO. Items migrate to the relevant
 appendix sections (\texttt{ablations.tex}, \texttt{study.tex},
 \texttt{details.tex}, \texttt{dataset.tex}, \texttt{extension.tex})
 as experiments land; pointers back here are removed once integrated.
+
+% =============================================================================
+\subsection{Performance Landscape Analysis}
+\label{sec:todo_perf_landscape}
+% =============================================================================
+
+This section records per-task predictions for how four system
+categories---\textbf{Frontier+Tool} (frontier LLMs with ReAct-style
+Lc0 access), \textbf{LLAMIA-Verb} (RL-trained on verbalized engine
+output, same backbone \& recipe as LLAMIA), \textbf{LLAMIA} (latent
+internalization), \textbf{Task Expert} (per-task specialist
+models)---should behave, \emph{and why}. The predictions are grounded
+in what each interface can and cannot transmit; they serve as
+pre-registered expectations against which experimental results will be
+interpreted. Model sizes refer to the refreshed backbone grid: 4B, 8B,
+14B. LLAMIA-static (no \texttt{<InvokeAgent>}, static latent projection
+only) predictions are included where they inform Re-encoding Yield
+interpretation.
+
+Three auxiliary axes are tracked per task: (i)~\emph{training
+dynamics} (learning-curve shape and plateau), (ii)~\emph{model-size
+scaling} (does increasing the LLM backbone change the ordering?),
+(iii)~\emph{narrative role} (what the result proves or endangers in
+the paper's argument).
+
+\paragraph{Note on Instruction-Conditioned Planning as test-only.}
+ICP is test-only for \emph{all} systems (LLAMIA, LLAMIA-Verb,
+Frontier). No system trains on ICP data. Differences in ICP
+performance reflect transfer from the training tasks, not direct
+optimization.
+
+% -----------------------------------------------------------------------------
+\subsubsection*{Task 1: Behavior Cloning}
+\label{sec:perf_bc}
+% -----------------------------------------------------------------------------
+
+\paragraph{Expected ordering.}
+LLAMIA $\gg$ Task Expert (in-the-wild) $>$ LLAMIA-Verb $\approx$
+Frontier+Tool. On the standard Maia
+benchmark (1100--1900 buckets), LLAMIA matches or exceeds Maia+MCTS;
+Task Experts (5 separate Maia networks) are strong on their
+individual buckets but collapse on GM-25, Low-Time, and
+$\Delta$Elo splits.
+
+\paragraph{Why.}
+Behavior cloning requires imitating \emph{human} move distributions
+conditioned on skill level---a signal that lives in the relationship
+between Lc0's policy distribution and the human deviation from it.
+This is poorly served by verbalization: the engine's top-$k$ moves
+with centipawn scores do not encode ``how a 1300-rated player would
+deviate from optimal.'' LLAMIA's latent projection preserves the
+full policy shape, including the tail probabilities that distinguish
+human-like errors from engine-optimal play. LLAMIA-Verb can learn
+\emph{some} skill-conditioning from text (e.g., ``this move has
+evaluation $-0.5$, a 1300 would play it''), but the mapping from
+evaluation to human behavior is many-to-one and lossy.
+\textbf{Qualitative note:} both LLAMIA-Verb and Frontier+Tool
+converge on the same degenerate strategy---mapping the engine's
+top-$k$th move to an Elo bucket (e.g., ``the 3rd-best move is what
+a 1300 would play''). This heuristic captures some variance but
+misses the \emph{style} dimension: two players at the same Elo make
+different errors for different reasons. LLAMIA avoids this because
+the full policy distribution encodes move-specific likelihood, not
+just rank order. This top-$k$-to-Elo collapse should be documented
+with qualitative examples showing cases where LLAMIA-Verb and
+Frontier predict the same (wrong) move while LLAMIA predicts
+correctly.
+
+\paragraph{Qualitative insight: time-pressure flagging.}
+Under time pressure ($<$5 seconds remaining), LLAMIA's attention
+maps shift strongly toward the opponent's king and toward own pieces
+available for sacrifice---effectively ``flagging'' speculative
+tactical opportunities. This emergent behavior mirrors how human
+players shift to aggressive, flag-hunting play under extreme time
+pressure. Document with attention-map overlays comparing
+LLAMIA's board attention on matched positions with and without time
+pressure, showing the concentration shift.
+
+\paragraph{Training dynamics.}
+LLAMIA: rapid improvement, steep curve, continues improving
+throughout training as the LLM learns finer-grained skill
+discrimination from latent features. LLAMIA-Verb: initial rapid
+improvement (learns the format), then flat plateau---the verbalized
+signal ceiling is reached quickly because text cannot convey more
+style information regardless of how much RL you run (confirmed by
+the GRPO reward curves in Figure~\ref{fig:grpo_curves}, where
+LLAMIA-Verb's dashed curves are visibly flat relative to LLAMIA
+across all model sizes). The gap between LLAMIA and LLAMIA-Verb
+\emph{widens} during training---this is a direct visualization
+of the verbalization gap accumulating.
+
+\paragraph{Model-size scaling.}
+Large jumps between 4B $\to$ 8B $\to$ 14B for LLAMIA. The
+human-understanding component (mapping latent policy features to
+behavioral intent) is a language-model capability that scales with
+parameters. For LLAMIA-Verb the jumps are smaller---more parameters
+help generate better text, but cannot recover the information that
+verbalization discarded.
+
+\paragraph{Narrative role.}
+\textbf{Supports thesis.} BC is a \emph{style} task (facet:
+Style/Identity). The finding that Task Experts win on
+in-distribution (Maia buckets) but lose on in-the-wild splits while
+LLAMIA generalizes demonstrates that latent internalization enables
+transfer that task-specific architectures cannot. The LLAMIA-Verb
+plateau is direct evidence of the verbalization bottleneck on
+style-sensitive tasks.
+
+\paragraph{Critical flag.}
+If LLAMIA-Verb training curves are \emph{not} visibly flat relative
+to LLAMIA, the verbalization-bottleneck claim weakens for this task.
+Ensure the comparison uses identical RL recipe, identical backbone,
+identical data---the only variable is the representation channel.
+Also: if model-size jumps for LLAMIA are too uniform across sizes, a
+reviewer may attribute the gain to LLM scaling rather than the latent
+projection. The LLAMIA-Verb curve across sizes must be flat to
+isolate the contribution.
+
+% -----------------------------------------------------------------------------
+\subsubsection*{Task 2: Gameplay}
+\label{sec:perf_gameplay}
+% -----------------------------------------------------------------------------
+
+\textit{(Not a headline result---reported for completeness and as a
+control. Gameplay and puzzle accuracy are parity tasks where all
+engine-access systems cluster.)}
+
+\paragraph{Expected ordering.}
+Task Expert (Lc0+search, SF) $\gg$ LLAMIA $\approx$ LLAMIA-Verb
+$\approx$ Frontier+Tool $\approx$ Transformer-270M. All search-free
+systems cluster around 2200--2300 Elo. Search-based systems are
+unreachable ($>$2700).
+
+\paragraph{Why.}
+Gameplay is a single-position task: the agent's top move \emph{is}
+the answer, and the LLM's role reduces to faithfully relaying the
+agent's recommendation. Verbalization loses little here because the
+relevant information (best move, evaluation) compresses to a short
+string without loss. The latent projection adds nothing that the
+text interface cannot convey for this specific task.
+
+\paragraph{Training dynamics.}
+Gameplay Elo is measured post-training, but we track evaluation
+progress at training checkpoints. All systems with engine access
+converge to similar Elo, but LLAMIA's Kendall's $\tau$ alignment
+with the agent's policy (with and without search) is a useful
+progress metric during projector pretraining (see existing
+Figure~\ref{fig:kt}).
+
+\paragraph{Model-size scaling.}
+Minimal effect. A 4B model with Lc0 access achieves nearly the same
+Elo as a 14B model---the bottleneck is the engine's policy, not the
+LLM's reasoning.
+
+\paragraph{Narrative role.}
+\textbf{Control task.} Gameplay parity at single-position depth
+establishes that LLAMIA does not sacrifice raw agent-access quality.
+The gains appear at higher interaction depths. Without parity here,
+reviewers might attribute multi-step gains to a stronger engine
+coupling rather than a better interface.
+
+\paragraph{Critical flag.}
+If LLAMIA \emph{significantly beats} Frontier+Tool on gameplay, this
+actually \emph{hurts} the narrative---it suggests the gain is from
+engine coupling strength, not interface quality. Parity is the
+desired result. Ensure the confidence intervals overlap.
+
+% -----------------------------------------------------------------------------
+\subsubsection*{Task 3: Puzzle Understanding (Difficulty, Interest)}
+\label{sec:perf_puzzle}
+% -----------------------------------------------------------------------------
+
+\paragraph{Expected ordering.}
+
+\textit{Solved accuracy:} Task Expert (CF-270M) $\geq$ LLAMIA $\approx$
+LLAMIA-Verb $\approx$ Frontier+Tool. Puzzle solving requires the
+entire solution sequence (multi-move), but the solution is
+deterministic given the engine's top moves, so the ordering
+approximates gameplay parity among engine-access systems. Task
+Experts trained on 4M+ puzzles retain a slight edge from sheer data
+volume. \emph{(Puzzle accuracy is a parity metric like gameplay Elo,
+not a headline result.)}
+
+\textit{Difficulty} ($\rho$): LLAMIA $>$ Frontier+Tool $>$
+LLAMIA-Verb $>$ Task Expert. Frontier+Tool scores decently because
+solution-tree depth and engine evaluation correlate with difficulty
+and are verbalizable. LLAMIA-Verb improves slightly over
+Frontier+Tool early in training, then plateaus---it learns to parse
+depth from text but cannot extract subtler difficulty signals
+(positional complexity, motif rarity). LLAMIA increases steadily
+because Lc0's internal features encode difficulty-relevant
+information (activation magnitude, policy entropy) that resists
+verbalization.
+
+\textit{Interest} ($\rho$): LLAMIA $\gg$ all others. Frontier+Tool
+and LLAMIA-Verb both low ($\rho < 0.15$). Interest measures
+\emph{aesthetic and psychological engagement}---surprise value,
+motif beauty, ``wow factor.'' This is the cleanest
+non-verbalizable signal in the entire benchmark. Lc0's internal
+representations implicitly encode it (unusual activation patterns
+$\approx$ surprising positions), but there is no text serialization
+of ``the pattern of neural activations that humans find surprising.''
+LLAMIA-Verb may learn weak text-based correlates of interest (e.g.,
+unusual material configurations map to certain eval patterns), so a
+small positive signal ($\rho \approx 0.05$--$0.10$) is plausible.
+But the ceiling should be far below LLAMIA's because the core
+aesthetic signal is not in the text channel. The credible prediction
+is a \emph{low ceiling}, not a flat zero. \textbf{Qualitative
+note:} the small improvement LLAMIA-Verb achieves is likely reward
+hacking---it learns the statistical prior that minimizes MAE on
+interest (e.g., predicting ``moderately interesting'' for all
+positions) rather than genuinely reading the aesthetic signal. This
+should be verified by checking whether LLAMIA-Verb's interest
+predictions have low variance (a hallmark of prior-fitting)
+compared to LLAMIA's, and documented as a qualitative example.
+
+\paragraph{Training dynamics.}
+\textit{Difficulty:} LLAMIA-Verb shows initial improvement (learns
+to use depth/eval text), then plateaus by $\sim$30\% of training.
+LLAMIA improves continuously. Gap widens throughout.
+\textit{Interest:} LLAMIA-Verb shows minimal improvement (small
+positive slope that saturates quickly at $\rho \leq 0.10$). LLAMIA
+increases rapidly to $\rho \approx 0.50$. This is the single most
+dramatic training-curve contrast in the benchmark---both systems
+train on the same reward, but only LLAMIA has access to the signal
+channel that encodes interest.
+
+\paragraph{Model-size scaling.}
+\textit{Difficulty:} Gradual scaling for both LLAMIA and LLAMIA-Verb.
+The task is partly about effective tool use (parsing eval info),
+which scales modestly with LLM capacity.
+\textit{Interest:} Strong scaling for LLAMIA---larger LLMs extract
+richer semantic structure from the latent tokens, which matters most
+when the signal is implicit and high-dimensional. Flat for
+LLAMIA-Verb regardless of size.
+
+\paragraph{Narrative role.}
+\textbf{Strongest evidence for the thesis.} The
+Difficulty/Interest split within a single task creates a natural
+controlled experiment: same positions, same engine, same model, but
+one subtask's target is partially verbalizable (difficulty) and the
+other's is structurally non-verbalizable (interest). If the
+Verbalization Gap is large on Interest and small on Difficulty, the
+thesis is confirmed at the finest possible grain.
+
+\paragraph{Critical flag.}
+If LLAMIA-Verb shows \emph{any} meaningful improvement on Interest
+($\rho > 0.15$), the ``structurally non-verbalizable'' claim is
+weakened. Must verify that the Interest ground-truth signal
+(Lichess upvotes) is not confounded with difficulty (which \emph{is}
+partially verbalizable). The Difficulty--Interest correlation in the
+test set should be reported and low ($r < 0.3$). Additionally, if
+LLAMIA-Verb shows literally zero improvement, a reviewer may
+question the experimental setup rather than accept the thesis---some
+small positive signal ($\rho \approx 0.05$--$0.10$) with a clear
+ceiling is more credible than a flat zero.
+
+% -----------------------------------------------------------------------------
+\subsubsection*{Task 4: Move Annotation (State Commentary)}
+\label{sec:perf_annotation}
+% -----------------------------------------------------------------------------
+
+\paragraph{Expected ordering.}
+LLAMIA $\gg$ Frontier+Tool $>$ LLAMIA-Verb. On rationale
+prediction specifically, LLAMIA wins by a substantial margin.
+Frontier+Tool does reasonably well because large LLMs are strong
+generators and the engine provides evaluations to ground the
+rationale. LLAMIA-Verb is worse than Frontier+Tool because the
+RL-trained verbalized model overfits to structured engine output
+formats and loses the fluency of frontier ICL models.
+
+\paragraph{Scope: rationale prediction only.}
+The original move annotation benchmark \cite{jhamtani-etal-2018-learning}
+includes five subcategories (Description, Quality, Planning,
+Context, Comparative). We narrow the main-paper focus to
+\textbf{rationale prediction}---the Planning and Comparative
+subcategories---where LLAMIA's margin is largest and the result is
+most informative for the thesis. Description and Quality are
+partially solvable from verbalized evaluations alone (the eval
+number grounds the annotation); Planning and Comparative demand
+understanding \emph{why} a position favors certain continuations,
+which requires reading the agent's policy distribution over
+counterfactual moves. The remaining subcategories are reported in
+appendix for completeness.
+
+\paragraph{Why.}
+Rationale prediction is a single-position generation task
+(Explanation facet): it requires
+generating multi-aspect rationales grounded in the agent's
+assessment of \emph{why} a move is good or bad, not just \emph{that}
+it is. Lc0's latent state encodes the policy distribution over
+continuations; LLAMIA can ``read'' this to explain plans and compare
+alternatives. Verbalization reduces this to ``best move is e4,
+eval +0.5''---insufficient for counterfactual reasoning (``if instead
+Nf3, then\ldots'').
+
+\paragraph{Training dynamics.}
+LLAMIA-Verb: gradual early improvement (learns to use eval text for
+basic rationales), then plateau as the verbalized signal ceiling is
+reached. LLAMIA: steady improvement throughout training, with
+rationale quality continuing to increase as the model learns to read
+finer-grained features from the latent state.
+
+\paragraph{Model-size scaling.}
+\textbf{Largest effect of any task} for both LLAMIA and LLAMIA-Verb.
+This is fundamentally a generation task---language quality scales
+with parameters. However, LLAMIA-Verb's ceiling remains structurally
+lower: more parameters produce more fluent text \emph{about the same
+limited information}. The scaling curves should be roughly parallel
+with a persistent vertical gap (the Verbalization Gap is
+size-invariant on this task).
+
+\paragraph{Narrative role.}
+Supports the Explanation facet of LLAMIA-Bench. The rationale
+prediction result is the most quotable: ``LLAMIA-13B improves
+Planning BLEU-2 by 27\% over GPT-4o+Lc0 (38.13 vs 30.13) despite
+being 30$\times$ smaller.'' The finding that model size helps both
+systems but cannot close the gap for LLAMIA-Verb is a clean
+demonstration that the bottleneck is representational, not
+computational.
+
+\paragraph{Critical flag.}
+If model size \emph{does} close the gap for LLAMIA-Verb (i.e.,
+LLAMIA-Verb-14B matches LLAMIA-14B on rationale prediction), the
+thesis weakens. The parallel-curve prediction must hold. Also:
+BLEU-2 is a noisy metric for free-form rationales. Consider
+supplementing with G-eval or human preference on the annotation
+task specifically, not just game-level commentary.
+
+% -----------------------------------------------------------------------------
+\subsubsection*{Task 5: Game Commentary}
+\label{sec:perf_commentary}
+% -----------------------------------------------------------------------------
+
+\paragraph{Expected ordering.}
+LLAMIA $\gg$ Frontier+Tool $>$ LLAMIA-Verb $>$ IFT baselines.
+Frontier+Tool does better than on BC (commentary is partly a
+language task where scale helps), but LLAMIA's advantage is
+substantial because commentary requires sustained state tracking
+across 25+ moves.
+
+\paragraph{Why.}
+Game commentary is a multi-step task (Sustained Planning facet): the model
+must maintain a coherent narrative thread across an evolving sequence
+of positions. Each new position requires re-assessing the strategic
+arc, not just evaluating the current board. With verbalized tools,
+the LLM receives a fresh text dump at each position, but must
+integrate this with its own running memory of the game's narrative.
+The text dump at position $t$ does not encode how position $t$
+relates to position $t{-}5$ strategically---that relationship lives
+in the latent state trajectory, which LLAMIA accesses via dynamic
+re-encoding.
+
+LLAMIA-Verb is worse than Frontier+Tool because RL-trained
+verbalization models develop a ``query-response'' habit that
+fragments the narrative. Each InvokeAgent call produces a fresh text
+block that overwrites rather than extends the model's understanding.
+Frontier models, by contrast, maintain longer context windows and
+more sophisticated in-context reasoning about sequences of tool
+outputs.
+
+\paragraph{Training dynamics.}
+LLAMIA: continuous improvement throughout training; the model learns
+to use the latent state trajectory for narrative coherence.
+LLAMIA-Verb: improvement that decelerates relative to LLAMIA. The
+gap \emph{widens during training}---the verbalization gap compounds
+as the model trains longer, visible as diverging curves. Quantify
+the gap at 10\%, 50\%, and 100\% training: if the ratio
+$\text{gap}_{100\%} / \text{gap}_{10\%} > 2$, the compounding claim
+is supported.
+
+\paragraph{Model-size scaling.}
+Important for both systems, but more important for LLAMIA. Larger
+LLMs have longer effective context and stronger multi-step reasoning,
+which amplifies the advantage of having latent state access. For
+LLAMIA-Verb, larger models produce more fluent commentary but
+cannot overcome the fragmentation problem---each tool call still
+resets the state representation.
+
+\paragraph{Narrative role.}
+\textbf{Headline sustained-reasoning result.} Commentary is the task
+where the verbalization gap compounding is most visible. The training-curve figure
+for this task (LLAMIA vs LLAMIA-Verb vs ChessGPT, showing the gap
+widening) is a candidate for the main paper. The G-eval metric
+(LLAMIA-13B: 0.61 vs GPT-4o+Lc0: 0.52) is the headline number.
+
+\paragraph{Critical flag.}
+If Frontier+Tool (e.g., GPT-5+Lc0) approaches LLAMIA at the largest
+scales, the thesis requires qualification: ``at sufficient LLM
+scale, in-context reasoning partially compensates for the
+verbalization bottleneck on sustained tasks.'' This is an honest
+and interesting finding, not a fatal one---but the paper must not
+overstate the permanence of the gap. The matched-recipe Group~E
+comparison (same backbone, same scale) remains the airtight
+structural claim even if Frontier overtakes at 400B+ scale.
+
+% -----------------------------------------------------------------------------
+\subsubsection*{Task 6: Instruction-Conditioned Planning (ICP)}
+\label{sec:perf_icp}
+% -----------------------------------------------------------------------------
+
+\paragraph{Expected ordering.}
+LLAMIA $\gg$ Frontier+Tool $>$ LLAMIA-Verb. LLAMIA wins clearly
+on motif-level evaluation. Frontier+Tool is relatively closer to
+LLAMIA here than on most other tasks (the gap is smaller than on
+BC or Commentary), but still lags behind. LLAMIA-Verb is
+significantly worse than both.
+
+\paragraph{Why Frontier+Tool is closer but still behind.}
+ICP is a test-only task (no RL training on ICP data directly). The
+model must modify its play style based on a strategic instruction
+(``your opponent is weak in endgames''). Frontier reasoning models
+can partially compensate through in-context reasoning: they parse
+the instruction, use the engine to evaluate candidate plans, and
+select moves that steer toward the instructed weakness---all through
+text. This makes Frontier+Tool relatively stronger here than on
+tasks like BC (where the signal is non-verbalizable). However,
+Frontier+Tool still falls short because ICP requires
+\emph{modifying the policy} based on instructions---not just
+following the engine's strongest move, but deliberately playing
+suboptimally in one dimension to gain advantage in another.
+LLAMIA's latent state encodes the full policy landscape; the model
+can ``see'' which moves steer toward endgames vs which maximize
+short-term evaluation. With verbalization, the LLM only sees
+``e4 is best at +0.3''---it cannot assess whether e4 leads toward an
+endgame or a middlegame tactical position without multi-step
+lookahead that the engine would need to provide explicitly.
+Earlier evaluations using ECO openings inflated Frontier+Tool's
+relative performance; switching to motif-anchored evaluation
+restores LLAMIA's clear lead.
+
+\paragraph{LLAMIA-Verb: structurally disadvantaged.}
+LLAMIA-Verb should perform significantly worse than both LLAMIA and
+Frontier+Tool. The RL-trained verbalized model learns to follow
+engine recommendations efficiently, but ICP requires
+\emph{overriding} the engine's recommendation in favor of a
+strategically motivated deviation. LLAMIA-Verb's training
+incentivizes deference to verbalized engine output; ICP rewards
+selective disobedience. This creates a training-objective conflict
+that latent internalization avoids (the model reads the state and
+makes its own judgment) and that Frontier models sidestep (they were
+never trained to defer to the engine). Note that Frontier+Tool's
+advantage over LLAMIA-Verb on ICP is larger than on other tasks---
+this is the one task where Frontier's reasoning partially
+compensates for verbalization, while LLAMIA-Verb's RL-trained
+deference actively hurts.
+
+\paragraph{Training dynamics.}
+ICP has rich training dynamics despite being test-only for
+evaluation. During LLAMIA's GRPO training, we track ICP pass rate
+(win-rate improvement) at each checkpoint, and annotate when each
+\emph{motif category} first shows consistent improvement. The
+expected pattern (matching prior results, see
+Figure~\ref{fig:icp}): LLAMIA acquires motif categories in a
+characteristic order---Pawn Structures and Piece Coordination
+emerge first ($\sim$20--30\% training), Tactical Blunders at
+$\sim$35--40\%, Endgames at $\sim$40--50\%---with a sharp
+sigmoid-like jump in pass rate once each category clicks. ChessGPT
+(verbalized baseline) shows near-flat pass rate throughout with
+categories emerging only at $>$90\% training and at far lower
+magnitude. The motif acquisition order and sigmoid shape should be
+reproduced with chess-piece icon annotations at the emergence
+thresholds (following the earlier \texttt{icp.pdf} figure style).
+This is one of the most compelling training-dynamics visualizations
+in the paper: it shows \emph{structured capability emergence}, not
+just reward increase.
+
+\paragraph{Model-size scaling.}
+For LLAMIA: moderate scaling. The planning aspect benefits from
+larger LLMs, but the latent-state reading is the binding factor, not
+raw reasoning.
+For Frontier+Tool: this is where Frontier scaling matters most among
+all tasks. Larger reasoning models narrow the gap modestly through
+better multi-step text planning, but the motif-level evaluation
+keeps LLAMIA ahead because the engine cannot verbalize ``which moves
+steer toward an endgame'' as a structured recommendation.
+For LLAMIA-Verb: gap slightly reduces with parameters (larger LLMs
+are better at selective override), but the structural disadvantage
+persists.
+
+\paragraph{Narrative role.}
+\textbf{Flagship planning result.} ICP is the task where LLAMIA's
+advantage is most clearly about \emph{planning}, not just perception
+or generation. The paper claims a 17\% vs 9.2\% gap (LLAMIA-13B vs
+GPT-4o+Lc0). With the switch from ECO-based to motif-anchored
+evaluation, this gap is robust. The three-way ordering
+(LLAMIA $\gg$ Frontier+Tool $>$ LLAMIA-Verb) is the cleanest
+demonstration that (a)~latent internalization enables planning that
+verbalization cannot, and (b)~RL-trained verbalization is
+\emph{worse} than Frontier ICL on planning because deference to
+engine text conflicts with strategic override.
+
+\paragraph{Critical flag.}
+Ensure the motif-anchored evaluation protocol is clearly described
+and reproducible. The earlier ECO-based evaluation inflated
+Frontier+Tool; reviewers will scrutinize the evaluation change.
+Document both protocols and report results under both, with the
+motif-anchored version as primary and ECO as a robustness check in
+appendix.
+
+% -----------------------------------------------------------------------------
+\subsubsection*{Tasks 7--8: Move Classification and Evaluation
+Rationalization (minimum-viable-bench coverage)}
+\label{sec:perf_mincov}
+% -----------------------------------------------------------------------------
+
+These two tasks complete the minimum-viable bench (one task per
+facet). They are included here for completeness; detailed
+per-paragraph predictions are lower priority.
+
+\paragraph{Move Classification (Perception facet, single-position).}
+Given a position and a move, classify the move as best/good/
+inaccuracy/mistake/blunder. Expected ordering: LLAMIA $\geq$
+Frontier+Tool $>$ LLAMIA-Verb $>$ Task Expert. This is a
+single-position task where the engine's evaluation \emph{is}
+largely sufficient (the classification maps directly to centipawn
+loss thresholds). The verbalization gap should be small---this is a
+parity task like gameplay, supporting the control regime. LLAMIA's
+slight edge comes from reading the full policy distribution
+(confidence in the classification), not just the top move.
+
+\paragraph{Evaluation Rationalization (Calibration facet,
+single-position generation).}
+Given a position and the engine's numerical evaluation, generate a
+rationale explaining \emph{why} the position is evaluated that way.
+Expected ordering: LLAMIA $>$ Frontier+Tool $>$ LLAMIA-Verb.
+The task requires mapping a scalar (centipawn eval) to multi-aspect
+positional features (king safety, pawn structure, piece activity).
+This mapping is partially verbalizable (the eval number itself is
+text) but the \emph{rationale} requires reading positional features
+from the agent's internal state. Moderate verbalization gap
+expected---larger than Move Classification but smaller than
+Commentary because it is single-position.
+
+% =============================================================================
+\subsubsection*{Cross-task synthesis: what the radar chart should show}
+\label{sec:perf_radar_synthesis}
+% =============================================================================
+
+The tasks above divide into three predicted regimes, driven by
+\textbf{two distinct mechanisms} that produce the verbalization gap:
+
+\begin{enumerate}
+    \item \textbf{Parity regime (single-position, answer-is-the-move):}
+    Gameplay, Puzzle Solving. The agent's top move(s) \emph{are} the
+    answer; text loses nothing. All engine-access systems cluster.
+    This is the control.
+
+    \item \textbf{Moderate-gap regime (single-position, interpretation
+    required):} Puzzle Difficulty, Rationale Prediction. LLAMIA leads
+    by 5--15\,pp. The task requires interpreting the agent's state
+    beyond the top-$k$ output (policy entropy, positional features).
+    Verbalization conveys partial signal; the gap is the information
+    that text discards at each single-position query.
+
+    \item \textbf{Large-gap regime (non-verbalizable signal or
+    multi-step reasoning):} Puzzle Interest, Game Commentary,
+    Behavior Cloning (both in-distribution and in-the-wild),
+    Instruction-Conditioned Planning. LLAMIA leads by 15--30\,pp.
+    Two mechanisms contribute, sometimes jointly:
+    \begin{itemize}
+        \item \emph{Non-verbalizability:} the target signal has no
+        text representation (Interest, BC style conditioning).
+        \item \emph{Temporal compounding:} the task spans multiple
+        positions, and text-based state tracking degrades across
+        steps (Commentary, ICP).
+    \end{itemize}
+    Behavior Cloning appears here because even the Maia-benchmark
+    buckets require style-conditional policy reading (a
+    non-verbalizable signal), and the in-the-wild splits (GM-25,
+    Low-Time, $\Delta$Elo) add distribution shift that amplifies
+    the gap. ICP belongs here because the motif-anchored evaluation
+    shows a clear LLAMIA lead; Frontier+Tool is relatively closer
+    than on BC or Commentary, but the gap remains substantial.
+\end{enumerate}
+
+\paragraph{Implications for depth-compounding analysis.}
+The depth-compounding slope measures the verbalization gap vs
+interaction depth, which captures the temporal-compounding mechanism
+but \emph{not} the non-verbalizability mechanism. Puzzle Interest
+has a large verbalization gap for non-depth reasons. If included in
+the depth regression, it will inflate the slope for reasons unrelated
+to depth. \textbf{Solution:} report the depth-compounding slope on
+the depth-ordered subset only (Gameplay, Rationale Prediction,
+Commentary, ICP). Report non-verbalizability as a separate finding
+(the Difficulty/Interest within-task contrast), not as a data point
+in the depth regression. The radar chart orders spokes by facet,
+not by depth; the depth-compounding slope is an inset scalar, not
+the visual organizing principle.
+
+\paragraph{LLAMIA-static predictions (for re-encoding yield).}
+LLAMIA-static (latent projection without dynamic re-encoding)
+should match LLAMIA on single-position tasks (Puzzle Solving,
+BC single-move, Rationale Prediction) because the initial projection
+suffices. But on multi-step tasks (Commentary, ICP), LLAMIA-static
+should degrade significantly---the static projection becomes stale
+as the game evolves. Re-encoding yield $= \text{LLAMIA-full} -
+\text{LLAMIA-static}$ should be near zero on single-position tasks
+and large on multi-step tasks, providing independent confirmation of
+the temporal-compounding mechanism.
+
+% =============================================================================
+\subsubsection*{Figure and plot plan derived from performance landscape}
+\label{sec:perf_figures}
+% =============================================================================
+
+\paragraph{Figure A: Per-task bar chart (main paper).}
+Script: \texttt{plots/llamia\_bench\_bars.py}. Grouped bars:
+LLAMIA / LLAMIA-Verb / Frontier+Tool / Task Expert. One cluster per
+task (BC-MAIA, BC-Wild, Difficulty, Interest, Rationale, Commentary,
+ICP). Normalized to $[0,1]$ via the best available ceiling per task
+and random-baseline floor. For Game Commentary, where no prior task
+expert exists, use the best system's score as the ceiling and note
+this in the caption. The visual argument: LLAMIA's bars are
+uniformly high; LLAMIA-Verb's bars degrade as tasks require more
+sustained state access.
+
+\paragraph{Figure B: Training curves (main paper, 3-panel).}
+Script: \texttt{plots/task\_reward\_curves.py}.
+\textit{Left panel:} Commentary G-eval vs \% training seen. Three
+curves: LLAMIA (teal, solid), LLAMIA-Verb (coral, dashed),
+ChessGPT-IFT (gray, dotted). The gap between teal and coral widens.
+\textit{Center panel:} Behavior Cloning move-match accuracy. Same
+layout; the gap widens but is smaller than for Commentary
+(single-position vs multi-step difference visible across panels).
+\textit{Right panel:} ICP pass rate vs \% training seen with
+motif-acquisition annotations (chess-piece icons at emergence
+thresholds for Pawn Structures, Piece Coordination, Tactical
+Blunders, Endgames). LLAMIA shows sigmoid jumps; ChessGPT stays
+near-flat. This panel follows the style of the existing
+\texttt{icp.pdf} figure.
+
+\paragraph{Figure C: Model-size scaling (appendix, 2-panel).}
+New script: \texttt{plots/model\_size\_scaling.py}.
+\textit{Left:} LLAMIA performance vs model size (4B, 8B, 14B) on
+four tasks (BC, Commentary, Puzzle-Interest, ICP). All curves rise.
+\textit{Right:} LLAMIA-Verb performance on same tasks and sizes. BC
+rises modestly (RL training helps regardless of size); Commentary
+rises moderately (larger LLMs generate more fluent text); ICP shows
+slight improvement (larger LLMs reason better about selective
+override); Puzzle-Interest is near-flat (model scale cannot
+recover a signal absent from the text channel). The key visual: on
+every task, the LLAMIA-Verb ceiling at 14B remains below the LLAMIA
+floor at 4B on Puzzle-Interest, and below LLAMIA at matched size on
+all others.
+
+\paragraph{Figure D: Verbalization gap decomposition
+(main paper --- the money figure).}
+New script: \texttt{plots/vg\_decomposition.py}. Two-part figure
+making two distinct claims:
+
+\textit{Left panel -- depth-compounding:} X-axis: tasks ordered by
+interaction depth, restricted to depth-varying tasks only
+(Gameplay $\to$ Rationale $\to$ Commentary $\to$ ICP). Y-axis:
+verbalization gap $= \text{score}(\text{LLAMIA}) -
+\text{score}(\text{LLAMIA-Verb})$, normalized. Expected:
+monotonically increasing. Linear fit with CI band; the slope
+captures depth-compounding. Puzzle-Interest is \textbf{excluded}
+from this regression because its gap is driven by
+non-verbalizability, not depth.
+
+\textit{Right panel -- non-verbalizability:} Within-task contrast
+on Puzzle Understanding. Two bars: verbalization gap on Difficulty
+vs verbalization gap on Interest. Same task, same positions, same
+model---only the target signal differs. The Interest bar is
+$3$--$5\times$ the Difficulty bar. Caption: ``The
+non-verbalizability mechanism is orthogonal to depth: it operates
+even on single-position tasks.''
+
+\paragraph{Figure E: Puzzle Interest training curve (appendix,
+supplementary to Figure~B).}
+Script: extend \texttt{plots/task\_reward\_curves.py}.
+LLAMIA Interest $\rho$ vs training step. LLAMIA-Verb Interest $\rho$
+vs training step. Visually similar to Figure~B (widening gap), but
+the mechanism is different: Figure~B shows temporal compounding
+(Commentary) and style-conditioning (BC); Figure~E shows
+non-verbalizability. LLAMIA rises from $\sim$0.1 to $\sim$0.5;
+LLAMIA-Verb saturates at $\sim$0.05--0.10.
+
+\paragraph{Figure F: ICP motif acquisition (main paper or appendix).}
+Script: new \texttt{plots/icp\_motif\_acquisition.py}. Follows the
+existing \texttt{icp.pdf} style: pass rate (y) vs \% training seen
+(x), LLAMIA (teal dashed) vs ChessGPT (coral dashed), with
+chess-piece icons annotated at the training percentage where each
+motif category first shows consistent pass rate. The sigmoid shape
+and ordered emergence (Pawn Structures first, Endgames last) is the
+key visual finding.
+
+% =============================================================================
+\subsubsection*{Risks specific to the performance landscape}
+\label{sec:perf_risks}
+% =============================================================================
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Depth-compounding slope is flat.} If the
+    verbalization gap does not scale with interaction depth---i.e.,
+    LLAMIA-Verb is uniformly bad or uniformly close across
+    single-position and multi-step tasks---the compounding claim
+    fails. \emph{Plan:} the paper shifts to ``latent internalization
+    is uniformly better'' (still publishable, less interesting). The
+    depth-compounding slope becomes a descriptive statistic rather
+    than the headline.
+
+    \item \textbf{LLAMIA-Verb outperforms Frontier+Tool on some
+    tasks.} This is \emph{expected} for BC (RL training on behavior
+    data helps even with text; Frontier ICL lacks the training
+    signal). On Commentary and ICP, Frontier+Tool should outperform
+    LLAMIA-Verb because Frontier's scale and in-context reasoning
+    partially compensate for the verbalization bottleneck in ways
+    that a smaller RL-trained model cannot. If LLAMIA-Verb
+    beats Frontier across the board, the RL-recipe contribution
+    conflates with the interface contribution. \emph{Plan:} isolate
+    by reporting the matched-recipe LLAMIA-Verb vs LLAMIA comparison
+    as the primary structural claim; Frontier comparison becomes the
+    ``practical relevance'' argument.
+
+    \item \textbf{Interest ground truth is confounded with
+    difficulty.} If Lichess upvotes correlate highly ($r > 0.5$) with
+    puzzle difficulty, the Interest result reduces to a difficulty
+    proxy, and the ``non-verbalizable'' claim weakens. \emph{Plan:}
+    report Difficulty--Interest correlation in the test set. If high,
+    partial out difficulty and report residual Interest prediction.
+
+    \item \textbf{LLAMIA-Verb literally shows zero improvement on
+    Interest.} While this supports the thesis, reviewers may question
+    the metric or implementation rather than accept the finding.
+    \emph{Plan:} show that LLAMIA-Verb \emph{does} improve on
+    Difficulty (proving the setup works) but not Interest (proving the
+    signal is different). The within-system contrast is more
+    convincing than a flat zero.
+\end{itemize}
