@@ -1,18 +1,17 @@
 \section{Methodology}
 \label{sec:methodology}
 
-
 \vspace{-2mm}
 
-We formalize LLM--agent collaboration as autoregressive generation over a mixed-modality trace of \lang{language}, \action{action}, and \state{state} tokens. This formulation isolates the \emph{integration interface}---how the agent’s internal state enters the LLM’s reasoning---as a single controlled variable, and connects directly to the reinforcement learning objective that optimizes it.
+We formalize LLM--agent collaboration as autoregressive generation over a mixed-modality trace of \lang{language}, \action{action}, and \state{state} tokens. This formulation isolates the \emph{integration interface}---how the agent's internal state enters the LLM's reasoning---as a single controlled variable, and connects directly to the reinforcement learning objective that optimizes it.
 
 \subsection{Formulation}
 \label{sec:formulation}
 
 A policy $\pi_\theta$ (the LLM) collaborates with a pretrained domain agent whose encoder $G_\psi\!: \mathcal{S} \to \R^d$ maps environment states to latent representations $\vh_s = G_\psi(s)$.
-Over a $T$-step interaction, $\pi_\theta$ generates a trace interleaving three token types: \mlang{language tokens} $w_t \in \mathcal{V}$ for verbal reasoning, \maction{action tokens} $a_t \in \mathcal{A}$ for environment interaction, and \mstate{state tokens} $\vz_t \in \R^{k \times e}$ carrying the agent’s projected latent representation.
-At decision-relevant moments, $\pi_\theta$ emits $\langle\text{InvokeAgent}\rangle$, triggering the agent to process the current state $s_t$ and inject $k$ contiguous \state{state tokens} into the trace.
-The agent re-encodes the updated state at each invocation, so $\mstate{\vz_t}$ reflects the environment after prior actions---a closed loop between reasoning and perception, where both timing and utilization of invocations are optimized by reinforcement learning.
+Over a $T$-step interaction, $\pi_\theta$ generates a trace interleaving three token types: \mlang{language tokens} $w_t \in \mathcal{V}$ for verbal reasoning, \maction{action tokens} $a_t \in \mathcal{A}$ for environment interaction, and \mstate{state tokens} $\vz_t \in \R^{k \times e}$ carrying the agent's projected latent representation.
+At decision-relevant moments, $\pi_\theta$ issues a structured tool call to the agent, which processes the current state $s_t$ and injects $k$ contiguous \state{state tokens} into the trace (\S\ref{sec:invocation}).
+The agent re-encodes the updated state at each invocation, so $\mstate{\vz_t}$ reflects the environment after prior actions---a closed loop between reasoning and perception, where both the timing and target state of invocations are optimized by reinforcement learning.
 The complete trace takes the form:
 %
 \begin{equation}
@@ -28,40 +27,22 @@ The complete trace takes the form:
   \maction{a_T},\;
   \mlang{w_{\mathrm{final}}}
 \,\bigr)
-\label{eq:salt_trace}
+\label{eq:trace}
 \end{equation}
 %
 where $\pi_\theta$ generates \mlang{language} and \maction{action} tokens autoregressively; \mstate{state} tokens are injected by the agent and carry no token distribution.
 
 \paragraph{Integration interface.}
-The agent’s latent representation $\vh_s \in \R^d$ encodes its policy distribution, value estimates, and learned features~\cite{jenner2024evidence}. How this representation enters the trace defines the \textbf{integration interface}---the sole variable our experiments control:
+The agent's latent representation $\vh_s \in \R^d$ encodes its policy distribution, value estimates, and learned features~\cite{jenner2024evidence}. How this representation enters the trace defines the \textbf{integration interface}---the sole variable our experiments control:
 %
 \begin{align}
 \text{Verbalized:}~~  & \mstate{\hat{w}_t} = \mathrm{Verb}\bigl(G_\psi(s_t)\bigr) \in \mathcal{V}^*, \label{eq:verb_channel} \\[2pt]
 \text{Internalized:}~~& \mstate{\vz_t}\;\, = H_\varphi\bigl(G_\psi(s_t)\bigr) \in \R^{k \times e}. \label{eq:latent_channel}
 \end{align}
 %
-Verbalization compresses $\R^d$ to a discrete token string---a lossy channel that collapses distributional structure into surface-level descriptions (e.g., ``best move: Nc2, eval: $+0.3$’’).
+Verbalization compresses $\R^d$ to a discrete token string---a lossy channel that collapses distributional structure into surface-level descriptions (e.g., ``best move: Nc2, eval: $+0.3$'').
 The text rendering $\mathrm{Verb}$ can range from sparse (top-1 move) to dense (full policy distribution serialized as text); we ablate across this spectrum in \S\ref{sec:experiments}.
-Internalization projects $\R^d$ to the LLM’s embedding space via a learned mapping $H_\varphi$, optimized end-to-end with the policy through reinforcement learning.
-
-\paragraph{Optimization.}
-We optimize $\pi_\theta$ via GRPO~\cite{shao2024deepseekmath}. Rollouts produce complete mixed-modality traces $\tau$; the policy gradient operates over positions where the LLM generates---\mlang{language} and \maction{action} tokens---while \mstate{state} positions are agent-injected and excluded from the gradient:
-%
-\begin{equation}
-J(\theta, \varphi) \!=\! \mathbb{E}_{\tau \sim \pi_{\theta_{\mathrm{old}}}} \!\Bigg[\!
-  \frac{1}{|\mathcal{I}_{\mathrm{gen}}|}
-  \!\!\sum_{t \,\in\, \mlang{\mathcal{I}_{L}} \,\cup\, \maction{\mathcal{I}_{A}}}
-  \!\!\min\!\Big(
-    r_t\,\hat{A}_t,\,
-    \mathrm{clip}(r_t, 1\!-\!\varepsilon, 1\!+\!\varepsilon)\,\hat{A}_t
-  \Big)
-  \!-\! \beta \KL
-\Bigg]
-\label{eq:grpo}
-\end{equation}
-%
-where $\hat{A}_t$ is the group-normalized advantage. The reward decomposes as $\mathcal{R}(\tau) = R_{\mathrm{outcome}} + R_{\mathrm{format}} + R_{\mathrm{collab}}$: task performance, syntactic validity (legal moves, well-formed invocations), and a collaboration-shape signal that rewards invocations preceding actions where the agent's state changed the LLM's decision (\S\ref{sec:training}).
+Internalization projects $\R^d$ to the LLM's embedding space via a learned mapping $H_\varphi$, optimized end-to-end with the policy through reinforcement learning.
 
 \paragraph{The controlled contrast.}
 Under matched backbone, reward, and rollout budget, the integration interface enters the objective through exactly one term---the conditioning of the importance ratio. Writing $y_t$ for the generated token at position $t$ (language or action):
@@ -82,18 +63,20 @@ We hypothesize $\mathrm{VG} > 0$ and that the gap compounds: tasks requiring dee
 
 \subsection{Architecture}
 \label{sec:architecture}
+
 \textbf{Pretrained Agent.}
-We instantiate $G_\psi$ with Lc0-BT4~\cite{monroe2024mastering}, a 15-layer Transformer encoder (240M parameters) whose representations encode positional features and implicit planning signals~\cite{jenner2024evidence}, producing $\vh_s \in \R^{1024}$.
+We instantiate $G_\psi$ with Lc0-BT4~\cite{monroe2024mastering}, a 15-layer Transformer encoder (240\,M parameters) whose representations encode positional features and implicit planning signals~\cite{jenner2024evidence}, producing $\vh_s \in \R^{1024}$.
 
 \textbf{Large Language Model.}
-We instantiate $F_\theta$ with [backbone]. To accept \mstate{state tokens} from the agent, we introduce a special token $\langle\text{state}\rangle$ following the multimodal alignment approach of LLaVA~\cite{liu2023visual}: $k$ contiguous token positions serve as placeholders for the projected agent state $\vz_s$.
+We use Qwen3~\cite{XXXqwen3} as the backbone $\pi_\theta$. To accept \mstate{state tokens} from the agent, we follow the multimodal alignment approach of LLaVA~\cite{liu2023visual}: $k$ contiguous token positions in the input sequence serve as placeholders whose embeddings are replaced by the projected agent state $\vz_s$.
 
 \textbf{Projector.}
 The mapping $H_\varphi\!: \R^{d} \to \R^{k \times e}$ (Eq.~\ref{eq:latent_channel}) is a three-layer MLP with GeLU activation, projecting the agent's $d$-dimensional latent state into $k$ embeddings of dimension $e$ matching the LLM's hidden size. As illustrated in Figure~\ref{fig:LLAMIA}, the resulting input is a mixed sequence $[\mlang{w_1}, \mstate{\vz_s^{1:k}}, \maction{a_1}, \mlang{w_2}]$, allowing the LLM to attend jointly to all three modalities.
 
-\subsection{SALT: Two-Stage Training Framework}  
-To effectively integrate agent representations into the LLM, we propose a two-stage framework (SALT). Stage 1 grounds agent latent states into the LLM's token embedding space. Stage 2 adapts the resulting model to diverse instruction based decision making and reasoning tasks. This ensures that the model can both interpret agent states and perform complex decision-making tasks in a language-aligned manner. The staged training approach addresses data asymmetry, ensures computational efficiency, and maintains training stability.
+\subsection{Training}
+\label{sec:training}
 
+Training proceeds in two stages. Stage~1 grounds the agent's latent representations in the LLM's embedding space via supervised learning with the LLM frozen. Stage~2 trains the full system---LLM and projector jointly---via reinforcement learning on mixed-modality rollouts.
 
 \begin{figure}[!h]
     \centering
@@ -107,124 +90,43 @@ To effectively integrate agent representations into the LLM, we propose a two-st
 \begin{figure}[!h]
     \centering
     \includegraphics[width=0.98\linewidth]{llamia-tasks3.pdf}
-    \caption{Tasks demonstrating LLAMIA capabilities. The various tasks focus on planning, reasoning, and acting capabilities. The figure shows LLAMIA performing chess evaluations, best move predictions, Behavior Cloning, Commentary Prediction, State Annotation, and Puzzle Understanding, demonstrating the model's ability to simulate human play and analyze game states.}
+    \caption{Tasks demonstrating LLAMIA capabilities across planning, reasoning, and acting: chess evaluations, best move predictions, behavior cloning, commentary prediction, state annotation, and puzzle understanding.}
     \label{fig:LLAMIA-arch-tasks}
 \end{figure}
 
+\subsubsection{Stage 1: Projector Alignment}
+\label{sec:stage1}
 
-\subsubsection{Stage 1: Agent Projector Pretraining}
-
-In the first stage, we train only the projection network \(H_\varphi\) to align the agent’s latent representations \(\vh_s\) with the LLM’s token embedding space, while keeping the language model \(F_\theta\) frozen. This alignment allows the LLM to interpret the projected agent state \(\vz_s = H_\varphi(\vh_s)\) as a meaningful planning signal. We construct a large-scale dataset \(\mathcal{D}_{\text{pre}} = \{(s, \pi(s))\}\) by sampling state-policy pairs from the pretrained agent. Each example is paired with a language prompt (e.g., ``Analyze position: top move?''), and the model learns to generate the correct action token corresponding to \(\pi(s)\). The exact prompt is given in Listing \ref{listing:pretraining_instruction_format}. Training minimizes the cross-entropy loss over the correct output conditioned on the projected state and prompt:
+We train only the projection network $H_\varphi$ to align the agent's latent representations $\vh_s$ with the LLM's token embedding space, while keeping the language model $\pi_\theta$ frozen. We construct a large-scale dataset $\mathcal{D}_{\text{pre}} = \{(s, \pi(s))\}$ by sampling state-policy pairs from the pretrained agent's self-play. Each example is paired with a language prompt (e.g., ``Analyze position: top move?''), and the model learns to generate the correct action token corresponding to $\pi(s)$. The exact prompt format is given in Listing~\ref{listing:pretraining_instruction_format}. Training minimizes the cross-entropy loss:
 \[
-\mathcal{L}_{\text{Stage 1}} = -\mathbb{E}_{(s, \pi(s)) \sim \mathcal{D}_{\text{pre}}} \log F_\theta\left( \pi(s) \mid \vz_s, \text{prompt} \right)
+\mathcal{L}_{\text{Stage\,1}} = -\mathbb{E}_{(s, \pi(s)) \sim \mathcal{D}_{\text{pre}}} \log \pi_\theta\!\left( \pi(s) \mid \vz_s, \text{prompt} \right)
 \]
-This enables fast and stable convergence by leveraging abundant agent-generated data while preserving the pretrained language capabilities of the LLM.
+Because the LLM is frozen, the projector can be trained on abundant agent-generated data without risking catastrophic interference with language modeling.
 
-\subsubsection{Stage 2: SALT Fine-Tuning}
+\subsubsection{Stage 2: Reinforcement Learning}
+\label{sec:stage2}
 
-The second stage fine-tunes both the LLM \(F_\theta\) and the projector \(H_\varphi\) on a curated dataset \(\mathcal{D}_{\text{SALT}}\) containing interleaved sequences of agent states, verbalized actions, and natural language. This data includes a mixture of state-action demonstrations across skill levels, and natural language explanations of actions. The model learns to handle two types of tasks: generating actions from language instructions and interpreting actions by generating explanatory language conditioned on state embeddings. In both cases, the training objective is the autoregressive cross-entropy loss over the output sequence:
-\[
-\mathcal{L}_{\text{Stage 2}} = -\mathbb{E}_{(s, \tau, w_{1:T}) \sim \mathcal{D}_{\text{SALT}}} \sum_{t=1}^T \log F_\theta(w_t \mid w_{<t}, \tau, \vz_s)
-\]
-This stage enables LLAMIA to align decision-making and reasoning with natural language, improving generalization to unseen instructions and planning contexts.
-
-\subsubsection{Internal Search and Agent Invocation}
-
-LLAMIA supports internal look-ahead reasoning by a special token \(\langle\text{InvokeAgent}\rangle\), which triggers a call to the agent policy \(\pi(s')\) on the current or a hypothetical next state \(s'\). The resulting agent embedding \(\vh_{s'}\) is projected to token space via \(H_\varphi\) and inserted into the input sequence as \(\vz_{s'}\), allowing the LLM to accept potential and counterfactual states in inference as context while maintaining autoregressive decoding. 
-
-\paragraph{Efficiency and Stability.}
-The two-stage setup improves both efficiency and stability. Stage 1 trains only the lightweight projector on a large dataset of agent outputs, avoiding catastrophic interference with language modeling. Stage 2 fine-tunes the full model on more complex, instruction-rich samples. By decoupling grounding and instruction alignment, SALT enables LLAMIA to learn powerful, language-conditioned policies in a modular and scalable manner.
-
-\begin{comment}
-{Stage 1: Agent Projector Pretraining}  
-Stage 1 learns a projection from the agent’s latent state $\vh_s$ to a fixed number of LLM token embeddings $\vz_s$, allowing the LLM to interpret state-level planning signals without modifying its own parameters enabling the model to interpret $\vh_s$ as actionable planning signals. Motivated by multimodal alignment in Vision-Language models, here we train the LLM to predict the verbalized top-1 or top-k action (e.g., `Nc2') given a prompt and projected latent state, using standard cross-entropy loss on natural language tokens. Intuitively, we want to reconstruct \( \pi(s) \) directly in language tokens as  \(\text{Verb}\bigl(\pi(s)\bigr)=\text{softmax}(F_{\theta}\bigl(\;\cdot\mid\vz_s,\text{prompt}\bigr))\)
-where prompt and Verb$(\pi(s))$ refers to the agent's capabilties (e.g., ``Analyze the position$\rightarrow$Top move Nc2''), the exact format can be seen in listing \ref{listing:pretraining_instruction_format}. 
-
-Since any policy can extract observations and next best action, this method is both, extensible to variety of environments like driving, robotics, and marketing, and we can reliably obtain a large dataset $\mathcal{D}_{pre}$ of state, observations pairs. In this stage the LLM $F_\theta$ is frozen, and only the projector $H_\varphi$ is trained. This ensures that the agent's planning capabilities are effectively mapped into the LLM's token embedding space without destabilizing the pretrained components.
-
-{Stage 2: Instruction-Action Fine-Tuning}
-Stage 2 adapts the model to diverse decision making and understanding tasks by fine-tuning both \(F_\theta\) and \(H_\varphi\) on \(\mathcal{D}_{\text{SALT}}\), a dataset interleaved data of states, actions, and language or prompts which can be instructions, questions, or context. \(\mathcal{D}_{\text{SALT}}\) presents two new task paradigms: \textit{language-to-action} and \textit{action-to-language}.  
-
-\textbf{Language-to-Action Tasks} involve generating actions from natural language instructions on a given state. Formally, given an instruction $\tau$ (e.g.``Play like an 1800 rated human'') , a policy $\pi_\tau$ which fulfils $\tau$ and state $s$, we want to achieve:
-\vspace{-2mm}
-\[
-\text{Verb}\bigl(\pi_{\tau}(s)\bigr)=\text{softmax}(F_{\theta}\bigl(\;\cdot\mid\vz_s,\tau\bigr))
-\]
-
-\textbf{Action-to-Language Tasks} involve reasoning over actions and states in natural language like explaining the rationale behind a move as seen in figure \ref{fig:LLAMIA} (``Explain the move Nc2''). Formally, given a question $\tau$ we want the LLM to correctly answer $w_{1:T}$(``Since Ra2 leads to mate in 3'') as \[w_{1:T}=\text{softmax}(F_{\theta}\bigl(\;\cdot\mid\vz_s,\tau\bigr))\]
-
-Formally, in both stages, the training objective minimizes the cross-entropy loss for predicting the output $w_{1:T}$ conditioned on the projected state embedding \(\vz_s = H_\varphi(\vh_s)\) and prompt $\tau$ for datasets $\mathcal{D}_{pre}$, $\mathcal{D}_{SALT}$ and parameters $\varphi$, $\{\varphi,\theta\}$ respectively.
-\vspace{-2mm}
+The second stage unfreezes both the LLM $\pi_\theta$ and the projector $H_\varphi$, and optimizes them jointly via DAPO~\cite{XXXdapo}. Rollouts produce complete mixed-modality traces $\tau$ (Eq.~\ref{eq:trace}); the policy gradient operates over positions where the LLM generates---\mlang{language} and \maction{action} tokens---while \mstate{state} positions are agent-injected and excluded from the gradient:
+%
 \begin{equation}
-\mathcal{L} = -\mathbb{E}_{(s,\tau,w_{1:T}) \sim \mathcal{D}} \sum_{t=1}^T \log \pi_\theta(w_t \mid w_{1:t-1}, \tau, \vz_s),
-\label{eq:llamia_pretrain_objective}    
+J(\theta, \varphi) \!=\! \mathbb{E}_{\tau \sim \pi_{\theta_{\mathrm{old}}}} \!\Bigg[\!
+  \frac{1}{|\mathcal{I}_{\mathrm{gen}}|}
+  \!\!\sum_{t \,\in\, \mlang{\mathcal{I}_{L}} \,\cup\, \maction{\mathcal{I}_{A}}}
+  \!\!\min\!\Big(
+    r_t\,\hat{A}_t,\,
+    \mathrm{clip}(r_t, 1\!-\!\varepsilon_l, 1\!+\!\varepsilon_h)\,\hat{A}_t
+  \Big)
+\Bigg]
+\label{eq:dapo}
 \end{equation}
+%
+where $\hat{A}_t$ is the group-normalized advantage and the asymmetric clip bounds $\varepsilon_l \leq \varepsilon_h$ encourage exploration~\cite{XXXdapo}. The reward decomposes as $\mathcal{R}(\tau) = R_{\mathrm{outcome}} + R_{\mathrm{format}} + R_{\mathrm{collab}}$, combining task performance, syntactic validity, and a collaboration-shaping signal; full definitions are given in Appendix~\ref{sec:app_reward}.
 
-\textbf{Efficiency and Stability} The two-stage design ensures parameter-efficient adaptation. In Stage 1, only the projector $H_\varphi$ is trained, representing a small fraction of the total model parameters on a larger dataset. In Stage 2, both the LLM and the projector are fine-tuned on a smaller set of diverse and complex sequences. By decoupling the grounding of agent states from instruction-following fine-tuning, the framework ensures stable and efficient training while enabling the model to perform complex, language-aligned decision-making tasks.
+Because the projector $H_\varphi$ is now unfrozen, the RL objective optimizes the integration interface end-to-end: gradients flow from the reward through the LLM's generated tokens back to the projector, shaping \emph{how} the agent's latent state is presented to the LLM---not just how the LLM uses it.
 
-\end{comment}
+\subsubsection{Agent Invocation}
+\label{sec:invocation}
 
-\begin{table*}[t]
-    \centering
-    \begin{adjustbox}{max width=0.97\textwidth}
-    \begin{tabular}{lc|cc|cc|cc|c|cc}
-    \toprule[1.2pt]
-    \textbf{Model} & \textbf{\#Param} & \multicolumn{2}{c|}{{\small\textbf{Behavior Cloning}}} & \multicolumn{2}{c|}{{\small\textbf{Commentary}}} & \multicolumn{2}{c|}{{\small\textbf{Gameplay}}} & {\small\textbf{Planning}} & \multicolumn{2}{c}{{\small\textbf{Understanding}}} \\ 
-    \cmidrule[1pt]{1-11}
-     & & {\small\makecell{\textbf{MAIA}\\Acc.}} & {\small\makecell{\textbf{\llamiabench{Bench}}\\Acc.}} & {\small\makecell{\textbf{State}\\BLEU}} & {\small\makecell{\textbf{\llamiabench{Game}}\\G-eval}} & {\small\textbf{Elo}} & {\small\makecell{\textbf{Puzzle}\\Acc.}} & {\small\makecell{\textbf{\llamiabench{Winrate}}\\Avg.}} & {\small\makecell{\textbf{\llamiabench{Diff.}}\\$\rho$}} & {\small\makecell{\textbf{\llamiabench{Interest}}\\$\rho$}} \\
-    \midrule
-    \multirow{2}{*}{\makecell[l]{\textbf{LLAMIA}\\\small{(SALT)}}} & 7B & 0.52 & \valgood{0.47} & 36.4 & 0.49 & 2171\small{$\pm31$} & 90.1 & 14\% & \valgood{0.61} & \valgood{0.42} \\
-     & 13B & \valbest{0.55} & \valbest{0.51} & \valbest{46.3} & \valbest{0.61} & \valgood{2279\small{$\pm41$}} & \valgood{92.9} & \valbest{17\%} & \valbest{0.70} & \valbest{0.50} \\
-    \midrule
-    \multirow{3}{*}{\makecell[l]{\textbf{ChessGPT}\\\small{(IFT)}}} & 3B & 0.08 & 0.13 & 23.0 & 0.31 & - & 27.9 & 1.3\% & 0.48 & 0.41 \\
-     & 7B\textsuperscript{\textdagger} & 0.09 & 0.14 & 28.1 & 0.37 & - & 28.5 & 2.5\% & 0.52 & 0.44 \\
-     & 13B\textsuperscript{\textdagger} & 0.11 & 0.16 & 31.3 & 0.42 & - & 29.4 & 4.6\% & 0.55 & 0.47 \\
-    \midrule
-    \makecell[l]{\textbf{GPT-4o}\\\small{(ICL)}} & - & 0.12 & 0.18 & 32.8 & 0.41 & 1310\small{$\pm92$} & 51.9 & 6.1\% & 0.53 & 0.42 \\
-    \midrule
-    \makecell[l]{\textbf{GPT-4o}\\\small{(React+Lc0)}} & - & 0.17 & 0.28 & 37.3 & \valgood{0.52} & - & - & 9.2\% & 0.53 & 0.42 \\
-    \midrule
-    \makecell[l]{\textbf{LLaMA-3}\\\small{(ICL)}} & 405B & 0.13 & 0.20 & 34.5 & 0.41 & - & 21.3 & 6.3\% & 0.50 & 0.39 \\
-    \midrule
-    \makecell[l]{\textbf{LLaMA-3}\\\small{(React+Lc0)}} & 405B & 0.17 & 0.32 & \valgood{38.2} & 0.44 & - & - & \valgood{10\%} & 0.50 & 0.39 \\
-    \midrule
-    \makecell[l]{\textbf{SOTA}\\\small{(SFT)}} & $\leq$300M & \valgood{0.53} & 0.40 & 34.5 & - & \valbest{2299\small{$\pm15$}} & \valbest{95.4} & - & 0.46 & 0.35 \\
-    \bottomrule[1.2pt]
-    \end{tabular}
-    \end{adjustbox}
-    \vspace{2mm}
-    \caption{\textbf{Chess Benchmark Results across Key Capabilities.} 
-We compare LLAMIA (trained via our proposed SALT framework) to instruction-finetuned (IFT), in-context learning (ICL), tool-augmented models, and supervised task experts across five chess tasks: behavior cloning (MAIA match), commentary (BLEU, G-eval), gameplay (Elo, puzzle accuracy), instruction-conditioned planning (win rate), and state understanding (difficulty and interest alignment). LLAMIA-13B achieves strong generalization across all tasks without using external search at inference time, outperforming GPT-4o and LLaMA-3 405B + Lc0 in planning and commentary while matching or exceeding task-specific SOTA. Notably, it achieves 2279 Elo and 0.61 G-eval without search, and gains 17\% win rate when adapting to opponent weaknesses.
-\vspace{-3mm}
-}
-    \label{tab:chess_benchmarks}
-\end{table*}
+LLAMIA invokes the agent through a structured tool call that the LLM learns to emit during RL. The call specifies a state---either the current environment state or a counterfactual state reached by a hypothetical action---and the agent encodes the specified state via $G_\psi$. The projector maps the result to $k$ latent tokens via $H_\varphi$, which are inserted into the trace, after which the LLM resumes autoregressive generation.
 
-\begin{figure*}[!h]
-    \centering
-    \begin{subfigure}[b]{0.3\linewidth}
-        \includegraphics[width=\linewidth]{kt1.pdf}
-        \caption{Policy alignment improves with projector pretraining data scale. LLAMIA approaches search-quality behavior, indicating internal lookahead of depth 4.}
-      
-        \label{fig:kt}
-    \end{subfigure}
-    \hfill
-    \vspace{6mm}
-    \begin{subfigure}[b]{0.31\linewidth}
-    \vspace{-3mm}
-        \includegraphics[width=\linewidth]{comm.pdf}
-        \caption{Stage-2 training data scale vs. game-level commentary generation. LLAMIA matches GPT-4o + tool calling performance using only 50\% of the data, showing strong data efficiency.}
-        \label{fig:commentary}
-        
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[b]{0.33\linewidth}
-        \includegraphics[width=\linewidth]{icp.pdf}
-        \caption{Stage-2 training scale vs. conditional planning. LLAMIA acquires targeted weaknesses (icons show skill acquisition) with significantly fewer training examples.}
-        \label{fig:icp}
-        
-    \end{subfigure}
-    \caption{LLAMIA shows consistent improvement over instruction fine-tuning (IFT) with tool-calling agents (ChessGPT-13B) across unseen downstream tasks, despite using the same base LLM and training data.}
-    \label{fig:three-figs}\somesh{Captions are not self explanatory}
-\end{figure*}
-
+This mechanism creates a closed loop: the LLM reasons in language, acts on the environment, and queries the agent for a fresh encoding of the resulting state. Crucially, RL optimizes not only what the LLM does with the agent's response but also \emph{when} and \emph{whether} it invokes the agent---the invocation itself is part of the policy's action space. We show in \S\ref{sec:experiments} that removing dynamic re-encoding degrades multi-step tasks by 64\% while leaving single-step perception tasks largely unaffected (1--4\%), confirming that learned invocation timing is essential for sustained collaboration.
