@@ -1,109 +1,38 @@
-\section{Ablations and Additional Experiments}
-\label{sec:ablations}
+\section{Ablations}
+\label{sec:app_ablations}
+% =============================================================================
 
-We conduct systematic ablations to isolate the contribution of each component in LLAMIA. These experiments address three core questions: (1) How does dynamic re-encoding via \texttt{<InvokeAgent>} affect performance across task types? (2) What is the relative contribution of Stage 1 alignment versus Stage 2 fine-tuning? (3) How sensitive is LLAMIA to architectural choices (projection tokens, agent size)?
+\subsection{Dynamic Re-Encoding (InvokeAgent)}
+\label{sec:app_abl_invoke}
 
+\subsubsection{Static vs.\ Dynamic}
+\label{sec:app_abl_invoke_static}
 
-\subsection{Effect of Dynamic Re-Encoding}
-\label{sec:invoke_ablation}
+\subsubsection{Invocation Frequency}
+\label{sec:app_abl_invoke_freq}
 
-
-The \texttt{<InvokeAgent>} mechanism enables LLAMIA to dynamically re-encode board states during generation, supporting iterative reasoning over evolving positions. We hypothesize that this capability benefits multi-step tasks (conditional planning, game-level commentary) more than single-step tasks (move prediction, puzzle solving). To test this, we compare three configurations of LLAMIA-7B: (1) default with InvokeAgent enabled during inference, (2) InvokeAgent disabled during inference only (trained with invoke, tested without), and (3) trained entirely without the InvokeAgent mechanism. Table~\ref{tab:invoke_ablation} presents results across five task categories.
-
-\begin{table}[h]
-\centering
-\begin{adjustbox}{max width=0.98\textwidth}
-\begin{tabular}{l|ccccc}
-\toprule[1.2pt]
-\textbf{LLAMIA-7B Configuration} & \textbf{Gameplay} & \textbf{BC} & \textbf{Commentary} & \textbf{Planning} & \textbf{Understanding} \\
- & (Elo) & (Acc) & (G-eval) & (Win\%) & ($\rho$) \\
-\midrule
-With InvokeAgent (default) & \valbest{2171$\pm$31} & \valbest{0.52} & \valbest{0.49} & \valbest{14\%} & \valbest{0.61} \\
-Invoke Off (inference only) & 2158$\pm$33 & 0.51 & 0.41 & 7\% & 0.56 \\
-Trained without Invoke & 2143$\pm$35 & 0.50 & 0.38 & 5\% & 0.53 \\
-\midrule
-$\Delta$ (default vs. no invoke) & -28 & -0.02 & \textbf{-0.11} & \textbf{-9\%} & -0.08 \\
-Relative Drop & 1.3\% & 3.8\% & \textbf{22.4\%} & \textbf{64.3\%} & 13.1\% \\
-\bottomrule[1.2pt]
-\end{tabular}
-\end{adjustbox}
-\caption{\textbf{Dynamic Re-Encoding Ablation.} Removing \texttt{<InvokeAgent>} has minimal impact on single-step tasks (Gameplay: -28 Elo, 1.3\% relative drop; Behavior Cloning: -2\% accuracy) but substantially degrades multi-step tasks (Conditional Planning: -9\% absolute, 64.3\% relative drop; Commentary: -0.11 G-eval, 22.4\% relative drop). The asymmetric degradation confirms that dynamic re-encoding is essential for tasks requiring iterative reasoning over evolving states, while static projection suffices for move-level predictions. During conditional planning games, LLAMIA invokes the agent an average of 4.2 times per game, concentrated in critical positions with material imbalances or tactical complications.}
-\label{tab:invoke_ablation}
-\end{table}
-
-
-\subsection{Stage 1 vs Stage 2 Training}
-\label{sec:stage_ablation}
-
-
-LLAMIA's two-stage training separates projector alignment (Stage 1) from task-specific fine-tuning (Stage 2). This decomposition addresses practical constraints: Stage 1 leverages abundant synthetic data (50M state-policy pairs) with a simple objective (predicting top moves), enabling lightweight training of the projection layer while keeping the LLM frozen. Stage 2 then fine-tunes the full model on diverse instruction-action data. We compare three configurations: (1) Stage 1 only, (2) Stage 2 only (skipping projector pretraining), and (3) Full SALT. Table~\ref{tab:stage_ablation} shows that Stage 2 without Stage 1 exhibits training instability during the first 40\% of training (frequent gradient norm spikes), eventually recovering but plateauing 190 Elo below full SALT. Stage 1 alone achieves reasonable gameplay (2198 Elo) but poor language-dependent tasks (Commentary: 0.31 G-eval vs. 0.61 for full SALT), confirming that both stages are necessary: Stage 1 provides stable initialization from abundant data, Stage 2 enables task-specific adaptation on diverse instructions.
-
-\begin{table}[h]
-\centering
-\begin{adjustbox}{max width=0.95\textwidth}
-\begin{tabular}{l|ccccc}
-\toprule[1.2pt]
-\textbf{Configuration} & \textbf{Gameplay} & \textbf{BC} & \textbf{Commentary} & \textbf{Planning} & \textbf{Understanding} \\
-\midrule
-Stage 1 Only & 2198$\pm$35 & 0.29 & 0.31 & 3\% & 0.45 \\
-Stage 2 Only & 2089$\pm$48 & 0.47 & 0.52 & 11\% & 0.61 \\
-\textbf{Full SALT} & \valbest{2279$\pm$41} & \valbest{0.55} & \valbest{0.61} & \valbest{17\%} & \valbest{0.70} \\
-\bottomrule[1.2pt]
-\end{tabular}
-\end{adjustbox}
-\caption{\textbf{Stage 1 vs Stage 2 Ablation (LLAMIA-13B).} Stage 1 alone achieves strong gameplay (2198 Elo) but poor language tasks (Commentary: 0.31 G-eval). Stage 2 without Stage 1 shows instability during early training and plateaus below full SALT across all metrics. The staged approach achieves the best results by leveraging abundant synthetic data for stable projector initialization before fine-tuning on diverse instruction data.}
-\label{tab:stage_ablation}
-\end{table}
-
+\subsection{Latent vs.\ Symbolic-Rich Matched Information (C3)}
+\label{sec:app_abl_symbolic}
 
 \subsection{Projection Token Count}
-\label{sec:token_ablation}
-
-
-LLAMIA projects the agent's 1024-dimensional latent state into $k=16$ tokens in the LLM's embedding space. We investigated sensitivity to this hyperparameter during initial experiments with $k \in \{4, 8, 16, 32, 64\}$. Training with $k < 16$ exhibited instability: while gradient norm clipping prevented explosions, we observed frequent eval loss spikes throughout training. With $k=8$, eval loss showed 3-4 prominent spikes during the first 30\% of training, and final eval loss was 8\% higher than $k=16$. With $k=4$, spikes were more frequent and convergence slower. Training with $k > 16$ (32, 64) was stable but showed no improvement in eval loss over $k=16$, while adding computational overhead (longer sequences). Given that chess games average 40 moves and \texttt{<InvokeAgent>} calls add additional state tokens, we selected $k=16$ as the optimal trade-off between representation capacity and sequence length efficiency.
-
+\label{sec:app_abl_tokens}
 
 \subsection{Agent Size and Playing Strength}
-\label{sec:agent_ablation}
+\label{sec:app_abl_agentsize}
 
+\subsection{Sensitivity Sweeps}
+\label{sec:app_abl_sweeps}
 
-LLAMIA's performance depends on the quality of the internalized agent. We investigate this by training LLAMIA-13B with three Lc0 variants of increasing size and playing strength: T72 (72M parameters, $\sim$2200 Elo policy-only), T80 (80M parameters, $\sim$2400 Elo), and BT4 (240M parameters, $\sim$3200 Elo). Table~\ref{tab:agent_ablation} shows that stronger agents consistently improve all downstream tasks. The improvement is largest for Gameplay (+258 Elo from T72 to BT4, since the LLM's playing strength is upper-bounded by the agent's policy) and Planning (+7\% win rate, since stronger agents provide better counterfactual evaluations). Commentary and Understanding also improve (+0.09 G-eval, +0.12 $\rho$), indicating that richer latent representations benefit language generation. Importantly, LLAMIA degrades gracefully with weaker agents: even with T72 (roughly club-player level), LLAMIA-T72 achieves 2021 Elo and 0.48 behavior cloning accuracy, remaining competitive with ChessGPT-13B.
+\subsubsection{Projector Capacity}
+\label{sec:app_abl_sweeps_projector}
 
-\begin{table}[h]
-\centering
-\begin{adjustbox}{max width=0.99\textwidth}
-\begin{tabular}{l|cc|ccccc}
-\toprule[1.2pt]
-\textbf{Agent} & \textbf{Params} & \textbf{Agent Elo} & \textbf{Gameplay} & \textbf{BC} & \textbf{Commentary} & \textbf{Planning} & \textbf{Understanding} \\
-\midrule
-Lc0-T72 & 72M & $\sim$2200 & 2021$\pm$44 & 0.48 & 0.52 & 10\% & 0.58 \\
-Lc0-T80 & 80M & $\sim$2400 & 2156$\pm$42 & 0.51 & 0.56 & 13\% & 0.63 \\
-\textbf{Lc0-BT4} & 240M & $\sim$3200 & \valbest{2279$\pm$41} & \valbest{0.55} & \valbest{0.61} & \valbest{17\%} & \valbest{0.70} \\
-\bottomrule[1.2pt]
-\end{tabular}
-\end{adjustbox}
-\caption{\textbf{Agent Size Ablation (LLAMIA-13B).} Stronger agents consistently improve all downstream tasks, with the largest gains in Gameplay (+258 Elo from T72 to BT4) and Planning (+7\% win rate). The improvement is approximately linear with agent Elo, and LLAMIA degrades gracefully with weaker agents rather than failing catastrophically.}
-\label{tab:agent_ablation}
-\end{table}
+\subsubsection{Data-Axis Scaling}
+\label{sec:app_abl_sweeps_data}
 
+\subsubsection{LoRA vs.\ Full Fine-Tuning}
+\label{sec:app_abl_sweeps_lora}
 
-\subsection{Illegal Move Analysis and Policy Alignment}
-\label{sec:illegal_moves}
+\subsubsection{Decoding Robustness}
+\label{sec:app_abl_sweeps_decoding}
 
-
-A critical concern for LLM-based chess systems is the generation of illegal moves. Although we exhaustively predict from autoregressive token probabilities over the entire UCI move notation space, we analyze how perplexity on illegal moves changes through training. We measure perplexity on illegal move tokens and KL-divergence between LLAMIA's policy and Lc0-BT4 across training stages (Table~\ref{tab:kl_divergence}). Pre-training assigns similar perplexity to illegal and legal moves (ratio $\approx$ 1.1$\times$). After Stage 1, illegal move perplexity increases to 8.0$\times$ legal moves, and after Stage 2 to 16.8$\times$. KL-divergence on legal moves drops from 2.31 to 0.42, indicating strong policy alignment. Remarkably, KL on illegal moves drops from 9.30 to 0.71, showing LLAMIA learns to assign near-zero probability to illegal moves without explicit masking. Despite this strong learned suppression, we use beam search over the legal move space during inference to guarantee valid outputs; the low KL-divergence means this filtering rarely changes the selected move.
-
-\begin{table}[h]
-\centering
-\begin{tabular}{l|cc}
-\toprule[1.2pt]
-\textbf{Training Stage} & \textbf{KL (Legal Moves)} & \textbf{KL (Illegal Moves)} \\
-\midrule
-Random Init & 2.31 & 9.30 \\
-After Stage 1 & 0.89 & 4.12 \\
-After Stage 2 & \valbest{0.42} & \valbest{0.71} \\
-\bottomrule[1.2pt]
-\end{tabular}
-\caption{\textbf{Policy Alignment via KL-Divergence.} Training reduces KL on legal moves from 2.31 to 0.42 and on illegal moves from 9.30 to 0.71, computed over 10k held-out positions. LLAMIA learns strong policy alignment and near-zero illegal move probability purely from cross-entropy training.}
-\label{tab:kl_divergence}
-\end{table}
+% =============================================================================

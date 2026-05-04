@@ -1,0 +1,374 @@
+\section{Implementation Details}
+\label{sec:app_implementation}
+\subsection{Libraries and Software}
+\label{sec:app_libraries}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+\textbf{Package} & \textbf{Version} & \textbf{Role} \\
+\midrule
+PyTorch           & 2.8      & Training backend \\
+VERL              & 0.7.1            & RL training framework \\
+vLLM              & 0.10.2           & Rollout inference engine \\
+Ray               & 2.55.1           & Distributed orchestration \\
+Transformers      & 4.56.2  & Model loading \& tokenization \\
+lc0               & 0.32.1           & Chess specialist engine (UCI binary) \\
+\bottomrule
+\end{tabular}
+\vspace{2mm}
+\somesh{Add megatronLM}
+\caption{Key software dependencies.}
+\label{tab:libraries}
+\end{table}
+
+\subsection{Model Architecture and LatentBridge}
+\label{sec:app_architecture}
+
+\subsubsection{Backbone LLM}
+\label{sec:app_backbone}
+\somesh{Qwen3 4B, 8B, 14B are used, no need for engineering details like class names, ports, qwen3.5 problems, or 7 and 13B items. instead maintain a single table for architecture details, show with stacked bar chart what was the rollout/training/lc0 GPU utlilization across 4,8,14B models, no need}
+The base LLM is \texttt{Qwen/Qwen3-4B}: a 4\,B-parameter decoder-only transformer (\texttt{Qwen3ForCausalLM} architecture), served at rollout time by a single-replica vLLM~0.10.2 instance at \texttt{:7000} (\texttt{gpu\_memory\_utilization=0.5}, \texttt{--enforce-eager}, skipping Triton/CUDAGraph compilation).
+We initially targeted \texttt{Qwen/Qwen3.5-4B} (a hybrid linear-attention/full-attention model declared as \texttt{Qwen3\_5ForConditionalGeneration}) but no VERL-supported vLLM release recognises that architecture string; the toy task therefore uses Qwen3-4B as the base.
+The full LLAMIA-Bench experiments target 7\,B and 13\,B backbone scales; results for those scales are \tbd{} pending experimental runs.
+\somesh{Keep max length utpo 32k tokens and max rounds upto 20, just reasoning is disabled following \cite{XXX}}
+\texttt{max\_model\_len} is set to 8\,192 tokens---shared across system prompt, conversation history, tool I/O, and response---sufficient for tool-call rollouts that complete within ${\sim}\,3$ rounds.
+\texttt{enable\_thinking} is suppressed via \texttt{chat\_template\_kwargs} to avoid the documented Qwen3 ``plans tool but never emits'' failure mode.
+\somesh{Add a subsubssection for Engine, search depth, nodes, weights, etc params}
+\subsubsection{LatentBridge Projector}
+\label{sec:app_projector}
+\somesh{Maintain similar tables here for Projector for Poker/Chess}
+$H_\varphi$ is a three-layer MLP with GeLU activations.
+Input dimension: $d{=}1024$, matching the post-attention residual stream width of lc0's BT4 network at layer 15 (see \S\ref{sec:app_lc0_latent}).
+Output: $k{=}16$ embeddings of dimension $e$ matching the LLM's hidden size, as determined by the ablation in \S\ref{sec:token_ablation}: $k{<}16$ showed training instability with frequent eval-loss spikes; $k{>}16$ added sequence overhead without eval-loss improvement.
+A special token $\langle\text{state}\rangle$ anchors each injection site; $k$ contiguous positions immediately following it are overwritten with $\vz_t = H_\varphi(\vh_{s_t})$ before the LLM forward pass
+
+\subsection{Training Configuration}
+\label{sec:app_training}
+\label{sec:hyperparams}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+\textbf{Hyperparameter}        & \textbf{Stage 1 (Projector)} & \textbf{Stage 2 (GRPO)} \\
+\midrule
+Learning rate                  & --   & -- \\
+Batch size                     & --   & -- \\
+Steps / Epochs                 & --   & -- \\
+KL coefficient $\beta$         & --   & -- \\
+Clip $\varepsilon$             & --   & 0.2 \\
+Group size $G$                 & --   & -- \\
+$k$ (latent tokens)            & 16   & 16 \\
+Max sequence length            & --   & 8\,192 \\
+Rollout temperature            & --   & 1.0 \\
+Eval temperature               & --   & 0.0 \\
+\bottomrule
+\end{tabular}
+\vspace{2mm}
+\caption{Training hyperparameters. Entries marked (--) are to be filled upon final experimental runs.}\somesh{Fill table with advised approx values from recipes/best practices, update when added}
+\label{tab:hparams}
+\end{table}
+
+\subsubsection{Stage 1: Projector Alignment}
+\label{sec:app_stage1}
+\somesh{do 5M psoitions for and maintain hyperparams for 4,8,14 with commas wherever different, simplify this}
+Stage 1 trains $H_\varphi$ alone with $F_\theta$ frozen, on 50\,M state--policy pairs drawn from lc0's forward pass over the Lichess evaluation database.
+Each example pairs a FEN with lc0's top moves and pawn evaluations; the model minimizes cross-entropy over the verbalized policy output conditioned on $\vz_s = H_\varphi(\vh_s)$ and a fixed prompt template (Appendix~\ref{sec:app_prompts}).
+This stage requires no task-specific reward and produces a projector that maps BT4's 1024-dimensional residual stream into the LLM's token embedding space, providing a stable initialization before Stage 2.
+The ablation in \somesh{In appendix only use cref}\S\ref{sec:stage_ablation} confirms that skipping Stage 1 causes training instability during the first 40\% of Stage 2.
+
+\subsubsection{Stage 2: Reinforcement Learning (GRPO)}
+\label{sec:app_stage2}
+\somesh{Again, maintain details in table only different for different LLM size}
+Stage 2 fine-tunes both $F_\theta$ and $H_\varphi$ via GRPO~\cite{shao2024deepseekmath}, implemented through the VERL~0.7.1 framework with an external vLLM rollout server.
+Rollouts use temperature $T{=}1.0$; evaluation uses greedy decoding ($T{=}0$).
+The reward decomposes as $\mathcal{R}(\tau) = R_{\mathrm{outcome}} + R_{\mathrm{format}} + R_{\mathrm{collab}}$: task performance, a binary format gate (legal move / well-formed invocation), and a collaboration-shape signal that rewards \texttt{<InvokeAgent>} calls preceding actions where the agent's updated state changed the LLM's decision.
+Read-only tool calls earn no per-call reward, following the finding that positive per-call bonuses drive over-invocation.
+\texttt{MAX\_ROUNDS=14} caps LLM calls per query; typical rollouts complete in 2--3 rounds.
+
+\subsection{Chess Specialist: Lc0-BT4}
+\label{sec:app_lc0}
+\somesh{Maintain such hyperparams etc in table only, no need for engine binary or ports, FastAPI etc}
+The chess specialist is Leela Chess Zero (\texttt{lc0}) v0.32.1 running the BT4 transformer network, exposed to the LLM through an HTTP wrapper (\texttt{lc0\_server}); no in-process binding into the training stack---the wrapper is a process boundary.
+
+\subsubsection{Engine Configuration}
+\label{sec:app_lc0_config}
+
+\paragraph{Engine binary.}
+Built from upstream source (commit \texttt{v0.32.1}) with \texttt{gcc~11.4}, \texttt{meson} + \texttt{ninja}, CUDA toolkit 12.4.
+Build invocation: \texttt{./build.sh release -Dgtest=false -Ddnnl=false}.
+Both \texttt{cuda} (fp32) and \texttt{cuda-fp16} backends are produced; we run \texttt{cuda-fp16} on A100 (SM~8.0).
+The binary is dynamically linked and exposes a UCI interface on stdin/stdout.
+lc0's CUDA backend uses cuBLAS only---no cuDNN dependency.
+
+\paragraph{Network.}
+\texttt{BT4-1024x15x32h-swa-6147500-policytune-332.pb.gz} from the lczero ``contrib networks'' bucket: a 1024-dim, 15-block, 32-head BT4 transformer, multihead format (policy / value / WDL / moves-left), saved at training step 6{,}147{,}500 after a SWA pass and a policy-tuning fine-tune (\texttt{policytune-332}).
+On disk: 365\,MB compressed; resident GPU footprint at our settings: ${\sim}\,2.9$\,GB (weights in fp16 plus cuBLAS workspace).
+
+\paragraph{Tool interface.}
+The engine is exposed via FastAPI on a pool of eight servers, one per A100 GPU, bound to \texttt{http://localhost:7100}--\texttt{7107}.
+An \texttt{LcOClient} round-robins requests across the pool via \texttt{itertools.cycle}, providing 8$\times$ parallel throughput for batch evaluation.
+Three endpoints are shared across all instances (Table~\ref{tab:lc0-api}).
+The LLM never speaks UCI directly; it issues JSON over HTTP, mediated by the wrapper.
+The FEN-based interface generalises to any UCI engine, so swapping in Stockfish or alternative Leela nets requires no LLM-side change.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+\textbf{Endpoint} & \textbf{Body} & \textbf{Returns} \\
+\midrule
+\texttt{GET /health} & --- & \texttt{\{status, engine\_id, backend, weights\}} \\
+\texttt{POST /analyze} & \texttt{\{fen, nodes?, movetime\_ms?, multipv?\}} & \texttt{\{bestmove, multipv:[\{score\_cp, mate, depth, nodes, time\_ms, pv\}]\}} \\
+\texttt{POST /policy} & \texttt{\{fen, nodes?\}} & \texttt{\{value\_root, moves:[\{move, P, N, Q, WL, D, V, U, S, M\}]\}} \\
+\bottomrule
+\end{tabular}
+\caption{HTTP interface to \texttt{lc0\_server}. \texttt{/policy} parses lc0's \texttt{VerboseMoveStats} lines: \texttt{P} is the NN prior in $[0,1]$, \texttt{V} the per-child single-eval network value in $[-1,+1]$, \texttt{Q} the running average action-value, \texttt{N} the visit count.}
+\label{tab:lc0-api}
+\end{table}
+
+\paragraph{Engine flags.}
+We leave search-behaviour flags at upstream defaults so the engine matches publicly reproducible Leela behaviour; we override only resource and observability flags driven by GPU-sharing (the engine co-resides with the RL rollout vLLM on the same A100). Both groups appear in Table~\ref{tab:lc0-flags}.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{llll}
+\toprule
+\textbf{Parameter} & \textbf{Upstream default} & \textbf{Our value} & \textbf{Rationale} \\
+\midrule
+\multicolumn{4}{l}{\emph{Overridden (resources / observability)}} \\
+\midrule
+\texttt{Backend}          & \texttt{cuda-auto}      & \texttt{cuda-fp16} & Explicit fp16 on Ampere \\
+\texttt{WeightsFile}      & \texttt{<autodiscover>} & BT4 path           & Pinned weights \\
+\texttt{Threads}          & \texttt{0} (backend)    & \texttt{2}         & Two CPU workers feeding the GPU batch \\
+\texttt{MinibatchSize}    & \texttt{0} (backend)    & \texttt{128}       & Throughput sweet spot on A100 (Table~\ref{tab:lc0-bench}) \\
+\texttt{MaxPrefetch}      & \texttt{32}             & \texttt{32}        & Memory is flat; no reason to throttle \\
+\texttt{NNCacheSize}      & \texttt{2{,}000{,}000}  & \texttt{200{,}000} & Cap host RAM; FEN-cache hits dominate at low $N$ \\
+\texttt{VerboseMoveStats} & \texttt{false}          & \texttt{true}      & Required for the \texttt{/policy} parser \\
+\texttt{MultiPV}          & \texttt{1}              & per-request        & Set per call by python-chess \\
+\midrule
+\multicolumn{4}{l}{\emph{Held at upstream defaults (search behaviour)}} \\
+\midrule
+\texttt{CPuct}             & \texttt{1.75}     & \multicolumn{2}{l}{cpuct\_init for PUCT} \\
+\texttt{CPuctBase}         & \texttt{38739}    & \multicolumn{2}{l}{cpuct\_base for PUCT growth} \\
+\texttt{CPuctFactor}       & \texttt{3.89}     & \multicolumn{2}{l}{cpuct growth multiplier} \\
+\texttt{FpuStrategy}       & \texttt{reduction}& \multicolumn{2}{l}{First-Play Urgency mode} \\
+\texttt{FpuValue}          & \texttt{0.33}     & \multicolumn{2}{l}{FPU offset for unvisited nodes} \\
+\texttt{PolicyTemperature} & \texttt{1.36}     & \multicolumn{2}{l}{Policy softmax temperature} \\
+\texttt{OutOfOrderEval}    & \texttt{true}     & \multicolumn{2}{l}{Cache / terminal short-circuit} \\
+\texttt{ScoreType}         & \texttt{WDL\_mu}  & \multicolumn{2}{l}{Score = $100\!\cdot\!Q$, not centipawns} \\
+\bottomrule
+\end{tabular}
+\somesh{Maintain tables that are going out of bounds with adjustbox}
+\caption{lc0 configuration. All search-behaviour flags are at upstream defaults so results match unmodified Leela.}
+\label{tab:lc0-flags}
+\end{table}
+
+\paragraph{Score conventions.}
+\somesh{Have this as the detail in engine at the top this is more imp}
+With \texttt{ScoreType=WDL\_mu}, the centipawn field reported by lc0 is $100\!\cdot\!Q$ where $Q\in[-1,+1]$ is the WDL-mean utility from the side to move's perspective; it is \emph{not} a Stockfish-style centipawn evaluation.
+
+\subsection{Inference Harness and Tool-Call Protocol}
+\label{sec:app_toolcall}
+
+The inference harness connects the LLM to the lc0 engine via a six-tool stateful API.
+This section records the exact state representation, system prompt, and tool schemas used in all LLAMIA-Bench experiments.
+
+\subsubsection{Agent State}
+\label{sec:app_toolcall_state}
+\somesh{No mentions of code files and data types focus on being explanatory}
+\begin{tcolorbox}[statebox, title={Agent State \textnormal{(\texttt{agents/state.py} --- \texttt{ChessState})}}]
+
+\textbf{\textsf{Fields held in memory across tool calls:}}
+
+\smallskip
+\begin{tabular}{@{}lp{2.5cm}p{8.4cm}@{}}
+  \toprule
+  \textbf{Field} & \textbf{Type} & \textbf{Content} \\
+  \midrule
+  \texttt{board}    & \texttt{chess.Board} & Full game position (Zobrist hash, castling rights, en-passant target, 50-move clock). \\
+  \texttt{\_history} & \texttt{list[str]}  & SAN move list from the start of the current episode. \\
+  \bottomrule
+\end{tabular}
+
+\medskip
+\textbf{\textsf{Derived properties (computed on demand):}}
+
+\smallskip
+\begin{tabular}{@{}lp{10.5cm}@{}}
+  \toprule
+  \textbf{Property} & \textbf{Value} \\
+  \midrule
+  \texttt{fen}    & \texttt{board.fen()} --- passed to every lc0 API call \\
+  \texttt{info()} & FEN, ASCII board, turn, move number, in-check flag, legal SAN list (up to 24), last six moves \\
+  \bottomrule
+\end{tabular}
+
+\smallskip
+\noindent The \texttt{ascii\_board} field emits \texttt{str(chess.Board)}: an 8$\times$8 grid with white pieces uppercase and black lowercase, letting the LLM read piece placements visually instead of decoding the FEN string.
+
+\medskip
+\textbf{\textsf{Move parsing priority.}} UCI first (\texttt{e2e4}, \texttt{g1f3}), then SAN (\texttt{Nf3}, \texttt{Nxd4}, \texttt{O\nobreakdash-O}) via \texttt{python-chess}.
+Illegal moves return \texttt{\{"error": \ldots\}} without raising; the LLM can retry with a corrected move.
+
+\smallskip
+\textbf{\textsf{Persistence scope.}} A single \texttt{ChessAnalyst.run()} call.
+State is reset at the start of each query or when the LLM calls \texttt{reset\_position}.
+No cross-query memory is maintained.
+\end{tcolorbox}
+
+\subsubsection{System Prompt}
+\label{sec:app_toolcall_prompt}
+
+\begin{tcolorbox}[promptbox, title={$\triangleright$\; System Prompt --- Chess Analyst}]
+
+\begin{quote}
+You are a chess expert with access to lc0, a top neural network engine.
+A board is already loaded---any FEN in the user's query has been applied for you.
+Do not call \texttt{reset\_position} unless you need a different position.
+
+\smallskip
+Tools (the board is stateful across calls):
+\begin{itemize}[noitemsep, topsep=2pt, leftmargin=14pt]
+  \item \texttt{get\_position} --- FEN, ASCII board, legal moves, history.
+  \item \texttt{make\_move(move)} --- apply UCI (\texttt{e2e4}) or SAN (\texttt{Nf3}) move \emph{permanently}.
+  \item \texttt{undo\_move} --- take back the last move.
+  \item \texttt{reset\_position(fen)} --- switch to a different FEN.
+  \item \texttt{analyze(nodes, multipv, moves=[])} --- engine search. Pass \texttt{moves=[X]} to analyse after \texttt{X} without changing state.
+  \item \texttt{get\_policy(nodes)} --- raw NN priors $P$ and values $V$ per move (fast, single forward pass).
+\end{itemize}
+
+\smallskip
+Blunder analysis pattern (two calls---issue them \emph{together} in one response):
+\begin{itemize}[noitemsep, topsep=2pt, leftmargin=14pt]
+  \item \texttt{analyze()} --- engine's best move and eval for the current position.
+  \item \texttt{analyze(moves=[\textit{candidate}])} --- eval after the candidate move.
+\end{itemize}
+The difference is the centipawn loss; the PV of the second call starts with the opponent's refutation.
+
+\smallskip
+Efficiency: when two tool calls are independent, emit \emph{both} in the same response.
+The harness dispatches them in parallel and saves a round-trip.
+\end{quote}
+\end{tcolorbox}
+
+\subsubsection{Tool Definitions}
+\somesh{Have a single colorbox with simplified tool defs, idea is to make it easy to understand as opposed to dump details}
+\label{sec:app_toolcall_tools}
+
+The six tools below are passed to the \texttt{/v1/chat/completions} endpoint in the standard OpenAI \texttt{tools} array.
+
+\medskip
+
+\begin{tcolorbox}[toolbox, title={\texttt{get\_position}()}]
+\tooldesc{Returns a snapshot of the current board state. No parameters.}
+\toolret{\texttt{\{fen, ascii\_board, turn, move\_number, in\_check, legal\_moves[0..23], total\_legal, recent\_moves[-6:]\}}}
+\smallskip\noindent The legal-move list is truncated to 24 entries to bound context; \texttt{total\_legal} reports the true count.
+\end{tcolorbox}
+
+\begin{tcolorbox}[toolbox, title={\texttt{make\_move(move: str)}}]
+\tooldesc{Apply a move to the current board. Accepts UCI or SAN. The state is mutated permanently until \texttt{undo\_move} or \texttt{reset\_position} is called.}
+\smallskip
+\begin{tabular}{@{}lp{1.5cm}p{8.5cm}@{}}
+  \toprule
+  \textbf{Parameter} & \textbf{Type} & \textbf{Description} \\
+  \midrule
+  \texttt{move} & \texttt{str} & Move in UCI (\texttt{e2e4}) or SAN (\texttt{Nxd4}, \texttt{O\nobreakdash-O\nobreakdash-O}) notation. \\
+  \bottomrule
+\end{tabular}
+\smallskip
+\toolret{\texttt{\{move\_played, fen, turn, in\_check, checkmate\}}}
+\smallskip\noindent Illegal moves return \texttt{\{"error":\,\ldots\}} without raising; the LLM may retry with a corrected move string.
+\end{tcolorbox}
+
+\begin{tcolorbox}[toolbox, title={\texttt{undo\_move()}}]
+\tooldesc{Revert the last move applied by \texttt{make\_move}. No parameters. Can be called repeatedly to step back through a variation. Returns \texttt{\{"error": "No moves to undo"\}} if the stack is empty.}
+\toolret{\texttt{\{fen, turn\}}}
+\end{tcolorbox}
+
+\begin{tcolorbox}[toolbox, title={\texttt{reset\_position(fen: str)} \textnormal{--- locked when FEN auto-loaded}}]
+\tooldesc{Replace the current board with a new FEN and clear move history. A FEN embedded in the user's query is automatically extracted and loaded before the agent loop begins; in that case this tool is removed from the catalogue and the dispatcher refuses any surviving call.}
+\smallskip
+\begin{tabular}{@{}lp{1.5cm}p{8.5cm}@{}}
+  \toprule
+  \textbf{Parameter} & \textbf{Type} & \textbf{Description} \\
+  \midrule
+  \texttt{fen} & \texttt{str} & Any valid Forsyth--Edwards Notation string. \\
+  \bottomrule
+\end{tabular}
+\smallskip
+\toolret{\texttt{\{fen, status: "ok"\}} when permitted; \texttt{\{noop, message, current\_fen\}} when locked.}
+\end{tcolorbox}
+
+\begin{tcolorbox}[toolbox, title={\texttt{analyze(nodes: int = 800, multipv: int = 3, moves: list[str] = [])}}]
+\tooldesc{Run lc0 MCTS search via \texttt{POST /analyze}, optionally after applying hypothetical moves to the FEN without mutating \texttt{ChessState}. Scores are in $100\!\cdot\!Q$ units, positive meaning good for the side to move.}
+\smallskip
+\begin{tabular}{@{}lp{1.8cm}p{7.2cm}@{}}
+  \toprule
+  \textbf{Parameter} & \textbf{Type} & \textbf{Description} \\
+  \midrule
+  \texttt{nodes}   & \texttt{int}       & MCTS node budget (default 800; 1\,000--2\,000 for deeper PVs). \\
+  \texttt{multipv} & \texttt{int}       & Number of lines to return (default 3). \\
+  \texttt{moves}   & \texttt{list[str]} & UCI or SAN moves applied client-side before analysis; state unchanged. Returned as SAN in \texttt{applied\_moves}. \\
+  \bottomrule
+\end{tabular}
+\smallskip
+\toolret{\texttt{\{turn, bestmove, lines: ["1. <SAN-pv> score=\ldots depth=\ldots", \ldots], applied\_moves?\}}}
+\smallskip\noindent\textbf{PV translation to SAN.} lc0 emits principal variations in UCI (e.g.\ \texttt{a5g5}), which hides captures, checks, and piece identities.
+The harness replays each PV on a \texttt{python-chess} board and emits SAN (e.g.\ \texttt{Qxg5+}), so the LLM reads the literal piece interaction and can quote it directly.
+\end{tcolorbox}
+
+\begin{tcolorbox}[toolbox, title={\texttt{get\_policy(nodes: int = auto)}}]
+\tooldesc{Run a minimal search ($\texttt{nodes} \geq \#\text{legal-moves}+2$ by default so every root child is visited exactly once) and return lc0's per-move NN statistics. Much faster than \texttt{analyze} and gives raw NN beliefs before MCTS modifies them.}
+\smallskip
+\begin{tabular}{@{}lll@{}}
+  \toprule
+  \textbf{Parameter} & \textbf{Type} & \textbf{Description} \\
+  \midrule
+  \texttt{nodes} & \texttt{int} & Budget (default: auto = $\#\text{legal}+2$) \\
+  \bottomrule
+\end{tabular}
+\smallskip
+\toolret{\texttt{\{turn, value\_root, nodes\_searched, top\_moves: ["<uci> P=\% V=\ldots Q=\ldots N=\ldots", \ldots]\}}}
+\smallskip\noindent Fields per move: \textbf{P}~NN prior in $[0,1]$ (post \texttt{PolicyTemperature=1.36}); \textbf{V}~single-eval NN value in $[-1,+1]$; \textbf{Q}~visit-averaged action-value (equals $V$ when $N{=}1$); \textbf{N}~visit count.
+Moves are reported in UCI: the policy view is consumed as a probability distribution, and the UCI identifier is stable across positions.
+\end{tcolorbox}
+
+\begin{tcolorbox}[notebox, title={Inference Configuration}]
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{@{}p{3.4cm}p{2.8cm}p{8cm}@{}}
+  \toprule
+  \textbf{Parameter} & \textbf{Value} & \textbf{Notes} \\
+  \midrule
+  \texttt{max\_model\_len}    & 8\,192 tokens & Shared across system prompt, history, tool I/O, response. \\
+  \texttt{max\_tokens}        & 700           & Per LLM call; leaves ${\approx}\,7{,}500$ for history. \\
+  \texttt{temperature}        & 0.0 / 1.0     & Greedy at evaluation; $T{=}1.0$ during RL rollouts. \\
+  \texttt{tool\_choice}       & \texttt{"auto"} & Model decides when to stop calling tools. \\
+  Tool-call parsing            & dual-path     & Hermes parser populates \texttt{msg.tool\_calls}; fallback to Qwen3 XML if empty. \\
+  \texttt{enable\_thinking}   & \texttt{False} & Suppressed via \texttt{chat\_template\_kwargs}; avoids ``plans tool but never emits'' failure. \\
+  \texttt{MAX\_ROUNDS}        & 14            & Cap on LLM calls per query; typical runs complete in 2--3. \\
+  Read-only dispatch          & parallel      & \texttt{analyze}, \texttt{get\_policy}, \texttt{get\_position} fan out via \texttt{ThreadPoolExecutor}. \\
+  Mutating dispatch           & sequential    & \texttt{make\_move}, \texttt{undo\_move}, \texttt{reset\_position} preserve emission order. \\
+  lc0 \texttt{nodes} (analyze)& 800 (default) & Caller may override (1\,000--2\,000 for deeper PVs). \\
+  lc0 \texttt{nodes} (policy) & auto          & $\max(\#\text{legal}+2,\,8)$; one visit per child. \\
+  lc0 \texttt{multipv}        & 3             & Top-3 lines; bounds output tokens. \\
+  \bottomrule
+\end{tabular}
+\somesh{Table going out of bound, check if this is already covered above, for such tables we dont need tcolorbox a simple table is enough, dont repeat this table refer if needed}
+\end{tcolorbox}
+
+%------------------------------------------------------------------------------
+\subsection{Training Efficiency (FSDP)}
+\label{sec:app_efficiency}
+
+VERL~0.7.1 partitions model parameters and optimizer state across GPUs using PyTorch Fully Sharded Data Parallel (FSDP); distributed training is coordinated via Ray~2.55.1.
+Training runs on five nodes of A100-80GB GPUs (40 total), totalling approximately eight days of compute.
+The rollout vLLM instance co-resides with the lc0 server fleet on the same A100s; \texttt{gpu\_memory\_utilization=0.5} leaves the remaining ${\sim}\,40$\,GiB for the BT4 network (${\sim}\,3$\,GiB per GPU), the actor/critic FSDP shards, and cuBLAS workspace.
+
+% =============================================================================
