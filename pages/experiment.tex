@@ -77,31 +77,31 @@ We evaluate models on behavior simulation (BS) predicting tweet engagement level
 \label{tab:persuasion_llamia}
 \end{table}
 
-\textbf{Generalization to Vision and Persuasion Tasks}
-\label{sec:cross_domain}
-Finally, we validate LLAMIA’s robustness as a framework beyond chess by integrating latent states from domain-specific pretrained critics in Text-to-Image Preference Alignment and persuasion prediction. For vision-based image preference alignment, LLAMIA significantly surpasses the state-of-the-art VisionReward model (+5 pp accuracy), achieving this improvement with merely half the required fine-tuning data (Appendix~\ref{sec:addl-results}). Qualitative results in Figure~\ref{fig:image_grid} further demonstrate LLAMIA’s superior stylistic fidelity and consistency across diverse artistic prompts.
+% \textbf{Generalization to Vision and Persuasion Tasks}
+% \label{sec:cross_domain}
+% Finally, we validate LLAMIA’s robustness as a framework beyond chess by integrating latent states from domain-specific pretrained critics in Text-to-Image Preference Alignment and persuasion prediction. For vision-based image preference alignment, LLAMIA significantly surpasses the state-of-the-art VisionReward model (+5 pp accuracy), achieving this improvement with merely half the required fine-tuning data (Appendix~\ref{sec:addl-results}). Qualitative results in Figure~\ref{fig:image_grid} further demonstrate LLAMIA’s superior stylistic fidelity and consistency across diverse artistic prompts.
 
-Similarly, in persuasion modeling—leveraging Chronos-Bolt time-series embeddings—we observe substantial accuracy improvements (+6 pp overall; peaking at +15 pp during weekend spikes; Appendix~\ref{sec:addl-results}). These results concretely demonstrate that LLAMIA’s latent-state integration approach is a broadly applicable mechanism capable of effectively incorporating structured domain knowledge into LLMs, beyond strictly structured game environments.
+% Similarly, in persuasion modeling—leveraging Chronos-Bolt time-series embeddings—we observe substantial accuracy improvements (+6 pp overall; peaking at +15 pp during weekend spikes; Appendix~\ref{sec:addl-results}). These results concretely demonstrate that LLAMIA’s latent-state integration approach is a broadly applicable mechanism capable of effectively incorporating structured domain knowledge into LLMs, beyond strictly structured game environments.
 
 
-\begin{table*}[h!]
-    \centering
-    \begin{adjustbox}{max width=1.05\textwidth}
-    \begin{tabular}{l|c|cccc|c}
-    \toprule[1.2pt]
-    \textbf{Model} & \textbf{Method} & \textbf{Composition} & \textbf{Quality} & \textbf{Fidelity} & \textbf{Emotion} & \textbf{HPDv2 (Tau*)} \\
-    \midrule
-    GPT-4o & ICL & 73.1 & 62.7 & 61.9 & 70.1 & 77.5 \\
-    Gemini & ICL & 69.4 & 59.9 & 59.7 & 74.9 & 60.7 \\
-    CogVLM2 & ICL & 65.8 & 67.1 & 53.1 & 74.7 & 64.5 \\
-    LLaVA & ICL & 59.9 & 65.7 & 59.8 & 64.4 & 61.0 \\
-    VisionReward-19B & IFT & \valbest{78.8} & \valgood{81.1} & \valgood{80.9} & \valgood{83.9} & \valgood{81.7} \\
-    GPT-4o + ImageReward & ICL + ToolCalling & 75.5 & 65.0 & 64.0 & 72.5 & 79.5 \\
-    \midrule
-    LLAMIA-19B (Ours) & SALT & \valgood{76.5} & \valbest{85.0} & \valbest{82.0} & \valbest{84.2} & \valbest{85.8} \\
-    \bottomrule[1.2pt]
-    \end{tabular}
-    \end{adjustbox}
-    \caption{\textbf{Image Generation Evaluation.} We evaluate LLAMIA-13B and prior vision-language models across perceptual axes (composition, quality, fidelity, emotion) from VisionReward \cite{xu2025visionrewardfinegrainedmultidimensionalhuman} and preference alignment via HPDv2\cite{wu2023human}. Despite having the same underlying base VLM (CogVLM2-llama3-chat\cite{hong2024cogvlm2}) LLAMIA internally integrates ImageReward\cite{xu2023imagereward} and outperforms all baselines in HPDv2 alignment (\valbest{85.7}), improving over GPT-4o (\valgood{77.5}) by \textbf{+8.2} and over VisionReward by \textbf{+4.1} with the same amount of training data for this task. We follow the same evaluation as \cite{xu2025visionrewardfinegrainedmultidimensionalhuman} However due to unavailability of Monet-Bench we could not include it.}
-    \label{tab:image_generation}
-\end{table*}
+% \begin{table*}[h!]
+%     \centering
+%     \begin{adjustbox}{max width=1.05\textwidth}
+%     \begin{tabular}{l|c|cccc|c}
+%     \toprule[1.2pt]
+%     \textbf{Model} & \textbf{Method} & \textbf{Composition} & \textbf{Quality} & \textbf{Fidelity} & \textbf{Emotion} & \textbf{HPDv2 (Tau*)} \\
+%     \midrule
+%     GPT-4o & ICL & 73.1 & 62.7 & 61.9 & 70.1 & 77.5 \\
+%     Gemini & ICL & 69.4 & 59.9 & 59.7 & 74.9 & 60.7 \\
+%     CogVLM2 & ICL & 65.8 & 67.1 & 53.1 & 74.7 & 64.5 \\
+%     LLaVA & ICL & 59.9 & 65.7 & 59.8 & 64.4 & 61.0 \\
+%     VisionReward-19B & IFT & \valbest{78.8} & \valgood{81.1} & \valgood{80.9} & \valgood{83.9} & \valgood{81.7} \\
+%     GPT-4o + ImageReward & ICL + ToolCalling & 75.5 & 65.0 & 64.0 & 72.5 & 79.5 \\
+%     \midrule
+%     LLAMIA-19B (Ours) & SALT & \valgood{76.5} & \valbest{85.0} & \valbest{82.0} & \valbest{84.2} & \valbest{85.8} \\
+%     \bottomrule[1.2pt]
+%     \end{tabular}
+%     \end{adjustbox}
+%     \caption{\textbf{Image Generation Evaluation.} We evaluate LLAMIA-13B and prior vision-language models across perceptual axes (composition, quality, fidelity, emotion) from VisionReward \cite{xu2025visionrewardfinegrainedmultidimensionalhuman} and preference alignment via HPDv2\cite{wu2023human}. Despite having the same underlying base VLM (CogVLM2-llama3-chat\cite{hong2024cogvlm2}) LLAMIA internally integrates ImageReward\cite{xu2023imagereward} and outperforms all baselines in HPDv2 alignment (\valbest{85.7}), improving over GPT-4o (\valgood{77.5}) by \textbf{+8.2} and over VisionReward by \textbf{+4.1} with the same amount of training data for this task. We follow the same evaluation as \cite{xu2025visionrewardfinegrainedmultidimensionalhuman} However due to unavailability of Monet-Bench we could not include it.}
+%     \label{tab:image_generation}
+% \end{table*}

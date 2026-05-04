@@ -142,11 +142,10 @@
 \newcommand{\tooldesc}[1]{%
   \noindent{\color{agentslate}\textbf{Description:}}\;#1\smallskip}
 
-% =============================================================================
+
+\newpage
 \section{Implementation Details}
 \label{sec:app_implementation}
-% =============================================================================
-
 \subsection{Libraries and Software}
 \label{sec:app_libraries}
 
@@ -157,46 +156,40 @@
 \toprule
 \textbf{Package} & \textbf{Version} & \textbf{Role} \\
 \midrule
-PyTorch           & 2.8.0+cu126      & Training backend \\
+PyTorch           & 2.8      & Training backend \\
 VERL              & 0.7.1            & RL training framework \\
 vLLM              & 0.10.2           & Rollout inference engine \\
 Ray               & 2.55.1           & Distributed orchestration \\
-Transformers      & 4.56.2 (pinned)  & Model loading \& tokenization \\
+Transformers      & 4.56.2  & Model loading \& tokenization \\
 lc0               & 0.32.1           & Chess specialist engine (UCI binary) \\
-python-chess      & 1.11.2           & UCI client / FEN handling \\
-FastAPI / Uvicorn & 0.136 / 0.46     & HTTP wrapper for the engine \\
-CUDA toolkit      & 12.6             & Training (lc0 binary built against 12.4) \\
 \bottomrule
 \end{tabular}
+\vspace{2mm}
+\somesh{Add megatronLM}
 \caption{Key software dependencies.}
 \label{tab:libraries}
 \end{table}
-
-\paragraph{Version-coupling notes.}
-The vLLM/PyTorch/Transformers versions are tightly coupled and cannot be changed independently.
-vLLM~0.10.2 is the highest release inside VERL~0.7.1's supported range (${\geq}\,0.8.5$, ${\leq}\,0.12.0$) that ships the \texttt{qwen3\_next.py} model file.
-Its pre-built CUDA wheel calls the two-argument form of \texttt{c10::cuda::SetDevice}, present only in PyTorch~${\geq}\,2.8$.
-Transformers~${\geq}\,5$ removes \texttt{all\_special\_tokens\_extended} from the tokenizer base class, which vLLM~0.10.2's tokenizer wrapper still references; we pin to 4.56.2.
 
 \subsection{Model Architecture and LatentBridge}
 \label{sec:app_architecture}
 
 \subsubsection{Backbone LLM}
 \label{sec:app_backbone}
-
+\somesh{Qwen3 4B, 8B, 14B are used, no need for engineering details like class names, ports, qwen3.5 problems, or 7 and 13B items. instead maintain a single table for architecture details, show with stacked bar chart what was the rollout/training/lc0 GPU utlilization across 4,8,14B models, no need}
 The base LLM is \texttt{Qwen/Qwen3-4B}: a 4\,B-parameter decoder-only transformer (\texttt{Qwen3ForCausalLM} architecture), served at rollout time by a single-replica vLLM~0.10.2 instance at \texttt{:7000} (\texttt{gpu\_memory\_utilization=0.5}, \texttt{--enforce-eager}, skipping Triton/CUDAGraph compilation).
 We initially targeted \texttt{Qwen/Qwen3.5-4B} (a hybrid linear-attention/full-attention model declared as \texttt{Qwen3\_5ForConditionalGeneration}) but no VERL-supported vLLM release recognises that architecture string; the toy task therefore uses Qwen3-4B as the base.
 The full LLAMIA-Bench experiments target 7\,B and 13\,B backbone scales; results for those scales are \tbd{} pending experimental runs.
+\somesh{Keep max length utpo 32k tokens and max rounds upto 20, just reasoning is disabled following \cite{XXX}}
 \texttt{max\_model\_len} is set to 8\,192 tokens---shared across system prompt, conversation history, tool I/O, and response---sufficient for tool-call rollouts that complete within ${\sim}\,3$ rounds.
 \texttt{enable\_thinking} is suppressed via \texttt{chat\_template\_kwargs} to avoid the documented Qwen3 ``plans tool but never emits'' failure mode.
-
+\somesh{Add a subsubssection for Engine, search depth, nodes, weights, etc params}
 \subsubsection{LatentBridge Projector}
 \label{sec:app_projector}
-
+\somesh{Maintain similar tables here for Projector for Poker/Chess}
 $H_\varphi$ is a three-layer MLP with GeLU activations.
 Input dimension: $d{=}1024$, matching the post-attention residual stream width of lc0's BT4 network at layer 15 (see \S\ref{sec:app_lc0_latent}).
 Output: $k{=}16$ embeddings of dimension $e$ matching the LLM's hidden size, as determined by the ablation in \S\ref{sec:token_ablation}: $k{<}16$ showed training instability with frequent eval-loss spikes; $k{>}16$ added sequence overhead without eval-loss improvement.
-A special token $\langle\text{state}\rangle$ anchors each injection site; $k$ contiguous positions immediately following it are overwritten with $\vz_t = H_\varphi(\vh_{s_t})$ before the LLM forward pass, following the multimodal alignment approach of LLaVA~\cite{liu2023visual}.
+A special token $\langle\text{state}\rangle$ anchors each injection site; $k$ contiguous positions immediately following it are overwritten with $\vz_t = H_\varphi(\vh_{s_t})$ before the LLM forward pass
 
 \subsection{Training Configuration}
 \label{sec:app_training}
@@ -221,21 +214,22 @@ Rollout temperature            & --   & 1.0 \\
 Eval temperature               & --   & 0.0 \\
 \bottomrule
 \end{tabular}
-\caption{Training hyperparameters. Entries marked (--) are to be filled upon final experimental runs.}
+\vspace{2mm}
+\caption{Training hyperparameters. Entries marked (--) are to be filled upon final experimental runs.}\somesh{Fill table with advised approx values from recipes/best practices, update when added}
 \label{tab:hparams}
 \end{table}
 
 \subsubsection{Stage 1: Projector Alignment}
 \label{sec:app_stage1}
-
+\somesh{do 5M psoitions for and maintain hyperparams for 4,8,14 with commas wherever different, simplify this}
 Stage 1 trains $H_\varphi$ alone with $F_\theta$ frozen, on 50\,M state--policy pairs drawn from lc0's forward pass over the Lichess evaluation database.
 Each example pairs a FEN with lc0's top moves and pawn evaluations; the model minimizes cross-entropy over the verbalized policy output conditioned on $\vz_s = H_\varphi(\vh_s)$ and a fixed prompt template (Appendix~\ref{sec:app_prompts}).
 This stage requires no task-specific reward and produces a projector that maps BT4's 1024-dimensional residual stream into the LLM's token embedding space, providing a stable initialization before Stage 2.
-The ablation in \S\ref{sec:stage_ablation} confirms that skipping Stage 1 causes training instability during the first 40\% of Stage 2.
+The ablation in \somesh{In appendix only use cref}\S\ref{sec:stage_ablation} confirms that skipping Stage 1 causes training instability during the first 40\% of Stage 2.
 
 \subsubsection{Stage 2: Reinforcement Learning (GRPO)}
 \label{sec:app_stage2}
-
+\somesh{Again, maintain details in table only different for different LLM size}
 Stage 2 fine-tunes both $F_\theta$ and $H_\varphi$ via GRPO~\cite{shao2024deepseekmath}, implemented through the VERL~0.7.1 framework with an external vLLM rollout server.
 Rollouts use temperature $T{=}1.0$; evaluation uses greedy decoding ($T{=}0$).
 The reward decomposes as $\mathcal{R}(\tau) = R_{\mathrm{outcome}} + R_{\mathrm{format}} + R_{\mathrm{collab}}$: task performance, a binary format gate (legal move / well-formed invocation), and a collaboration-shape signal that rewards \texttt{<InvokeAgent>} calls preceding actions where the agent's updated state changed the LLM's decision.
@@ -244,7 +238,7 @@ Read-only tool calls earn no per-call reward, following the finding that positiv
 
 \subsection{Chess Specialist: Lc0-BT4}
 \label{sec:app_lc0}
-
+\somesh{Maintain such hyperparams etc in table only, no need for engine binary or ports, FastAPI etc}
 The chess specialist is Leela Chess Zero (\texttt{lc0}) v0.32.1 running the BT4 transformer network, exposed to the LLM through an HTTP wrapper (\texttt{lc0\_server}); no in-process binding into the training stack---the wrapper is a process boundary.
 
 \subsubsection{Engine Configuration}
@@ -317,51 +311,14 @@ We leave search-behaviour flags at upstream defaults so the engine matches publi
 \texttt{ScoreType}         & \texttt{WDL\_mu}  & \multicolumn{2}{l}{Score = $100\!\cdot\!Q$, not centipawns} \\
 \bottomrule
 \end{tabular}
+\somesh{Maintain tables that are going out of bounds with adjustbox}
 \caption{lc0 configuration. All search-behaviour flags are at upstream defaults so results match unmodified Leela.}
 \label{tab:lc0-flags}
 \end{table}
 
-\paragraph{Throughput / batch profile.}
-Resident GPU memory is flat across batch sizes (Table~\ref{tab:lc0-bench}): the cuBLAS workspace plus fp16 weights dominate, and per-position activations are negligible.
-\texttt{MinibatchSize=128} gives 3$\times$ the throughput of \texttt{MinibatchSize=8} at no memory cost.
-
-\begin{table}[h]
-\centering
-\small
-\begin{tabular}{rrrr}
-\toprule
-\textbf{Batch} & \textbf{Peak GPU mem} & \textbf{Throughput} & \textbf{ms/batch} \\
-\midrule
-1    & 2983\,MiB & 366\,nps     & 2.7   \\
-8    & 2983\,MiB & 2{,}413\,nps & 3.3   \\
-32   & 2983\,MiB & 5{,}335\,nps & 6.0   \\
-64   & 2983\,MiB & 6{,}839\,nps & 9.4   \\
-128  & 2983\,MiB & 7{,}319\,nps & 17.5  \\
-256  & 2983\,MiB & 7{,}754\,nps & 33.0  \\
-512  & 2983\,MiB & 8{,}051\,nps & 63.6  \\
-1024 & 2983\,MiB & 8{,}283\,nps & 123.6 \\
-\bottomrule
-\end{tabular}
-\caption{\texttt{lc0 backendbench} sweep on A100-80GB, BT4 + cuda-fp16. Memory is constant at ${\sim}\,3$\,GiB regardless of batch size; throughput plateaus near batch 128--256. Co-residing engines on the same A100 need only ${\sim}\,4$\,GiB (${\sim}\,5\%$) headroom per GPU.}
-\label{tab:lc0-bench}
-\end{table}
-
-\paragraph{Wrapper configuration.}
-Environment variables with defaults: \texttt{LC0\_BIN} (engine path), \texttt{LC0\_NET} (\texttt{.pb.gz} weights), \texttt{LC0\_BACKEND} (\texttt{cuda-fp16}), \texttt{LC0\_THREADS} (\texttt{2}), \texttt{LC0\_MINIBATCH} (\texttt{128}), \texttt{LC0\_MAX\_PREFETCH} (\texttt{32}), \texttt{LC0\_NNCACHE} (\texttt{200000}), \texttt{LC0\_PORT} (\texttt{7100}).
-The multi-GPU deployment script \texttt{start\_lc0\_servers.sh} launches eight instances in parallel, assigning \texttt{CUDA\_VISIBLE\_DEVICES=}$i$ and \texttt{LC0\_PORT=}$7100{+}i$ for $i\in\{0,\ldots,7\}$, then health-checks all eight before returning.
-HTTP-level concurrency within each process is serialised by an internal lock because UCI is a single-conversation protocol.
-Both \texttt{/analyze} and \texttt{/policy} accept an optional \texttt{moves} field (UCI-string list) applied on top of the FEN, so BT4's seven history planes are filled with the real game rather than synthesised; this matters for raw-policy queries mid-game.
-
 \paragraph{Score conventions.}
+\somesh{Have this as the detail in engine at the top this is more imp}
 With \texttt{ScoreType=WDL\_mu}, the centipawn field reported by lc0 is $100\!\cdot\!Q$ where $Q\in[-1,+1]$ is the WDL-mean utility from the side to move's perspective; it is \emph{not} a Stockfish-style centipawn evaluation.
-
-\subsubsection{Latent Extraction}
-\label{sec:app_lc0_latent}
-
-The HTTP interface described above is sufficient for all verbalized-access baselines but does not expose hidden activations.
-The latent internalization path (\S\ref{sec:methodology}) requires a separate forward-pass shim that loads the same BT4 \texttt{.pb.gz} weights into PyTorch and emits the post-attention residual stream at layer 15, producing $\vh_s \in \R^{1024}$.
-This vector is then projected by $H_\varphi$ into $k{=}16$ token embeddings injected into the LLM trace.
-The shim runs out of process and is not part of \texttt{lc0\_server}.
 
 \subsection{Inference Harness and Tool-Call Protocol}
 \label{sec:app_toolcall}
@@ -371,7 +328,7 @@ This section records the exact state representation, system prompt, and tool sch
 
 \subsubsection{Agent State}
 \label{sec:app_toolcall_state}
-
+\somesh{No mentions of code files and data types focus on being explanatory}
 \begin{tcolorbox}[statebox, title={Agent State \textnormal{(\texttt{agents/state.py} --- \texttt{ChessState})}}]
 
 \textbf{\textsf{Fields held in memory across tool calls:}}
@@ -447,11 +404,8 @@ The harness dispatches them in parallel and saves a round-trip.
 \end{quote}
 \end{tcolorbox}
 
-\noindent\textbf{Design rationale.}
-The prompt is compact (${\approx}\,220$ tokens).
-Three clauses encode the harness's invariants: (i) the ``do not call \texttt{reset\_position}'' clause prevents the agent spending a round verifying a FEN load the harness already performed; (ii) the \texttt{moves=[\ldots]} clause teaches the no-mutate analysis primitive, collapsing the standard \texttt{make\_move}$\to$\texttt{analyze}$\to$\texttt{undo\_move} sequence into one call; (iii) the efficiency clause encourages batching of independent calls.
-
 \subsubsection{Tool Definitions}
+\somesh{Have a single colorbox with simplified tool defs, idea is to make it easy to understand as opposed to dump details}
 \label{sec:app_toolcall_tools}
 
 The six tools below are passed to the \texttt{/v1/chat/completions} endpoint in the standard OpenAI \texttt{tools} array.
@@ -532,20 +486,6 @@ The harness replays each PV on a \texttt{python-chess} board and emits SAN (e.g.
 Moves are reported in UCI: the policy view is consumed as a probability distribution, and the UCI identifier is stable across positions.
 \end{tcolorbox}
 
-\begin{tcolorbox}[warnbox, title={$\mathbf{!}$\; Tool-Call Format --- Qwen3 XML (not Hermes JSON)}]
-
-\textbf{Root cause.}
-Qwen3's chat template generates tool calls in XML-like format:
-\texttt{<tool\_call><function=\textit{name}><parameter=\textit{key}>\textit{value}</parameter></function></tool\_call>}.
-vLLM's \texttt{--tool-call-parser hermes} locates the \texttt{<tool\_call>} tags correctly but expects JSON inside; failing to parse the XML body, it leaves \texttt{msg.tool\_calls = []} and returns the raw XML in \texttt{msg.content}.
-
-\medskip
-\textbf{Fix.}
-\texttt{\_parse\_qwen\_tool\_calls(content)} in \texttt{agents/chess\_analyst.py} uses two regex patterns---\texttt{QWEN\_TOOL\_RE} (matches the outer function block) and \texttt{PARAM\_RE} (extracts and \texttt{json.loads}-coerces parameter values)---to reconstruct the tool call.
-Tool results are returned as standard \texttt{role=tool} messages; vLLM reformats them correctly into Qwen3's tool-response template server-side.
-Any code that reads \texttt{msg.tool\_calls} directly from the OpenAI client will silently drop all tool calls in this configuration; always use \texttt{\_parse\_qwen\_tool\_calls} or its equivalent.
-\end{tcolorbox}
-
 \begin{tcolorbox}[notebox, title={Inference Configuration}]
 \renewcommand{\arraystretch}{1.15}
 \begin{tabular}{@{}p{3.4cm}p{2.8cm}p{8cm}@{}}
@@ -566,6 +506,7 @@ Any code that reads \texttt{msg.tool\_calls} directly from the OpenAI client wil
   lc0 \texttt{multipv}        & 3             & Top-3 lines; bounds output tokens. \\
   \bottomrule
 \end{tabular}
+\somesh{Table going out of bound, check if this is already covered above, for such tables we dont need tcolorbox a simple table is enough, dont repeat this table refer if needed}
 \end{tcolorbox}
 
 %------------------------------------------------------------------------------
