@@ -2,7 +2,7 @@
 \label{sec:results}
 
 % =============================================================================
-% Main-paper results figures. All plots are in pages/figures/.
+% Main-paper results figures. All plots are in pages/figures/ as PDFs.
 % Tables with full numerical detail are in pages/appendix/results.tex.
 % All values below are SIMULATED — replace with real numbers.
 % =============================================================================
@@ -12,11 +12,11 @@
 
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=\linewidth]{pages/figures/llamia_grpo_curves.png}
-    \caption{\textbf{GRPO training reward: internalization vs.\ verbalized tool use.}
-    Mean reward vs.\ training step at three model sizes (4B, 8B, 27B).
+    \includegraphics[width=\linewidth]{pages/figures/llamia_grpo_curves.pdf}
+    \caption{\textbf{GRPO training reward: LLAMIA vs.\ LLAMIA-Verb.}
+    Mean reward vs.\ training step at three model sizes (4B, 8B, 14B).
     Solid lines: LLAMIA (latent-state internalization).
-    Dashed lines: Lc0 as an external tool call (LLAMIA-Verb).
+    Dashed lines: LLAMIA-Verb (verbalized Lc0 tool call, same GRPO recipe).
     Shaded bands: running standard deviation.
     Internalization consistently reaches $2$--$3\times$ higher reward than
     verbalized tool use across all sizes, with the gap widening during training.
@@ -26,108 +26,78 @@
 
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=\linewidth]{pages/figures/task_reward_curves.png}
-    \caption{\textbf{Per-task GRPO reward curves (LLAMIA vs.\ LLAMIA-Verb, 14B).}
-    LLAMIA (blue, solid) optimizes reward across all seven tasks.
-    LLAMIA-Verb (orange, dashed) achieves partial signal on Behavior
-    Cloning and Difficulty but stays flat on Interest, Game Commentary,
-    and Instruction Planning---the tasks where the target signal is
-    either non-verbalizable (Interest) or requires multi-step state
-    tracking (Commentary, Planning). The Interest panel shows
-    LLAMIA-Verb's reward hacking: it learns the statistical prior that
-    minimizes MAE without genuinely reading the aesthetic signal.
+    \includegraphics[width=\linewidth]{pages/figures/train_reward_curves.pdf}
+    \caption{\textbf{Per-task train reward curves (LLAMIA vs.\ LLAMIA-Verb,
+    4B/8B/14B).}
+    Each panel shows one of six LLAMIA-Bench tasks (ICP shown separately
+    as eval reward in Fig.~\ref{fig:icp_eval}).
+    Solid lines: LLAMIA; dashed lines: LLAMIA-Verb; shade indicates
+    model size (darker = larger).
+    LLAMIA optimizes reward across all tasks and sizes.
+    LLAMIA-Verb achieves partial signal on Behavior Cloning and Difficulty
+    but stays flat on Interest, Rationale Prediction, and Game
+    Commentary---tasks where the target signal is either
+    non-verbalizable (Interest) or requires multi-step state tracking
+    (Commentary).
     }
-    \label{fig:task_reward_curves}
+    \label{fig:train_reward_curves}
 \end{figure*}
 
 \subsection{LLAMIA-Bench Overview}
 \label{sec:results_bench}
 
-\begin{figure}[t]
+\begin{figure*}[t]
     \centering
-    \includegraphics[width=\linewidth]{pages/figures/llamia_bench_radar.png}
-    \caption{\textbf{LLAMIA-Bench radar: four systems across seven tasks.}
-    LLAMIA (dark blue) dominates all spokes.
-    Frontier+Tool (orange) collapses on Interest (non-verbalizable
-    signal) and Instruction Planning (requires policy override).
-    LLAMIA-Verb (light blue) tracks Frontier+Tool on single-position
-    tasks but degrades further on multi-step tasks due to
-    narrative fragmentation from RL-trained tool-call patterns.
-    Task Experts (green) are strong on their training distributions
-    but collapse on wild splits and tasks they were not designed for.
+    \includegraphics[width=\linewidth]{pages/figures/llamia_bench_radar.pdf}
+    \caption{\textbf{LLAMIA-Bench radar: LLAMIA vs.\ LLAMIA-Verb across
+    model sizes.}
+    Three panels (4B, 8B, 14B) show the verbalization gap at each scale.
+    LLAMIA (dark blue, solid) consistently dominates all spokes.
+    LLAMIA-Verb (orange, dashed) collapses on Interest
+    (non-verbalizable signal) and Instruction Planning (requires
+    policy override) at every size. The gap widens with scale on
+    multi-step tasks (Commentary, ICP) while remaining roughly
+    constant on single-position tasks (BC, Difficulty).
     }
     \label{fig:radar}
-\end{figure}
+\end{figure*}
 
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=\linewidth]{pages/figures/llamia_bench_bars.png}
-    \caption{\textbf{LLAMIA-Bench grouped bar chart.}
+    \includegraphics[width=\linewidth]{pages/figures/llamia_bench_bars.pdf}
+    \caption{\textbf{LLAMIA-Bench grouped bar chart with improvement arrows.}
     Performance (normalized) across all seven tasks.
-    Numbers above LLAMIA bars show absolute scores.
-    Key patterns: (1)~LLAMIA is uniformly high across all tasks;
-    (2)~Interest is the diagnostic task where all non-LLAMIA systems
-    collapse ($<$25 vs.\ LLAMIA's 82);
-    (3)~Task Experts win on in-distribution BC (MAIA) but lose on
+    Bars show Task Expert (green, where applicable), Frontier+Tool
+    (orange), and LLAMIA at 4B/8B/14B (progressively darker blue).
+    Thin arrows indicate relative improvement of each LLAMIA size
+    over the matched LLAMIA-Verb baseline.
+    Key patterns: (1)~LLAMIA improvement is largest on Interest
+    and ICP, confirming the verbalization gap on non-verbalizable
+    and multi-step tasks;
+    (2)~Task Experts win on in-distribution BC (MAIA) but lose on
     wild splits;
-    (4)~LLAMIA-Verb consistently underperforms Frontier+Tool on
-    Commentary and Instruction Planning.
+    (3)~no Task Expert exists for Difficulty or Interest prediction.
     }
     \label{fig:bench_bars}
 \end{figure*}
 
-\subsection{Verbalization Gap Decomposition}
-\label{sec:results_vg}
-
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=\linewidth]{pages/figures/vg_decomposition.png}
-    \caption{\textbf{Two mechanisms behind the verbalization gap.}
-    \textit{Left:} depth-compounding---the gap between LLAMIA and
-    LLAMIA-Verb grows monotonically as tasks require more sustained
-    interaction (Gameplay $\to$ Rationale $\to$ Commentary $\to$ ICP).
-    \textit{Right:} non-verbalizability---on the same Puzzle
-    Understanding positions, the verbalization gap on Interest is
-    $4.4\times$ larger than on Difficulty, demonstrating that some
-    agent signals have no text representation regardless of
-    interaction depth.
-    }
-    \label{fig:vg_decomposition}
-\end{figure}
-
-\subsection{ICP Motif Acquisition}
+\subsection{ICP Eval Reward}
 \label{sec:results_icp}
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=\linewidth]{pages/figures/icp_motif_acquisition.png}
-    \caption{\textbf{Instruction-Conditioned Planning: motif acquisition
-    during training.}
+    \includegraphics[width=\linewidth]{pages/figures/icp_eval_reward.pdf}
+    \caption{\textbf{Instruction-Conditioned Planning: eval reward curve.}
     Pass rate (win-rate improvement, \%) vs.\ \% training seen.
-    LLAMIA-14B (blue) acquires motif categories in a characteristic
-    order: Pawn Structures and Piece Coordination emerge first
-    (${\sim}20$--$30$\%), Tactical Blunders at ${\sim}35$\%, Endgames
-    at ${\sim}50$\%. Each category shows a sigmoid-like jump.
-    ChessGPT-14B (orange) shows near-flat pass rate throughout with
-    minimal improvement even at full data exposure.
+    LLAMIA-14B (blue, solid) acquires motif categories in a
+    characteristic order: Pawn Structures and Piece Coordination
+    emerge first (${\sim}20$--$30$\%), Tactical Blunders at
+    ${\sim}40$\%, Endgames at ${\sim}50$\%.
+    Each category shows a sigmoid-like jump.
+    LLAMIA-Verb-14B (orange, dashed) remains near-flat throughout
+    with minimal improvement even at full data exposure---the slight
+    rise at $>90$\% training is consistent with reward hacking
+    rather than genuine motif acquisition.
     }
-    \label{fig:icp_motif}
+    \label{fig:icp_eval}
 \end{figure}
-
-\subsection{Model-Size Scaling}
-\label{sec:results_scaling}
-
-\begin{figure*}[t]
-    \centering
-    \includegraphics[width=\linewidth]{pages/figures/model_size_scaling.png}
-    \caption{\textbf{Model-size scaling: LLAMIA vs.\ LLAMIA-Verb.}
-    \textit{Left:} LLAMIA performance rises with model size (4B $\to$
-    8B $\to$ 14B) across all four tasks.
-    \textit{Right:} LLAMIA-Verb performance on the same tasks. BC and
-    Commentary rise modestly with scale; ICP shows slight improvement;
-    Puzzle Interest is near-flat (model scale cannot recover a signal
-    absent from the text channel). On every task, LLAMIA-Verb at 14B
-    remains below LLAMIA at matched size.
-    }
-    \label{fig:model_scaling}
-\end{figure*}
