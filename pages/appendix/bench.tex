@@ -7,276 +7,201 @@
 \label{sec:app_bench_dataset}
 % =============================================================================
 
-LLAMIA-Bench spans six collaboration facets: \emph{perception}, \emph{calibration}, \emph{explanation}, \emph{sustained planning}, \emph{style and identity}, and \emph{instruction-conditioned adaptation}. Table~\ref{tab:bench_dataset} summarizes dataset provenance and task experts; Table~\ref{tab:bench_metrics} lists evaluation metrics and RL reward signals per task. Splits marked~\itwmark{} are \emph{in-the-wild}: test distribution is sparse, absent, or shifted relative to Stage-2 training, so generalization must come from internalized representations rather than memorization.
+LLAMIA-Bench spans four collaboration facets: \emph{behavioral calibration},
+\emph{strategic explanation}, \emph{sustained planning}, and
+\emph{instruction-conditioned adaptation}.
+Table~\ref{tab:bench_dataset} summarizes dataset provenance and task experts;
+Table~\ref{tab:bench_metrics} lists evaluation metrics per task.
+Splits marked~\itwmark{} are \emph{in-the-wild}: the test distribution is absent or
+shifted relative to Stage-2 training, so generalization must come from internalized
+representations rather than memorization.
+Where the original authors provide a fixed test split we use it; otherwise we sample
+a random held-out split.
 
+%% ── TABLE 1: DATASET PROVENANCE ──────────────────────────────────────────────
 \begin{table}[ht]
 \centering
+\setlength{\tabcolsep}{5pt}
 \caption{%
   \textbf{LLAMIA-Bench: dataset and task provenance.}
   \emph{Italic} task names are LLAMIA-Bench custom splits;
-  \itwmark{} marks in-the-wild splits.
-  See Table~\ref{tab:bench_metrics} for metrics and RL rewards.
+  \itwmark{} marks in-the-wild splits (test distribution absent or shifted from
+  Stage-2 training).
+  Where the original authors provide a fixed test split we use it; otherwise a
+  random held-out split is drawn.
+  \textbf{Ours} = dataset constructed for this work.
 }
 \label{tab:bench_dataset}
-\setlength{\tabcolsep}{4pt}
 \begin{adjustbox}{max width=\textwidth}
-\renewcommand{\arraystretch}{1.3}
+\renewcommand{\arraystretch}{1.4}
 \small
-\begin{tabular}{>{\centering\arraybackslash}p{1.2cm} p{1.8cm} p{2.2cm} p{2.0cm} p{1.8cm} p{2.27cm} >{\centering\arraybackslash}p{0.6cm}}
+\begin{tabular}{%
+  >{\centering\arraybackslash}p{2.6cm}   % Group
+  p{3.4cm}                               % Task / Split
+  p{4.0cm}                               % Source
+  p{2.1cm}                               % Size
+  p{3.2cm}                               % Task Expert
+}
 \toprule[1.2pt]
-\textbf{Group} & \textbf{Task / Split} & \textbf{Dataset} & \textbf{Source} & \textbf{Size (tr\,/\,te)} & \textbf{Task Expert} & \textbf{§} \\
+\textbf{Group} & \textbf{Task / Split} & \textbf{Source} &
+\textbf{Size (tr\,/\,te)} & \textbf{Task Expert} \\
 \midrule
 
-%% ── GAMEPLAY ──────────────────────────────────────────────────────────────────
-\rowcolor{clrGameplay}
-\multirow{2}{1.2cm}{\centering\small\textbf{Game-play}}
-  & Elo Rating
-  & Tournament Elo
-  & ECO; \cite{coulom2008whole}
-  & --\,/\,1k games
-  & Transformer-270M~\cite{ruoss2024grandmaster}
-  & \ref{sec:app_bench_gameplay_elo} \\
-\rowcolor{clrGameplay}
-  & Puzzle Solving
-  & Lichess Puzzles
-  & lichess.org
-  & 4M\,/\,1K
-  & Transformer-270M~\cite{ruoss2024grandmaster}
-  & \ref{sec:app_bench_gameplay_puzzle} \\
-\midrule
-
-%% ── BEHAVIOR CLONING ──────────────────────────────────────────────────────────
+%% ── BEHAVIOR CLONING ─────────────────────────────────────────────────────────
 \rowcolor{clrBC}
-\multirow{4}{1.2cm}{\centering\small\textbf{BC}}
+\multirow{2}{2.6cm}{\centering\small\textbf{Behavior\\Cloning}}
   & Maia (Elo buckets)
-  & MAIA-KDD
-  & Lichess~\cite{mcilroy2020aligning}
-  & 12M\,/\,test set
-  & Maia+MCTS~\cite{jacob2022modeling}
-  & \ref{sec:app_bench_bc_maia} \\
+  & MAIA-KDD, Lichess~\cite{mcilroy2020aligning}
+  & 12M\,/\,authors'
+  & Maia\,+\,MCTS~\cite{jacob2022modeling} \\
 \rowcolor{clrBC}
-  & \emph{GM-25}\,\itwmark{}
-  & GM-25
-  & 365chess.com
-  & $\leq$4,641\,/\,--
-  & Per-GM Maia
-  & \ref{sec:app_bench_bc_gm} \\
-\rowcolor{clrBC}
-  & \emph{Low-Time}\,\itwmark{}
-  & Low-Time BC
-  & Lichess
-  & 129K\,/\,--
-  & Maia (Elo-matched)
-  & \ref{sec:app_bench_bc_time} \\
-\rowcolor{clrBC}
-  & \emph{Elo-Gap}\,\itwmark{}
-  & Elo-Gap BC
-  & Lichess
-  & 34K games\,/\,--
-  & Maia (Elo-matched)
-  & \ref{sec:app_bench_bc_elo} \\
+  & \emph{In the wild}\,\itwmark{}
+  & MAIA-KDD filtered, Lichess (\textbf{Ours})
+  & $\leq$167K\,/\,--
+  & Maia (Elo-matched) \\
 \midrule
 
-%% ── BEHAVIORAL STYLOMETRY ─────────────────────────────────────────────────────
-\rowcolor{clrStylo}
-\small\textbf{Stylom.}
-  & \emph{GM Id.}\,\itwmark{}
-  & GM-Stylo
-  & Held-out GMs
-  & \tbd\,/\,\tbd
-  & Best-of-cohort per-GM
-  & \ref{sec:app_bench_stylometry} \\
+%% ── PUZZLE UNDERSTANDING ─────────────────────────────────────────────────────
+\rowcolor{clrPuzzle}
+\multirow{3}{2.6cm}{\centering\small\textbf{Puzzle\\Understanding}}
+  & Difficulty Estimation
+  & \multirow{3}{4.0cm}{Lichess Puzzles\textsuperscript{\textdagger}
+      \cite{lichess2024puzzles}}
+  & 4M\,/\,random
+  & \multirow{2}{3.2cm}{CF-270M~\cite{XXX}} \\
+\rowcolor{clrPuzzle}
+  & Interest Estimation
+  &
+  & 4M\,/\,random
+  & \\
+\rowcolor{clrPuzzle}
+  & Theme Classification
+  &
+  & 4M\,/\,random
+  & Lc0-BT4 \\
 \midrule
 
-%% ── PUZZLE UNDERSTANDING ──────────────────────────────────────────────────────
-\rowcolor{clrPuzzle}
-\multirow{3}{1.2cm}{\centering\small\textbf{Puzzle Under-standing}}
-  & Difficulty Est.
-  & Lichess Puzzles
-  & Lichess Glicko-2
-  & 4M\,/\,\tbd
-  & CF-270M
-  & \ref{sec:app_bench_puzzle_diff} \\
-\rowcolor{clrPuzzle}
-  & Interest Est.
-  & Lichess Puzzles
-  & Lichess votes
-  & 4M\,/\,\tbd
-  & CF-270M
-  & \ref{sec:app_bench_puzzle_int} \\
-\rowcolor{clrPuzzle}
-  & Theme Class.
-  & Lichess Puzzles
-  & Lichess themes
-  & 4M\,/\,\tbd
-  & Lc0-BT4
-  & \ref{sec:app_bench_puzzle_themes} \\
-\midrule
-
-%% ── MOVE ANNOTATION ───────────────────────────────────────────────────────────
+%% ── MOVE ANNOTATION ──────────────────────────────────────────────────────────
 \rowcolor{clrAnnot}
-\small\textbf{Move Annot.}
-  & State Commentary
-  & Lichess Annot.
+\textbf{Move Annotation}
+  & Move Annotation
   & Lichess~\cite{jhamtani-etal-2018-learning}
-  & 90K\,/\,SCC split
-  & \cite{zang2019automated}; \cite{jhamtani-etal-2018-learning}
-  & \ref{sec:app_bench_annotation} \\
+  & 90K\,/\,authors'
+  & \cite{zang2019automated};
+    \cite{jhamtani-etal-2018-learning} \\
 \midrule
 
-%% ── GAME-LEVEL COMMENTARY ─────────────────────────────────────────────────────
+%% ── GAME COMMENTARY ──────────────────────────────────────────────────────────
 \rowcolor{clrComm}
-\small\textbf{Game Comm.}
+\textbf{Game Commentary}
   & Game Commentary
-  & Agadmator-2K
-  & Agadmator YT\textsuperscript{\textdagger}
+  & Agadmator-2K\textsuperscript{\textdaggerdbl} (\textbf{Ours})
   & 2K\,/\,100 games
-  & --- (new task)
-  & \ref{sec:app_bench_commentary} \\
+  & --- \\
 \midrule
 
-%% ── INSTRUCTION-CONDITIONED PLANNING ──────────────────────────────────────────
+%% ── INSTRUCTION-CONDITIONED PLANNING ─────────────────────────────────────────
 \rowcolor{clrICP}
-\multirow{2}{1.2cm}{\centering\small\textbf{ICP}}
-  & ICP (in-dist.)
-  & ICP-Bench
-  & ECO openings
+\multirow{2}{2.6cm}{\centering\small\textbf{Instruction-\\Conditioned\\Planning}}
+  & Instruction-Conditioned Planning
+  & \textbf{Ours}, ECO openings
   & 250/motif\,/\,--
-  & GPT-4o\,+\,Lc0
-  & \ref{sec:app_bench_icp_motifs} \\
+  & \multirow{2}{3.2cm}{GPT-4o\,+\,Lc0-BT4} \\
 \rowcolor{clrICP}
-  & \emph{ICP (OOD)}\,\itwmark{}
-  & ICP-OOD
-  & 5 novel instr.
+  & \emph{Out-of-distribution}\,\itwmark{}
+  & \textbf{Ours}
   & --\,/\,5 OOD
-  & GPT-4o\,+\,Lc0
-  & \ref{sec:app_bench_icp_stats} \\
+  & \\
 
 \bottomrule[1.2pt]
 \end{tabular}
 \end{adjustbox}
-{\footnotesize
+{\footnotesize\vspace{4pt}
   \itwmark{} In-the-wild split.
   \quad
-  \textdagger\;\url{https://www.youtube.com/@agadmator}
+  \textdagger\;\url{https://database.lichess.org/lichess_db_puzzle.csv.zst}
+  \quad
+  \textdaggerdbl\;\url{https://www.youtube.com/@agadmator}
 }
 \end{table}
 
+%% ── TABLE 2: METRICS ─────────────────────────────────────────────────────────
 \begin{table}[ht]
 \centering
+\setlength{\tabcolsep}{5pt}
 \caption{%
-  \textbf{LLAMIA-Bench: evaluation metrics and RL rewards.}
-  $\uparrow$ higher is better, $\downarrow$ lower is better.
-  \tbd{} = to be finalized.
-  See the linked subsection for full reward formulas.
+  \textbf{LLAMIA-Bench: evaluation metrics.}
+  $\uparrow$ higher is better; $\downarrow$ lower is better.
+  Reward signals for tasks marked \tbd{} are to be finalized.
 }
-  \somesh{1. Remove gameplay and Stylom. 2. Avoid acronyms. 3. say in the caption we used the same test split as authors if given otherwise a random split. 4. Instead of a separate column ref after the task/split. 5. Merge In the wild task splits in MAIA calling it just In the wild, dataset is MAIA-KDD filtered and source is Lichess (\textbf{Ours}). 6. Group common cells like Lichess Puzzles Task expert etc and add their link cites etc in sources, combine dataset and source columns it should have source of dataset, citation, or Ours. 7. Agadmator was made by us. there is no IND in ICP remove that}
 \label{tab:bench_metrics}
-\setlength{\tabcolsep}{4pt}
 \begin{adjustbox}{max width=\textwidth}
-\renewcommand{\arraystretch}{1.3}
+\renewcommand{\arraystretch}{1.4}
 \small
-\begin{tabular}{>{\centering\arraybackslash}p{1.2cm} p{2.5cm} p{3.77cm} p{4.5cm} >{\centering\arraybackslash}p{0.6cm}}
+\begin{tabular}{%
+  >{\centering\arraybackslash}p{2.6cm}   % Group
+  p{3.4cm}                               % Task / Split
+  p{5.0cm}                               % Metric(s)
+  p{4.2cm}                               % RL Reward
+}
 \toprule[1.2pt]
-\textbf{Group} & \textbf{Task / Split} & \textbf{Metric(s)} & \textbf{RL Reward} & \textbf{§} \\
+\textbf{Group} & \textbf{Task / Split} & \textbf{Metric(s)} & \textbf{RL Reward} \\
 \midrule
 
-%% ── GAMEPLAY ──────────────────────────────────────────────────────────────────
-\rowcolor{clrGameplay}
-\multirow{2}{1.2cm}{\centering\small\textbf{Game-play}}
-  & Elo Rating
-  & Tournament Elo $\pm$CI $\uparrow$
-  & Game outcome ($+1$ win, $0$ draw, $-1$ loss)
-  & \ref{sec:app_bench_gameplay_elo} \\
-\rowcolor{clrGameplay}
-  & Puzzle Solving
-  & Exact-sequence Acc.\ (\%) $\uparrow$
-  & $+1$ iff full solution correct, else $0$
-  & \ref{sec:app_bench_gameplay_puzzle} \\
-\midrule
-
-%% ── BEHAVIOR CLONING ──────────────────────────────────────────────────────────
+%% ── BEHAVIOR CLONING ─────────────────────────────────────────────────────────
 \rowcolor{clrBC}
-\multirow{4}{1.2cm}{\centering\small\textbf{BC}}
+\multirow{2}{2.6cm}{\centering\small\textbf{Behavior\\Cloning}}
   & Maia (Elo buckets)
-  & Move-match Acc.\ per bucket $\uparrow$
-  & Move-match with target-Elo policy
-  & \ref{sec:app_bench_bc_maia} \\
+  & Move-match accuracy per bucket $\uparrow$
+  & Move-match with target-Elo policy \\
 \rowcolor{clrBC}
-  & \emph{GM-25}\,\itwmark{}
-  & Move-match Acc.\ $\uparrow$
-  & Move-match with GM-specific corpus
-  & \ref{sec:app_bench_bc_gm} \\
-\rowcolor{clrBC}
-  & \emph{Low-Time}\,\itwmark{}
-  & Move-match Acc.\ $\uparrow$
-  & Move-match under clock pressure
-  & \ref{sec:app_bench_bc_time} \\
-\rowcolor{clrBC}
-  & \emph{Elo-Gap}\,\itwmark{}
-  & Move-match Acc.\ $\uparrow$
-  & Move-match in large skill-gap games
-  & \ref{sec:app_bench_bc_elo} \\
+  & \emph{In the wild}\,\itwmark{}
+  & Move-match accuracy $\uparrow$
+  & Move-match with in-the-wild distribution \\
 \midrule
 
-%% ── BEHAVIORAL STYLOMETRY ─────────────────────────────────────────────────────
-\rowcolor{clrStylo}
-\small\textbf{Stylom.}
-  & \emph{GM Identification}\,\itwmark{}
-  & Top-1/2/3 Id.\ Acc.; Bradley--Terry $\rho$~\cite{CvjXlsBLCX-strength-est} $\uparrow$
-  & \tbd
-  & \ref{sec:app_bench_stylometry} \\
-\midrule
-
-%% ── PUZZLE UNDERSTANDING ──────────────────────────────────────────────────────
+%% ── PUZZLE UNDERSTANDING ─────────────────────────────────────────────────────
 \rowcolor{clrPuzzle}
-\multirow{3}{1.2cm}{\centering\small\textbf{Puzzle Under-standing}}
-  & Difficulty Est.
+\multirow{3}{2.6cm}{\centering\small\textbf{Puzzle\\Understanding}}
+  & Difficulty Estimation
   & Spearman $\rho$ vs.\ Glicko-2 $\uparrow$
-  & \tbd
-  & \ref{sec:app_bench_puzzle_diff} \\
+  & \tbd \\
 \rowcolor{clrPuzzle}
-  & Interest Est.
+  & Interest Estimation
   & Spearman $\rho$ vs.\ engagement $\uparrow$
-  & \tbd
-  & \ref{sec:app_bench_puzzle_int} \\
+  & \tbd \\
 \rowcolor{clrPuzzle}
-  & Theme Class.
+  & Theme Classification
   & Micro-F1 (65 themes) $\uparrow$
-  & \tbd
-  & \ref{sec:app_bench_puzzle_themes} \\
+  & \tbd \\
 \midrule
 
-%% ── MOVE ANNOTATION ───────────────────────────────────────────────────────────
+%% ── MOVE ANNOTATION ──────────────────────────────────────────────────────────
 \rowcolor{clrAnnot}
-\small\textbf{Move Annot.}
-  & State Commentary
+\textbf{Move Annotation}
+  & Move Annotation
   & BLEU-2 $\uparrow$; Perplexity $\downarrow$ (5 categories)
-  & G-eval annotation quality (LLM judge)
-  & \ref{sec:app_bench_annotation} \\
+  & G-eval annotation quality \\
 \midrule
 
-%% ── GAME-LEVEL COMMENTARY ─────────────────────────────────────────────────────
+%% ── GAME COMMENTARY ──────────────────────────────────────────────────────────
 \rowcolor{clrComm}
-\small\textbf{Game Comm.}
+\textbf{Game Commentary}
   & Game Commentary
   & G-eval (0--1) $\uparrow$; Quality RMSE $\downarrow$; BLEU-2 $\uparrow$
-  & G-eval $+$ Highlight RMSE (composite)
-  & \ref{sec:app_bench_commentary} \\
+  & G-eval + Highlight RMSE (composite) \\
 \midrule
 
-%% ── INSTRUCTION-CONDITIONED PLANNING ──────────────────────────────────────────
+%% ── INSTRUCTION-CONDITIONED PLANNING ─────────────────────────────────────────
 \rowcolor{clrICP}
-\multirow{2}{1.2cm}{\centering\small\textbf{ICP}}
-  & ICP (in-dist.)
-  & Win-rate improv.\ (\%pp, 95\% CI) $\uparrow$
-  & Win-rate differential (Elo-swap protocol)
-  & \ref{sec:app_bench_icp_motifs} \\
+\multirow{2}{2.6cm}{\centering\small\textbf{Instruction-\\Conditioned\\Planning}}
+  & Instruction-Conditioned Planning
+  & Win-rate improvement (\%pp, 95\,\% CI) $\uparrow$
+  & Win-rate differential (Elo-swap protocol) \\
 \rowcolor{clrICP}
-  & \emph{ICP (OOD)}\,\itwmark{}
-  & Win-rate improv.\ (\%pp) $\uparrow$
-  & Win-rate differential
-  & \ref{sec:app_bench_icp_stats} \\
+  & \emph{Out-of-distribution}\,\itwmark{}
+  & Win-rate improvement (\%pp) $\uparrow$
+  & Win-rate differential \\
 
 \bottomrule[1.2pt]
 \end{tabular}
