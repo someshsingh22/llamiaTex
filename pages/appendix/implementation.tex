@@ -12,7 +12,7 @@
 \textbf{Package} & \textbf{Version} & \textbf{Role} \\
 \midrule
 PyTorch           & 2.8             & Training backend \\
-MegatronLM        & --              & Tensor-parallel training \\
+MegatronLM        & 0.15.0              & Tensor-parallel training \\
 VERL              & 0.7.1           & RL training framework \\
 vLLM              & 0.10.2          & Rollout inference engine \\
 Ray               & 2.55.1          & Distributed orchestration \\
@@ -20,7 +20,7 @@ Transformers      & 4.56.2          & Model loading \& tokenization \\
 lc0               & 0.32.1          & Chess specialist engine (UCI) \\
 \bottomrule
 \end{tabular}
-\caption{Key software dependencies.}
+\vspace{2mm}\caption{Key software dependencies.}
 \label{tab:libraries}
 \end{table}
 
@@ -42,12 +42,12 @@ Qwen3-8B  & 8B  & 4{,}096 & 36 & 32 (8) & 32{,}768 \\
 Qwen3-14B & 14B & 5{,}120 & 40 & 40 (8) & 32{,}768 \\
 \bottomrule
 \end{tabular}
-\caption{Backbone LLM architectures. All variants use GQA with 8 KV heads.}
+\vspace{2mm}\caption{Backbone LLM architectures. All variants use GQA with 8 KV heads. Chain-of-thought reasoning is disabled (\texttt{enable\_thinking=False}) following~\cite{XXX}.
+\texttt{max\_model\_len} is set to 32{,}768 tokens shared across system prompt, history, tool I/O, and response; \texttt{MAX\_ROUNDS=20} caps LLM calls per query.}
 \label{tab:backbone}
 \end{table}
 
-Chain-of-thought reasoning is disabled (\texttt{enable\_thinking=False}) following~\cite{XXX}.
-\texttt{max\_model\_len} is set to 32{,}768 tokens shared across system prompt, history, tool I/O, and response; \texttt{MAX\_ROUNDS=20} caps LLM calls per query.
+
 
 \subsubsection{LatentBridge Projector}
 \label{sec:app_projector}
@@ -66,19 +66,24 @@ Activation               & GeLU      & GeLU \\
 Source layer             & 15 of 15  & \tbd \\
 \bottomrule
 \end{tabular}
-\caption{LatentBridge projector $H_\varphi$ configuration per domain.}
-\label{tab:projector}
-\end{table}
-
-$H_\varphi$ is a three-layer MLP with GeLU activations mapping the specialist's
+\vspace{2mm}\caption{LatentBridge projector $H_\varphi$ configuration per domain. $H_\varphi$ is a three-layer MLP with GeLU activations mapping the specialist's
 residual stream into $k{=}16$ tokens of dimension $e$ matching the LLM's hidden size
 (see \cref{sec:token_ablation} for the $k$ ablation).
 A special \texttt{<state>} token anchors each injection site; $k$ contiguous positions
 immediately following it are overwritten with $\vz_t = H_\varphi(\vh_{s_t})$ before the
-LLM forward pass.
+LLM forward pass.}
+\label{tab:projector}
+\end{table}
+
+
 
 \subsection{Training Configuration}
 \label{sec:app_training}
+Model parameters and optimizer state are partitioned across 4 nodes of 8xA100 GPUs using PyTorch FSDP,
+coordinated via Ray.
+The rollout vLLM instance and lc0 server fleet co-reside on the same GPUs;
+\texttt{gpu\_memory\_utilization=0.5} reserves headroom for the BT4 network
+(${\sim}\,3$\,GiB per GPU), actor/critic FSDP shards, and cuBLAS workspace.
 \label{sec:hyperparams}
 
 \begin{table}[h]
@@ -101,7 +106,7 @@ Rollout temperature            & ---    & 1.0  \\
 Eval temperature               & ---    & 0.0  \\
 \bottomrule
 \end{tabular}
-\caption{Training hyperparameters. Stage 1 values are indicative best-practice defaults;
+\vspace{2mm}\caption{Training hyperparameters. Stage 1 values are indicative best-practice defaults;
 Stage 2 values will be updated upon final runs.}
 \label{tab:hparams}
 \end{table}
@@ -134,7 +139,7 @@ Read-only tool calls earn no per-call reward to prevent over-invocation.
 
 With \texttt{ScoreType=WDL\_mu}, lc0 reports scores as $100\!\cdot\!Q$ where
 $Q\in[-1,+1]$ is the WDL-mean utility from the side to move's perspective---\emph{not}
-Stockfish-style centipawns.
+Stockfish-style centipawns. \somesh{support this from literature}
 
 \subsubsection{Engine Configuration}
 \label{sec:app_lc0_config}
@@ -164,7 +169,7 @@ GPU footprint: ${\sim}\,2.9$\,GB in fp16 on A100.
 \bottomrule
 \end{tabular}
 \end{adjustbox}
-\caption{lc0 configuration. All search-behaviour flags (\texttt{CPuct}, \texttt{FpuValue},
+\vspace{2mm}\caption{lc0 configuration. All search-behaviour flags (\texttt{CPuct}, \texttt{FpuValue},
 \texttt{OutOfOrderEval}, etc.) are at upstream defaults so results match unmodified Leela.}
 \label{tab:lc0-flags}
 \end{table}
@@ -179,7 +184,7 @@ dispatched in parallel; mutating calls (\texttt{make\_move}, \texttt{undo\_move}
 
 \subsubsection{Agent State}
 \label{sec:app_toolcall_state}
-
+\somesh{No keep Agent state still as a table}
 \begin{tcolorbox}[statebox, title={Agent State}]
 The agent maintains two fields across tool calls: the current \textbf{board position}
 (FEN, castling rights, en-passant square, 50-move clock) and a \textbf{move history}
@@ -203,24 +208,10 @@ Do not call \texttt{reset\_position} unless you need a different position.
 
 \smallskip
 Tools (the board is stateful across calls):
-\begin{itemize}[noitemsep, topsep=2pt, leftmargin=14pt]
-  \item \texttt{get\_position} --- FEN, ASCII board, legal moves, history.
-  \item \texttt{make\_move(move)} --- apply UCI or SAN move \emph{permanently}.
-  \item \texttt{undo\_move} --- take back the last move.
-  \item \texttt{reset\_position(fen)} --- switch to a different FEN.
-  \item \texttt{analyze(nodes, multipv, moves=[])} --- lc0 MCTS search; pass
-        \texttt{moves=[X]} to analyse after a hypothetical move without mutating state.
-  \item \texttt{get\_policy(nodes)} --- raw NN priors $P$ and values $V$ per move
-        (single forward pass, no search).
-\end{itemize}
 
-\smallskip
-Blunder analysis: issue two parallel calls in one response---
-\texttt{analyze()} for the current position and
-\texttt{analyze(moves=[candidate])} after the candidate.
-The score difference is the centipawn loss; the second PV starts with the refutation.
+\{\{ \$TOOL DEFINITIONS\}\}
 \end{quote}
-\end{tcolorbox}
+\end{tcolorbox}\somesh{Take more meaningful prompts from previous set of prompts}
 
 \subsubsection{Tool Definitions}
 \label{sec:app_toolcall_tools}
@@ -248,15 +239,4 @@ The score difference is the centipawn loss; the second PV starts with the refuta
 \texttt{get\_policy} runs the minimum search for a single visit per root child and returns
 raw NN beliefs before MCTS modifies them.
 \end{tcolorbox}
-
-%------------------------------------------------------------------------------
-\subsection{Training Efficiency (FSDP)}
-\label{sec:app_efficiency}
-
-Model parameters and optimizer state are partitioned across GPUs using PyTorch FSDP,
-coordinated via Ray.
-The rollout vLLM instance and lc0 server fleet co-reside on the same GPUs;
-\texttt{gpu\_memory\_utilization=0.5} reserves headroom for the BT4 network
-(${\sim}\,3$\,GiB per GPU), actor/critic FSDP shards, and cuBLAS workspace.
-
-% =============================================================================
+\somesh{Add in caption that tool json is a part of the LLM's prompt }
