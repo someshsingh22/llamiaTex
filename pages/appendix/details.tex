@@ -796,6 +796,163 @@ gradient because the ground truth varies across the group.}
 \subsection{Prompt Templates}
 \label{app:details:prompts}
 
-% TODO: list training-time prompts (GRPO reward prompt, projector pretraining format,
-%       InvokeAgent trigger format, multi-turn template).
-% Cross-reference with pages/appendix/prompts.tex for extended listings.
+Three prompt regimes govern the pipeline: Stage~1 projector alignment, Stage~2 GRPO rollouts, and the shared dynamic re-encoding (InvokeAgent) format. Extended per-task LLAMIA-Bench listings appear in Appendix~\ref{sec:app_prompts}.
+
+%------------------------------------------------------------------------------
+\subsubsection{Stage 1: Projector Alignment}
+\label{app:details:prompts:stage1}
+
+Stage~1 trains the LatentBridge projector (the linear adapter that maps BT4 residual
+activations into the LLM token space) via supervised learning on chess instruction data.
+Each episode presents several independent questions about the same board position;
+the \texttt{<state>} placeholder marks the $K{=}32$ latent tokens projected from the
+BT4 residual stream and inserted into the LLM's context at that point.
+Four question types are sampled for each FEN: position evaluation, principal
+variation, legal moves, and brief verbal description.
+Move notation alternates UCI and SAN with probability 70\,/\,30\,\%; evaluations
+are in pawn units.
+
+\begin{tcolorbox}[promptbox,
+  title={$\triangleright$\; Stage 1 System Prompt --- Projector Alignment},
+  label={box:stage1sysprompt}]
+\begin{quote}
+You are LLAMIA, a chess reasoning assistant.
+The board state is encoded in the \texttt{<state>} token sequence embedded in the
+user's message.
+Answer the question about this position precisely and concisely.
+Do not narrate your reasoning; give the answer directly.
+\end{quote}
+\end{tcolorbox}
+
+\begin{tcolorbox}[notebox, title={Stage 1 Training Format (single episode over one FEN)}]
+\small
+\textbf{User:}~What is the evaluation of the following position? Describe the evaluation
+followed by the continuation in UCI format, e.g.\ \emph{``Evaluation is +1.5,
+Advantage for White, e2e4 e7e5''}. \texttt{<state>}\\[3pt]
+\textbf{LLAMIA:}~Evaluation is $+0.5$, white has a slight advantage,
+\texttt{d5c6 b4c4 e4d6 c4d3 \ldots}
+
+\tcbline
+\textbf{User:}~Give me the principal variation(s); just the evaluation(s) and the
+line(s). \texttt{<state>}\\[3pt]
+\textbf{LLAMIA:}~$+0.4$, \texttt{e4d6 a3a4 d5c6 b4c3 c6d5 c3d3}
+
+\tcbline
+\textbf{User:}~What are the legal moves in this position?
+Give me up to 10 comma-separated UCI moves and nothing else. \texttt{<state>}\\[3pt]
+\textbf{LLAMIA:}~\texttt{e4f2, d5e6, e4c3, e4g3, e4d6, e4g5, e4d2, e4f6, d5d6, e4c5}
+
+\tcbline
+\textbf{User:}~Describe the current position briefly. \texttt{<state>}\\[3pt]
+\textbf{LLAMIA:}~It is black's turn. White's King is somewhat exposed, with threats
+from Black's Knight and Pawn. Black has a centralised active Knight and Pawn.
+This position appears as a complex endgame with White holding a slight advantage
+due to the extra pawn.
+\end{tcolorbox}
+
+%------------------------------------------------------------------------------
+\subsubsection{Stage 2: GRPO System Prompt}
+\label{app:details:prompts:stage2}
+
+\paragraph{Toy task (puzzle popularity / ELO).}
+The system prompt below is used verbatim during GRPO rollouts for the puzzle
+popularity / ELO toy task (\S\ref{app:details:toytask}).
+The explicit refusal-suppression clause is required: without it, Qwen3-4B
+defaults to ``I cannot directly determine\ldots'' and never emits a tool call,
+collapsing the format-pass rate to 0\,\% (measured on 20 held-out puzzles;
+Table~\ref{tab:smoke-stats}).
+
+\begin{tcolorbox}[promptbox,
+  title={$\triangleright$\; Stage 2 System Prompt --- Puzzle Popularity / ELO (GRPO Rollouts)},
+  label={box:stage2grpo}]
+\begin{quote}
+You are a chess expert with access to lc0, a top neural network engine.
+A puzzle position has been loaded from the FEN in the user's message.
+Use the tools below to analyse the position, then estimate the puzzle's
+popularity and difficulty rating.
+
+\smallskip
+\textbf{Available tools:}
+\begin{itemize}[noitemsep,topsep=1pt,leftmargin=14pt]
+  \item \texttt{get\_position} --- FEN, ASCII board, legal moves.
+  \item \texttt{analyze(nodes, multipv)} --- lc0 MCTS search.
+  \item \texttt{get\_policy(nodes)} --- raw NN priors and per-move values.
+\end{itemize}
+
+\smallskip
+\textbf{You must always provide a numeric answer.}
+Refusing or writing ``I cannot determine'' is not permitted ---
+give your best guess even if uncertain.
+
+\smallskip
+End your reply with exactly one line in the form:\\[2pt]
+\texttt{The popularity is \textit{<int>} and the ELO is \textit{<int>}}
+\end{quote}
+\end{tcolorbox}
+
+\paragraph{Full LLAMIA-Bench.}
+All six task families (behaviour cloning, stylometry, puzzle understanding,
+move annotation, game commentary, instruction-conditioned planning) share the same
+tool catalogue as the toy task.
+Task-specific instructions replace the popularity/ELO mandate; the refusal-suppression
+clause is retained across all variants.
+Full per-task system prompts appear in Appendix~\ref{sec:app_prompts}.
+
+%------------------------------------------------------------------------------
+\subsubsection{InvokeAgent Trigger Format}
+\label{app:details:prompts:invoke}
+
+Dynamic re-encoding (\textsc{InvokeAgent}) fires after every board-mutating tool
+call (\texttt{make\_move}, \texttt{undo\_move}, \texttt{reset\_position}).
+The harness re-runs the BT4 forward pass on the updated FEN, encodes a fresh
+set of $K{=}32$ latent tokens, and prepends them as a \texttt{<state>} prefix to
+the next user turn.
+Because mutating calls are dispatched sequentially (\S\ref{app:details:agent:hparams}),
+the re-encoding always sees a fully settled board state.
+Read-only calls (\texttt{analyze}, \texttt{get\_policy}, \texttt{get\_position})
+do not trigger re-encoding; the token budget is therefore capped at $K$ additional
+tokens per state transition, regardless of analysis depth.
+
+\begin{tcolorbox}[notebox, title={InvokeAgent Turn Structure (blunder-analysis episode)}]
+\small
+\textbf{Round~1 --- User:} \texttt{<state$_0$>} Why is \texttt{Nxd4} a blunder here?
+[FEN $s_0$]\\[3pt]
+\textbf{Round~1 --- LLAMIA:} \textit{(emits two parallel \texttt{analyze} calls ---
+see \S\ref{app:details:agent:example})}
+
+\tcbline
+\textbf{Round~2 --- Tool:} \textit{(harness returns engine evaluations; state unchanged)}\\[3pt]
+\textbf{Round~2 --- LLAMIA:} Final answer citing \texttt{Qa5+} / \texttt{Qxg5}.
+\end{tcolorbox}
+
+Since no board mutation occurs in blunder analysis, \textsc{InvokeAgent} does not fire.
+The re-encoding path is active in multi-step planning episodes, where the agent
+sequences \texttt{make\_move} calls to explore a variation before deciding on a
+recommendation.
+
+\begin{tcolorbox}[notebox, title={InvokeAgent Turn Structure (multi-step planning episode)}]
+\small
+\textbf{Round~1 --- User:} \texttt{<state$_0$>} Find the best three-move combination. [FEN $s_0$]\\[3pt]
+\textbf{Round~1 --- LLAMIA:} \texttt{make\_move(e2e4)}
+
+\tcbline
+\textbf{Round~2 --- Tool:} \{move\_played: \texttt{e4}, fen: $s_1$, \ldots\}\\
+\textit{(harness re-encodes $s_1$ $\!\to\!$ fresh \texttt{<state$_1$>})}\\[3pt]
+\textbf{Round~2 --- User (injected):} \texttt{<state$_1$>}\\[3pt]
+\textbf{Round~2 --- LLAMIA:} \texttt{analyze(multipv=3)}
+
+\tcbline
+\textbf{Round~3 --- Tool:} \textit{(engine lines from $s_1$)}\\[3pt]
+\textbf{Round~3 --- LLAMIA:} \texttt{undo\_move()}
+
+\tcbline
+\textbf{Round~4 --- Tool:} \{fen: $s_0$, \ldots\}\\
+\textit{(harness re-encodes $s_0$ $\!\to\!$ fresh \texttt{<state$_0'$>})}\\[3pt]
+\textbf{Round~4 --- User (injected):} \texttt{<state$_0'$>}\\[3pt]
+\textbf{Round~4 --- LLAMIA:} Final recommendation.
+\end{tcolorbox}
+
+\noindent The injected \texttt{<state>} prefix in Rounds~2 and~4 is invisible to
+the human user; the harness inserts it programmatically before forwarding the
+tool result to the next LLM call.
+This keeps the re-encoding fully transparent to the model's reasoning loop.
