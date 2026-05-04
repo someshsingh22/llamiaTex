@@ -365,14 +365,3 @@ Each model plays 50 games per motif category (250 games total), with openings ra
 
 \paragraph{Out-of-distribution instructions.}
 We evaluate generalization on five instructions absent from Stage-2 training: ``avoid queen trades at all costs,'' ``maintain central tension without releasing,'' ``play for a draw through simplification,'' ``target the opponent's weak f7 square,'' and ``sacrifice material for initiative.'' LLAMIA-13B achieves 11\%pp average improvement on OOD instructions vs.\ 17\%pp in-distribution, indicating partial but meaningful generalization to novel strategic directives.
-
-% =============================================================================
-\subsection{Public Benchmark Anchors}
-\label{sec:app_bench_public}
-% =============================================================================
-
-To situate LLAMIA-Bench on shared external scales, we additionally report performance on five public benchmarks: (i) Maia-1900 move-match accuracy, (ii) ChessBench playing strength (Elo), (iii) Lichess puzzle solve rate, (iv) ChessQA~\cite{kefUcn22mk-chessqa}, and (v) HPDv2 image-preference alignment~\cite{wu2023human}. These benchmarks do not jointly span the six collaboration facets and are reported separately in the public-anchor table (Table~\ref{tab:gameplay-performance}). Per-benchmark contamination controls (FEN overlap, game-ID overlap, LLM pretraining cutoff) are reported in the leakage audit (Section~\ref{sec:app_data_leakage}).
-
-\tbd{} \emph{Anchor table cross-references and cutoff-date controls to be added as experiments finalize.}
-
-% =============================================================================
