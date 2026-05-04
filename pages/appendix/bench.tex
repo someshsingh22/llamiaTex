@@ -33,29 +33,29 @@ a random held-out split.
 }
 \label{tab:bench_dataset}
 \begin{adjustbox}{max width=\textwidth}
-\renewcommand{\arraystretch}{1.4}
+\renewcommand{\arraystretch}{1.35}
 \small
 \begin{tabular}{%
-  >{\centering\arraybackslash}p{2.6cm}   % Group
-  p{3.4cm}                               % Task / Split
-  p{4.0cm}                               % Source
-  p{2.1cm}                               % Size
-  p{3.2cm}                               % Task Expert
+  p{3.8cm}   % Task / Split
+  p{4.3cm}   % Source
+  p{1.9cm}   % Size
+  p{3.4cm}   % Task Expert
 }
 \toprule[1.2pt]
-\textbf{Group} & \textbf{Task / Split} & \textbf{Source} &
+\textbf{Task / Split} & \textbf{Source} &
 \textbf{Size (tr\,/\,te)} & \textbf{Task Expert} \\
 \midrule
 
 %% ── BEHAVIOR CLONING ─────────────────────────────────────────────────────────
 \rowcolor{clrBC}
-\multirow{2}{2.6cm}{\centering\small\textbf{Behavior\\Cloning}}
-  & Maia (Elo buckets)
+\multicolumn{4}{l}{\enspace\small\textbf{Behavior Cloning}} \\
+\rowcolor{clrBC}
+Maia (Elo buckets)
   & MAIA-KDD, Lichess~\cite{mcilroy2020aligning}
   & 12M\,/\,authors'
   & Maia\,+\,MCTS~\cite{jacob2022modeling} \\
 \rowcolor{clrBC}
-  & \emph{In the wild}\,\itwmark{}
+\emph{In the wild}\,\itwmark{}
   & MAIA-KDD filtered, Lichess (\textbf{Ours})
   & $\leq$167K\,/\,--
   & Maia (Elo-matched) \\
@@ -63,38 +63,34 @@ a random held-out split.
 
 %% ── PUZZLE UNDERSTANDING ─────────────────────────────────────────────────────
 \rowcolor{clrPuzzle}
-\multirow{3}{2.6cm}{\centering\small\textbf{Puzzle\\Understanding}}
-  & Difficulty Estimation
-  & \multirow{3}{4.0cm}{Lichess Puzzles\textsuperscript{\textdagger}
-      \cite{lichess2024puzzles}}
-  & 4M\,/\,random
-  & \multirow{2}{3.2cm}{CF-270M~\cite{XXX}} \\
+\multicolumn{4}{l}{\enspace\small\textbf{Puzzle Understanding}} \\
 \rowcolor{clrPuzzle}
-  & Interest Estimation
-  &
+Difficulty Estimation
+  & Lichess Puzzles\textsuperscript{\textdagger}~\cite{lichess2024puzzles}
   & 4M\,/\,random
-  & \\
+  & CF-270M~\cite{XXX} \\
 \rowcolor{clrPuzzle}
-  & Theme Classification
-  &
+Interest Estimation
+  & Lichess Puzzles\textsuperscript{\textdagger}~\cite{lichess2024puzzles}
   & 4M\,/\,random
-  & Lc0-BT4 \\
+  & CF-270M~\cite{XXX} \\
 \midrule
 
 %% ── MOVE ANNOTATION ──────────────────────────────────────────────────────────
 \rowcolor{clrAnnot}
-\textbf{Move Annotation}
-  & Move Annotation
+\multicolumn{4}{l}{\enspace\small\textbf{Move Annotation}} \\
+\rowcolor{clrAnnot}
+Move Annotation
   & Lichess~\cite{jhamtani-etal-2018-learning}
   & 90K\,/\,authors'
-  & \cite{zang2019automated};
-    \cite{jhamtani-etal-2018-learning} \\
+  & \cite{zang2019automated}; \cite{jhamtani-etal-2018-learning} \\
 \midrule
 
 %% ── GAME COMMENTARY ──────────────────────────────────────────────────────────
 \rowcolor{clrComm}
-\textbf{Game Commentary}
-  & Game Commentary
+\multicolumn{4}{l}{\enspace\small\textbf{Game Commentary}} \\
+\rowcolor{clrComm}
+Game Commentary
   & Agadmator-2K\textsuperscript{\textdaggerdbl} (\textbf{Ours})
   & 2K\,/\,100 games
   & --- \\
@@ -102,16 +98,12 @@ a random held-out split.
 
 %% ── INSTRUCTION-CONDITIONED PLANNING ─────────────────────────────────────────
 \rowcolor{clrICP}
-\multirow{2}{2.6cm}{\centering\small\textbf{Instruction-\\Conditioned\\Planning}}
-  & Instruction-Conditioned Planning
-  & \textbf{Ours}, ECO openings
-  & 250/motif\,/\,--
-  & \multirow{2}{3.2cm}{GPT-4o\,+\,Lc0-BT4} \\
+\multicolumn{4}{l}{\enspace\small\textbf{Instruction-Conditioned Planning}} \\
 \rowcolor{clrICP}
-  & \emph{Out-of-distribution}\,\itwmark{}
+Strategic motifs
   & \textbf{Ours}
-  & --\,/\,5 OOD
-  & \\
+  & 250/motif\,/\,--
+  & GPT-4o\,+\,Lc0-BT4 \\
 
 \bottomrule[1.2pt]
 \end{tabular}
@@ -136,72 +128,68 @@ a random held-out split.
 }
 \label{tab:bench_metrics}
 \begin{adjustbox}{max width=\textwidth}
-\renewcommand{\arraystretch}{1.4}
+\renewcommand{\arraystretch}{1.35}
 \small
 \begin{tabular}{%
-  >{\centering\arraybackslash}p{2.6cm}   % Group
-  p{3.4cm}                               % Task / Split
-  p{5.0cm}                               % Metric(s)
-  p{4.2cm}                               % RL Reward
+  p{3.8cm}   % Task / Split
+  p{5.2cm}   % Metric(s)
+  p{4.6cm}   % RL Reward
 }
 \toprule[1.2pt]
-\textbf{Group} & \textbf{Task / Split} & \textbf{Metric(s)} & \textbf{RL Reward} \\
+\textbf{Task / Split} & \textbf{Metric(s)} & \textbf{RL Reward} \\
 \midrule
 
 %% ── BEHAVIOR CLONING ─────────────────────────────────────────────────────────
 \rowcolor{clrBC}
-\multirow{2}{2.6cm}{\centering\small\textbf{Behavior\\Cloning}}
-  & Maia (Elo buckets)
+\multicolumn{3}{l}{\enspace\small\textbf{Behavior Cloning}} \\
+\rowcolor{clrBC}
+Maia (Elo buckets)
   & Move-match accuracy per bucket $\uparrow$
   & Move-match with target-Elo policy \\
 \rowcolor{clrBC}
-  & \emph{In the wild}\,\itwmark{}
+\emph{In the wild}\,\itwmark{}
   & Move-match accuracy $\uparrow$
   & Move-match with in-the-wild distribution \\
 \midrule
 
 %% ── PUZZLE UNDERSTANDING ─────────────────────────────────────────────────────
 \rowcolor{clrPuzzle}
-\multirow{3}{2.6cm}{\centering\small\textbf{Puzzle\\Understanding}}
-  & Difficulty Estimation
+\multicolumn{3}{l}{\enspace\small\textbf{Puzzle Understanding}} \\
+\rowcolor{clrPuzzle}
+Difficulty Estimation
   & Spearman $\rho$ vs.\ Glicko-2 $\uparrow$
   & \tbd \\
 \rowcolor{clrPuzzle}
-  & Interest Estimation
+Interest Estimation
   & Spearman $\rho$ vs.\ engagement $\uparrow$
-  & \tbd \\
-\rowcolor{clrPuzzle}
-  & Theme Classification
-  & Micro-F1 (65 themes) $\uparrow$
   & \tbd \\
 \midrule
 
 %% ── MOVE ANNOTATION ──────────────────────────────────────────────────────────
 \rowcolor{clrAnnot}
-\textbf{Move Annotation}
-  & Move Annotation
+\multicolumn{3}{l}{\enspace\small\textbf{Move Annotation}} \\
+\rowcolor{clrAnnot}
+Move Annotation
   & BLEU-2 $\uparrow$; Perplexity $\downarrow$ (5 categories)
   & G-eval annotation quality \\
 \midrule
 
 %% ── GAME COMMENTARY ──────────────────────────────────────────────────────────
 \rowcolor{clrComm}
-\textbf{Game Commentary}
-  & Game Commentary
+\multicolumn{3}{l}{\enspace\small\textbf{Game Commentary}} \\
+\rowcolor{clrComm}
+Game Commentary
   & G-eval (0--1) $\uparrow$; Quality RMSE $\downarrow$; BLEU-2 $\uparrow$
   & G-eval + Highlight RMSE (composite) \\
 \midrule
 
 %% ── INSTRUCTION-CONDITIONED PLANNING ─────────────────────────────────────────
 \rowcolor{clrICP}
-\multirow{2}{2.6cm}{\centering\small\textbf{Instruction-\\Conditioned\\Planning}}
-  & Instruction-Conditioned Planning
+\multicolumn{3}{l}{\enspace\small\textbf{Instruction-Conditioned Planning}} \\
+\rowcolor{clrICP}
+Strategic motifs
   & Win-rate improvement (\%pp, 95\,\% CI) $\uparrow$
   & Win-rate differential (Elo-swap protocol) \\
-\rowcolor{clrICP}
-  & \emph{Out-of-distribution}\,\itwmark{}
-  & Win-rate improvement (\%pp) $\uparrow$
-  & Win-rate differential \\
 
 \bottomrule[1.2pt]
 \end{tabular}
@@ -253,20 +241,11 @@ Time management is central to Rapid and Blitz formats: a player's strategy chang
 Players adapt their strategy significantly when facing opponents at a large skill gap, as occurs in tournaments and exhibition matches. We filter games where the Elo difference between players exceeds 500 points, yielding 34,000 games. This split is in-the-wild because extreme skill-gap matchups are rare in the training distribution and require the model to condition on opponent strength from contextual signals alone.
 
 % =============================================================================
-\subsection{Behavioral Stylometry}
-\label{sec:app_bench_stylometry}
-% =============================================================================
-
-Behavioral stylometry asks whether LLAMIA can attribute a sequence of moves to a specific grandmaster from playing style alone, without explicit identity information. Given a held-out game sequence, the model ranks a candidate set of GMs by likelihood. Evaluation uses top-1/2/3 identification accuracy and the Bradley--Terry ranking metric~\cite{CvjXlsBLCX-strength-est}; a confusion matrix and per-GM breakdown are reported in Appendix~\ref{sec:app_results_bc}. This split is in-the-wild because the held-out game sequences are not present in Stage-2 training.
-
-\tbd{} \emph{Prompt template, gold-label construction, train/test split sizes, and RL reward signal to be finalized.}
-
-% =============================================================================
 \subsection{Puzzle Interest and Difficulty Estimation}
 \label{sec:app_bench_puzzle}
 % =============================================================================
 
-Puzzle understanding tasks probe whether LLAMIA has internalized the agent's strategic representations well enough to make human-like judgments about puzzle characteristics. All three splits use the same 4-million-puzzle Lichess corpus,\footnote{\url{https://database.lichess.org/lichess_db_puzzle.csv.zst}} enriched with popularity scores, opening tags (for puzzles within the first 20 moves), and community metadata.
+Puzzle understanding tasks probe whether LLAMIA has internalized the agent's strategic representations well enough to make human-like judgments about puzzle characteristics. Both splits use the same 4-million-puzzle Lichess corpus,\footnote{\url{https://database.lichess.org/lichess_db_puzzle.csv.zst}} enriched with popularity scores and community metadata.
 
 \subsubsection{Difficulty Estimation}
 \label{sec:app_bench_puzzle_diff}
@@ -279,13 +258,6 @@ Puzzle difficulty is operationalized via a Glicko-2 rating system: each human so
 \label{sec:app_bench_puzzle_int}
 
 The interestingness score (range: $-100$ to $+100$) is computed from Lichess community upvotes and downvotes, weighted by solver performance. The model predicts interest; evaluation uses Spearman $\rho$ against the ground-truth signal on a held-out test split.
-
-\tbd{} \emph{Test split size and RL reward formulation to be finalized.}
-
-\subsubsection{Theme Classification}
-\label{sec:app_bench_puzzle_themes}
-
-Each Lichess puzzle is annotated with one or more tactical and strategic themes from a vocabulary of 65 categories (e.g., \emph{fork}, \emph{pin}, \emph{skewer}, \emph{discovered attack}, \emph{mate in 2}). The model must predict all applicable themes for a given position as a multi-label classification task. Evaluation uses Micro-F1 across all 65 theme labels.
 
 \tbd{} \emph{Test split size and RL reward formulation to be finalized.}
 
@@ -318,7 +290,7 @@ Move-segmented commentary is not directly available from YouTube. We construct i
 
 \paragraph{Metrics.}
 \begin{itemize}[leftmargin=*, itemsep=2pt]
-    \item \textbf{G-eval} (0--1): following \citet{liu2023g} and \citet{kim2024bridging}, covering four dimensions: relevance, completeness, clarity, fluency. Chess-specific dimensions (relevance, completeness) are evaluated by GPT-4o with Lc0-BT4 tool-calling alongside the ground-truth segment.
+    \item \textbf{G-eval} (0--1): following \citet{liu2023g} and \citet{kim2024bridging}, covering four dimensions: relevance, completeness, clarity, fluency. GPT-4o serves as LLM judge for the chess-specific dimensions (relevance, completeness), using Lc0-BT4 tool-calling alongside the ground-truth segment to ground its assessments in engine analysis.
     \item \textbf{Quality RMSE}: GPT-4o is given the generated commentary segment and asked to infer the centipawn evaluation of the board at that point; RMSE against engine ground truth measures how faithfully the commentary conveys strategic value.
     \item \textbf{Highlight RMSE}: GPT-4o predicts audience engagement (0--100) from the commentary; RMSE against YouTube replay-graph ground truth~\cite{singh2024teaching} measures human-interest alignment.
     \item \textbf{BLEU-2}: standard $n$-gram overlap against the ground-truth transcript segment.
@@ -332,47 +304,44 @@ The RL reward is a composite of G-eval and Highlight RMSE weighted equally.
 
 Instruction-conditioned planning (ICP) evaluates whether LLAMIA can reshape its joint policy in response to a natural-language directive about an opponent's known strategic weakness (e.g., ``your opponent is significantly weaker in endgames''). Success is measured not by move quality in isolation but by whether the model actively steers the game toward the instructed vulnerability domain and then capitalizes on it.
 
-\subsubsection{Motif Categories}
+\subsubsection{Motifs}
 \label{sec:app_bench_icp_motifs}
 
-We curate 25 strategic motifs across five high-level categories, selected for (a) presence across all skill levels, (b) automated detectability via board heuristics or engine rollouts, and (c) diversity of required planning:
+We curate 25 strategic motifs across five categories, selected for (a) presence across all skill levels, (b) automated detectability, and (c) diversity of required planning horizon.
 
-\begin{enumerate}[leftmargin=*]
-    \item \textbf{Endgames}: king-and-pawn endings, queen endgames, rook endgames, opposite-colored bishops, Lucena and Philidor positions, minor-piece vs.\ pawn endgames.
-    \item \textbf{Pawn Structures}: isolated, doubled, backward, and passed pawns; pawn chains; hanging pawns.
-    \item \textbf{Tactical Blunders}: knight forks, king pins, overloaded defenders, mate-in-$K$ ($K \leq 5$), king safety failures.
-    \item \textbf{Piece Coordination}: two rooks vs.\ queen; knight and bishop vs.\ rook; queen and knight vs.\ queen and bishop; bishop pair vs.\ bishop and knight; rook on open file vs.\ unconnected rooks.
-    \item \textbf{Repetition Traps}: forced threefold-repetition sequences, detected via rollout parsing.
-\end{enumerate}
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.3}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{p{3.2cm} p{6.8cm} p{5.4cm}}
+\toprule
+\textbf{Category} & \textbf{Description} & \textbf{Detection} \\
+\midrule
+Endgames
+  & King-and-pawn, rook, queen, opposite-colour bishop endings; Lucena/Philidor positions; minor-piece vs.\ pawn.
+  & Total material (excl.\ kings) $<13$\,pts. \\
+Pawn Structures
+  & Isolated, doubled, backward, and passed pawns; pawn chains; hanging pawns.
+  & Structural-analysis API; target structure persists $\geq$3 consecutive moves. \\
+Tactical Blunders
+  & Knight forks, pins, overloaded defenders, mate-in-$K$ ($K\!\leq\!5$), king safety failures.
+  & Engine evaluation shift $\geq$400\,cp within 2 moves. \\
+Piece Coordination
+  & Two rooks vs.\ queen; knight\,+\,bishop vs.\ rook; bishop pair vs.\ bishop\,+\,knight; rook on open file vs.\ unconnected rooks.
+  & Material configuration matches the target imbalance. \\
+Repetition Traps
+  & Forced threefold-repetition sequences.
+  & Position hash appears 3 times with the opponent to move. \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\caption{ICP motif categories with descriptions and automated detection criteria.}
+\label{tab:icp_motifs}
+\end{table}
 
-\subsubsection{Detection Criteria}
-\label{sec:app_bench_icp_detection}
+\subsubsection{Evaluation}
+\label{sec:app_bench_icp_eval}
 
-Each motif category has automated detection:
-\begin{itemize}[leftmargin=*, itemsep=2pt]
-    \item \textbf{Endgames}: total material (excluding kings) $<13$ points.
-    \item \textbf{Pawn Structures}: Chevy structural-analysis API; target structure must persist for $\geq$3 consecutive moves.
-    \item \textbf{Tactical Blunders}: engine evaluation shift $\geq$400\,cp within 2 moves.
-    \item \textbf{Piece Coordination}: material configuration matches the target imbalance.
-    \item \textbf{Repetition}: position hash appears 3 times with the opponent to move.
-\end{itemize}
-When a motif is detected, the opponent engine is downgraded from Lc0-BT4 with search ($>$2500\,Elo) to Maia-1900 (emulating $\sim$1900\,Elo). Because LLAMIA's playing strength is approximately 2200\,Elo, successful steering yields a winnable position even against the weaker replacement. Win-rate improvement over an uninstructed LLAMIA baseline is the primary metric.
-
-\subsubsection{Statistical Protocol}
-\label{sec:app_bench_icp_stats}
-
-Each model plays 50 games per motif category (250 games total), with openings randomized from the ECO database. Win-rate improvement is reported in percentage points above the uninstructed baseline, with 95\% bootstrap confidence intervals over 1,000 resamples. Differences $>$5\%pp are statistically significant at $p < 0.05$ via paired permutation test.
-
-\paragraph{Out-of-distribution instructions.}
-We evaluate generalization on five instructions absent from Stage-2 training: ``avoid queen trades at all costs,'' ``maintain central tension without releasing,'' ``play for a draw through simplification,'' ``target the opponent's weak f7 square,'' and ``sacrifice material for initiative.'' LLAMIA-13B achieves 11\%pp average improvement on OOD instructions vs.\ 17\%pp in-distribution, indicating partial but meaningful generalization to novel strategic directives.
-
-% =============================================================================
-\subsection{Public Benchmark Anchors}
-\label{sec:app_bench_public}
-% =============================================================================
-
-To situate LLAMIA-Bench on shared external scales, we additionally report performance on five public benchmarks: (i) Maia-1900 move-match accuracy, (ii) ChessBench playing strength (Elo), (iii) Lichess puzzle solve rate, (iv) ChessQA~\cite{kefUcn22mk-chessqa}, and (v) HPDv2 image-preference alignment~\cite{wu2023human}. These benchmarks do not jointly span the six collaboration facets and are reported separately in the public-anchor table (Table~\ref{tab:gameplay-performance}). Per-benchmark contamination controls (FEN overlap, game-ID overlap, LLM pretraining cutoff) are reported in the leakage audit (Section~\ref{sec:app_data_leakage}).
-
-\tbd{} \emph{Anchor table cross-references and cutoff-date controls to be added as experiments finalize.}
-
-% =============================================================================
+When a motif is detected, the opponent engine is downgraded from Lc0-BT4 ($>$2500\,Elo) to Maia-1900 ($\sim$1900\,Elo). Because LLAMIA plays at approximately 2200\,Elo, successful steering yields a winnable position against the weaker replacement. Each model plays 50 games per category (250 games total) with openings drawn uniformly at random. Win-rate improvement is reported in percentage points above the uninstructed LLAMIA baseline, with 95\,\% bootstrap confidence intervals over 1,000 resamples; differences $>$5\,\%pp are statistically significant at $p<0.05$ via paired permutation test.

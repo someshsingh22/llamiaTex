@@ -40,9 +40,13 @@
 % main-body section entries (written to .toc before the sentinel) are
 % silently skipped; only appendix entries (A, B, C, ...) are displayed.
 % NOTE: requires two compilations on first run.
-\newif\ifinappendix
-\ifinappendixfalse
-\newcommand{\appendixmark}{\inappendixtrue}
+% Define appendix sentinel (safe to call on every compilation)
+\expandafter\let\csname ifinappendix\endcsname\iffalse
+\expandafter\def\csname ifinappendixfalse\endcsname
+  {\expandafter\let\csname ifinappendix\endcsname\iffalse}
+\expandafter\def\csname inappendixtrue\endcsname
+  {\expandafter\let\csname ifinappendix\endcsname\iftrue}
+\providecommand{\appendixmark}{\inappendixtrue}
 
 \section*{Appendix Table of Contents}
 \label{sec:appendix_toc}
@@ -135,11 +139,11 @@
     boxed title style={colback=agentgoldbg, colframe=agentgold, arc=3pt, size=small, left=5pt, right=5pt},
   },
 }
-\newcommand{\toolparam}[2]{%
+\providecommand{\toolparam}[2]{%
   \hspace*{4pt}{\ttfamily\bfseries #1}\,\texttt{:}\;\textit{#2}\\[1pt]}
-\newcommand{\toolret}[1]{%
+\providecommand{\toolret}[1]{%
   \smallskip\noindent{\color{agentslate}\textbf{Returns:}}\;\textit{#1}}
-\newcommand{\tooldesc}[1]{%
+\providecommand{\tooldesc}[1]{%
   \noindent{\color{agentslate}\textbf{Description:}}\;#1\smallskip}
 
 
