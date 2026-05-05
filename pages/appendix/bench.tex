@@ -25,32 +25,20 @@ Where the original authors provide a fixed test split we use it; otherwise we sa
 %% ── TABLE 1: DATASET PROVENANCE ──────────────────────────────────────────────
 \begin{table}[ht]
 \centering
-\caption{LLAMIA-Bench: dataset and task provenance. \itwmark{} = OOD split (test distribution shifted or absent from Stage-2 training). \textbf{Ours} = constructed for this work.}
+\caption{LLAMIA-Bench: dataset and task provenance. \textbf{Ours} = constructed for this work.}
 \label{tab:bench_dataset}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{llll}
 \toprule
-\textbf{Task / Split} & \textbf{Source} & \textbf{Train / Test} & \textbf{Task Expert} \\
+\textbf{Task} & \textbf{Source} & \textbf{Train / Test} & \textbf{Task Expert} \\
 \midrule
-\multicolumn{4}{l}{\textit{Behavior Cloning}} \\
-Maia (Elo buckets) & MAIA-KDD, Lichess \cite{mcilroy2020aligning} & 12M / authors' & Maia \cite{mcilroy2020aligning} \\
-GM-25\,\itwmark{} & Lichess, filtered (\textbf{Ours}) & $\leq$167K / \tbd & Maia \cite{mcilroy2020aligning} \\
-Low-Time\,\itwmark{} & Lichess, filtered (\textbf{Ours}) & 129K / \tbd & Maia \cite{mcilroy2020aligning} \\
-Elo Gap\,\itwmark{} & Lichess, filtered (\textbf{Ours}) & 34K / \tbd & Maia \cite{mcilroy2020aligning} \\
-\midrule
-\multicolumn{4}{l}{\textit{Puzzle Understanding}} \\
-Difficulty Estimation & \multirow{2}{*}{Lichess Puzzles \cite{lichess2024puzzles}} & 4M / \tbd & \cite{milosz2024predicting} \\
-Interest Estimation & & 4M / \tbd & --- \\
-\midrule
-\multicolumn{4}{l}{\textit{Move Annotation}} \\
-Jhamtani et al. & Lichess \cite{jhamtani-etal-2018-learning} & 90K / authors' & SCC \cite{zang2019automated} \\
-\midrule
-\multicolumn{4}{l}{\textit{Game Commentary}} \\
-Agadmator-2K & Agadmator YouTube (\textbf{Ours}) & 1.9K / 100 games & --- \\
-\midrule
-\multicolumn{4}{l}{\textit{Instruction-Conditioned Planning}} \\
-Strategic Motifs & \textbf{Ours} & 250/motif / 250 & GPT-4o + Lc0 \\
+Behavior Cloning & MAIA-KDD, Lichess \cite{mcilroy2020aligning} & 12M / authors'\textsuperscript{*} & Maia \cite{mcilroy2020aligning} \\
+Puzzle Understanding & Lichess Puzzles \cite{lichess2024puzzles} & 4M / \tbd & \cite{milosz2024predicting} \\
+Move Annotation & Lichess \cite{jhamtani-etal-2018-learning} & 90K / authors' & SCC \cite{zang2019automated} \\
+Game Commentary & Agadmator YouTube (\textbf{Ours}) & 1.9K / 100 games & --- \\
+Instr.-Cond.\ Planning & \textbf{Ours} & 250/motif / 250 & --- \\
 \bottomrule
+\multicolumn{4}{l}{\textsuperscript{*}\,Plus three OOD splits (GM-25, Low-Time, Elo Gap); see \S\ref{sec:app_bench_bc}.}
 \end{tabular}
 \end{adjustbox}
 \end{table}
@@ -63,27 +51,15 @@ Strategic Motifs & \textbf{Ours} & 250/motif / 250 & GPT-4o + Lc0 \\
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{lll}
 \toprule
-\textbf{Task / Split} & \textbf{Metric(s)} & \textbf{RL Reward} \\
+\textbf{Task} & \textbf{Metric(s)} & \textbf{RL Reward} \\
 \midrule
-\multicolumn{3}{l}{\textit{Behavior Cloning}} \\
-Maia (Elo buckets) & Move-match accuracy $\uparrow$ & Move-match with target-Elo policy \\
-GM-25\,\itwmark{} & Move-match accuracy $\uparrow$ & Move-match vs.\ target-GM distribution \\
-Low-Time\,\itwmark{} & Move-match accuracy $\uparrow$ & Move-match under clock-pressure \\
-Elo Gap\,\itwmark{} & Move-match accuracy $\uparrow$ & Move-match under skill-gap distribution \\
-\midrule
-\multicolumn{3}{l}{\textit{Puzzle Understanding}} \\
-Difficulty Estimation & Spearman $\rho$ vs.\ Glicko-2 $\uparrow$ & \tbd \\
-Interest Estimation & Spearman $\rho$ vs.\ engagement $\uparrow$ & \tbd \\
-\midrule
-\multicolumn{3}{l}{\textit{Move Annotation}} \\
-Jhamtani et al. & BLEU-2 $\uparrow$; Perplexity $\downarrow$ (5 categories) & G-eval annotation quality \\
-\midrule
-\multicolumn{3}{l}{\textit{Game Commentary}} \\
-Agadmator-2K & G-eval (0--1) $\uparrow$; Quality RMSE $\downarrow$; BLEU-2 $\uparrow$ & G-eval + Highlight RMSE (equal weight) \\
-\midrule
-\multicolumn{3}{l}{\textit{Instruction-Conditioned Planning}} \\
-Strategic Motifs & Win-rate improvement (\%pp, 95\,\% CI) $\uparrow$ & Win-rate differential (Elo-swap protocol) \\
+Behavior Cloning      & Move-match accuracy $\uparrow$            & Move-match accuracy \\
+Puzzle Understanding  & Spearman $\rho$ $\uparrow$                & Normalized MAE $\downarrow$ \\
+Move Annotation       & G-eval $\uparrow$;\enspace BLEU-2 $\uparrow$ & G-eval \\
+Game Commentary       & G-eval $\uparrow$;\enspace BLEU-2 $\uparrow$ & G-eval \\
+Instr.-Cond.\ Planning\textsuperscript{\textdagger} & Tournament Elo $\uparrow$ & --- \\
 \bottomrule
+\multicolumn{3}{l}{\textsuperscript{\textdagger}\,Test-only task; no RL reward signal.}
 \end{tabular}
 \end{adjustbox}
 \end{table}
