@@ -1,7 +1,6 @@
 \section{Datasets \& Benchmarks}
 \label{sec:app_bench}
 % =============================================================================
-
 Four problems recur whenever an LLM orchestrator collaborates with a domain-expert subagent: imitating target behavior, predicting human-aligned state properties, explaining agent actions in natural language, and steering joint policy to follow natural-language instructions.
 In game playing these correspond to player modeling~\citep{mcilroy2020aligning,jacob2022modeling}, puzzle curation and coaching~\citep{lichess2024puzzles}, move annotation and game commentary~\citep{jhamtani-etal-2018-learning,zang2019automated}, and strategic preparation against known opponents.
 LLAMIA-Bench provides an evaluation task for each: behavior cloning, difficulty and interest estimation, annotation and commentary, and instruction-conditioned planning.
@@ -29,7 +28,7 @@ Where the original authors provide a fixed test split we use it; otherwise we sa
 \textbf{Task / Split} & \textbf{Source} & \textbf{Train / Test} & \textbf{Task Expert} \\
 \midrule
 \multicolumn{4}{l}{\textit{Behavior Cloning}} \\
-Maia (Elo buckets) & MAIA-KDD, Lichess \cite{mcilroy2020aligning} & 12M / authors' & Maia \cite{mcilroy2020aligning} \\
+Maia (Elo buckets) & \cite{mcilroy2020aligning} & 12M / authors' & Maia \cite{mcilroy2020aligning} \\
 GM-25\,\itwmark{} & Lichess, filtered (\textbf{Ours}) & $\leq$167K / \tbd & Maia \cite{mcilroy2020aligning} \\
 Low-Time\,\itwmark{} & Lichess, filtered (\textbf{Ours}) & 129K / \tbd & Maia \cite{mcilroy2020aligning} \\
 Elo Gap\,\itwmark{} & Lichess, filtered (\textbf{Ours}) & 34K / \tbd & Maia \cite{mcilroy2020aligning} \\
@@ -39,7 +38,7 @@ Difficulty Estimation & \multirow{2}{*}{Lichess Puzzles \cite{lichess2024puzzles
 Interest Estimation & & 4M / \tbd & --- \\
 \midrule
 \multicolumn{4}{l}{\textit{Move Annotation}} \\
-Jhamtani et al. & Lichess \cite{jhamtani-etal-2018-learning} & 90K / authors' & SCC \cite{zang2019automated} \\
+Jhamtani et al. & \cite{jhamtani-etal-2018-learning} & 90K / authors' & SCC \cite{zang2019automated} \\
 \midrule
 \multicolumn{4}{l}{\textit{Game Commentary}} \\
 Agadmator-2K & Agadmator YouTube (\textbf{Ours}) & 1.9K / 100 games & --- \\
