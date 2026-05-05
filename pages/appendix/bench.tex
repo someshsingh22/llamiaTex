@@ -2,21 +2,21 @@
 \label{sec:app_bench}
 % =============================================================================
 
+Four problems recur whenever an LLM orchestrator collaborates with a domain-expert subagent: imitating target behavior, predicting human-aligned state properties, explaining agent actions in natural language, and steering joint policy to follow natural-language instructions.
+In game playing these correspond to player modeling~\citep{mcilroy2020aligning,jacob2022modeling}, puzzle curation and coaching~\citep{lichess2024puzzles}, move annotation and game commentary~\citep{jhamtani-etal-2018-learning,zang2019automated}, and strategic preparation against known opponents.
+LLAMIA-Bench provides an evaluation task for each: behavior cloning, difficulty and interest estimation, annotation and commentary, and instruction-conditioned planning.
+Chess is the testbed because it offers all four at once: pretrained agents whose internal representations are mapped by interpretability work~\citep{jenner2024evidence}, public game databases at scale~\citep{Lichess,Caissabase}, established benchmarks with specialist baselines, and decades of human--engine practice.
+The four tasks range from a single-position state query (behavior cloning) to multi-move policy steering (instruction-conditioned planning), and from signals with partial textual correlates---move quality, puzzle difficulty---to ones without, such as aesthetic interest~(\cref{sec:app_bench_puzzle_int}).
+
 % =============================================================================
 \subsection{Dataset}
 \label{sec:app_bench_dataset}
 % =============================================================================
-\somesh{Fix these axes as human engine collaboration, first make a table of datasets and sources. Then datastraining tasks train/test size, metrics, and t}
-LLAMIA-Bench spans four collaboration facets: \emph{behavioral calibration},
-\emph{strategic explanation}, \emph{sustained planning}, and
-\emph{instruction-conditioned adaptation}.
+
 Table~\ref{tab:bench_dataset} summarizes dataset provenance and task experts;
 Table~\ref{tab:bench_metrics} lists evaluation metrics per task.
-Splits marked~\itwmark{} are \emph{out-of-distribution (OOD)}: the test distribution is
-absent or shifted relative to Stage-2 training, so generalization must come from
-internalized representations rather than memorization.
-Where the original authors provide a fixed test split we use it; otherwise we sample
-a random held-out split.
+Splits marked~\itwmark{} are \emph{out-of-distribution (OOD)}: the test distribution is absent or shifted relative to Stage-2 training, so generalization must come from internalized representations rather than memorization.
+Where the original authors provide a fixed test split we use it; otherwise we sample a random held-out split.
 
 %% ── TABLE 1: DATASET PROVENANCE ──────────────────────────────────────────────
 \begin{table}[ht]
