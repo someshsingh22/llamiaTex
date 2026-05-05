@@ -52,31 +52,6 @@ Generating high quality chess commentary demands contextually relevant move desc
 Beyond pure imitation, we explore LLAMIA’s capability to modify its play style according to strategic instructions about an opponent’s known weaknesses. Human chess experts frequently exploit known vulnerabilities such as ``Endgame weakness", ``Time pressure''. Motivated by this human-centric capability, we evaluate LLAMIA using scenarios explicitly constructed to reward such adaptive behaviors (detailed scenario description in Appendix~\ref{tab:instruct_conditioned_planning}). Strikingly, LLAMIA-13B achieves a mean improvement of 17\% over a baseline that cannot condition on instructions (Table~\ref{tab:instruct_conditioned_planning}).
 We also observe the generalization capability of LLAMIA by comparing the \% of training data and win rates in \ref{fig:icp}. LLAMIA’s adaptive capabilities emerge rapidly (40\% of training data), whereas standard fine-tuning approaches (ChessGPT-13B) fail to meaningfully adapt until nearly full data exposure. 
 
-\begin{table}[!h]
-\centering
-\adjustbox{max width=0.5\textwidth}{
-\begin{tabular}{l|c|c|c|c}
-\toprule[1.2pt]
-\textbf{Model} & \textbf{Size} & \textbf{Method} & \textbf{\makecell{Behavior\\Simulation}} & \textbf{\makecell{Comparative\\Transsuasion}} \\
-\midrule
-GPT-4o & * & ICL & 43.2 & 57.3 \\
-GPT-4 & * & ICL & 39.2 & 55.7 \\
-GPT-3.5 & * & ICL & 35.6 & 50.6 \\
-LLaMA-3-70B & 70B & ICL & 37.4 & 52.6 \\
-\midrule
-Transsuasion-13B & 13B & IFT & 59.8 & 77.0 \\
-\midrule
-LLAMIA (Self-only) & 13B & SALT & \valgood{61.0} & 77.5 \\
-LLAMIA (Industry-only) & 13B & SALT & 60.1 & \valgood{79.2} \\
-LLAMIA (Self \& Industry) & 13B & SALT & \valbest{63.4} & \valbest{80.1} \\
-\bottomrule
-\end{tabular}}
-\vspace{2mm}
-\caption{\textbf{Simulative Persuasion Performance on PersuasionBench.} 
-We evaluate models on behavior simulation (BS) predicting tweet engagement levels and comparative transsuasion (TS) choosing the more engaging of two tweets. LLAMIA outperforms all baselines with a \textbf{6\% gain} in BS and \textbf{4\% in TS} over Transsuasion-13B, despite using only 50\% of the training data. LLAMIA internalizes a time-series critic, \texttt{chronos-bolt-base}\cite{ansari2024chronos}, trained to forecast engagement trends over a 14-day horizon using both post-author (self) and brand-level (industry) temporal signals. Ablations show that self-only and industry-only variants individually improve over the IFT baseline, but their combination yields the best generalization. This highlights the synergistic benefit of modeling both personalized and group-level engagement dynamics within the SALT framework.}
-\label{tab:persuasion_llamia}
-\end{table}
-
 % \textbf{Generalization to Vision and Persuasion Tasks}
 % \label{sec:cross_domain}
 % Finally, we validate LLAMIA’s robustness as a framework beyond chess by integrating latent states from domain-specific pretrained critics in Text-to-Image Preference Alignment and persuasion prediction. For vision-based image preference alignment, LLAMIA significantly surpasses the state-of-the-art VisionReward model (+5 pp accuracy), achieving this improvement with merely half the required fine-tuning data (Appendix~\ref{sec:addl-results}). Qualitative results in Figure~\ref{fig:image_grid} further demonstrate LLAMIA’s superior stylistic fidelity and consistency across diverse artistic prompts.
