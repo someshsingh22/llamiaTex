@@ -29,23 +29,38 @@ Where the original authors provide a fixed test split we use it; otherwise we sa
 \centering
 \small
 \setlength{\tabcolsep}{5pt}
-\renewcommand{\arraystretch}{1.3}
-\caption{LLAMIA-Bench: dataset and task provenance. \textbf{Ours} = constructed for this work.}
+\renewcommand{\arraystretch}{1.4}
+\caption{\textbf{LLAMIA-Bench: dataset provenance.} \textbf{Ours} = constructed for this work. OOD = out-of-distribution test split (\S\ref{sec:app_bench_bc}).}
 \label{tab:bench_dataset}
 \vspace{4pt}
 \begin{adjustbox}{max width=\linewidth}
-\begin{tabular}{p{3.5cm} p{4.2cm} p{2.4cm} p{3.0cm}}
+\begin{tabular}{p{4.8cm} p{5.8cm} p{2.4cm}}
 \toprule
-\textbf{Task} & \textbf{Source} & \textbf{Train\,/\,Test} & \textbf{Task Expert} \\
+\textbf{Task / Source} & \textbf{Description} & \textbf{Train\,/\,Test} \\
 \midrule
-Behavior Cloning       & MAIA-KDD, Lichess~\cite{mcilroy2020aligning}    & 12M / authors'\textsuperscript{*} & Maia~\cite{mcilroy2020aligning} \\
-Puzzle Understanding   & Lichess Puzzles~\cite{lichess2024puzzles}        & 4M / 5K       & \cite{milosz2024predicting} \\
-Move Annotation        & Lichess~\cite{jhamtani-etal-2018-learning}      & 90K / authors'  & SCC~\cite{zang2019automated} \\
-Game Commentary        & Agadmator YouTube (\textbf{Ours})               & 1.9K / 100      & ---\textsuperscript{\textdagger} \\
-Instr.-Cond.\ Planning & Synthetic Motifs (\textbf{Ours})                & 250/motif / 250 & ---\textsuperscript{\textdagger} \\
+\makecell[tl]{Behavior Cloning \\ {\scriptsize MAIA-KDD, Lichess~\cite{mcilroy2020aligning}}}
+  & Predict the move a human of a given Elo would play; 5 Elo buckets (1100--1900)
+  & 12M / authors' \\
+\makecell[tl]{\quad\emph{In the wild} (OOD) \\ {\scriptsize MAIA-KDD, Lichess (\textbf{Ours})}}
+  & Three OOD splits: GM-25 (top-25 GMs), Low-Time (clock pressure $<$10\%), Elo Gap ($>$500 pts)
+  & $\leq$167K / --- \\
+\midrule
+\makecell[tl]{Puzzle Understanding \\ {\scriptsize Lichess Puzzles~\cite{lichess2024puzzles}}}
+  & Predict difficulty (Glicko-2) and interest (community votes) of tactical puzzles
+  & 4M / 5K \\
+\midrule
+\makecell[tl]{Move Annotation \\ {\scriptsize Lichess~\cite{jhamtani-etal-2018-learning}}}
+  & Generate natural-language explanation for a single move across 5 semantic categories
+  & 90K / authors' \\
+\midrule
+\makecell[tl]{Game Commentary \\ {\scriptsize Agadmator YouTube (\textbf{Ours})}}
+  & Produce coherent multi-turn narrative spanning an entire game
+  & 1.9K / 100 \\
+\midrule
+\makecell[tl]{Instr.-Cond.\ Planning \\ {\scriptsize Synthetic Motifs (\textbf{Ours})}}
+  & Steer play toward an opponent's stated weakness across 5 motif categories
+  & --- / 250 \\
 \bottomrule
-\multicolumn{4}{p{13.1cm}}{\footnotesize\textsuperscript{*}\;Plus three OOD splits (GM-25, Low-Time, Elo Gap); see \S\ref{sec:app_bench_bc}.} \\
-\multicolumn{4}{p{13.1cm}}{\footnotesize\textsuperscript{\textdagger}\;New evaluation target; no prior task-specific model exists.}
 \end{tabular}
 \end{adjustbox}
 \end{table}
@@ -82,9 +97,6 @@ Instr.-Cond.\ Planning\textsuperscript{\textdagger} & Tournament Elo $\uparrow$ 
 
 Behavior cloning measures whether LLAMIA can imitate human play conditioned on skill level or player identity. The metric across all splits is \textbf{move-match accuracy}: the fraction of positions where the model's top-1 predicted move exactly matches the target player's move. We follow the MAIA evaluation protocol~\citep{mcilroy2020aligning}: Maia variants use best-of-$N$ sampling; LLAMIA uses a single forward pass.
 
-\paragraph{Task expert.}
-The task expert for behavior cloning is the Maia family~\citep{mcilroy2020aligning}: per-Elo-bracket convolutional networks trained on 12M games each, optionally augmented with MCTS search~\citep{jacob2022modeling}. On the standard Maia benchmark, Maia\,+\,MCTS represents the published state of the art. On the three OOD splits below, we compare against an Elo-matched Maia network (without MCTS) as a reference, since no specialized models exist for these distributions.
-
 \subsubsection{Maia Benchmark (Elo Buckets)}
 \label{sec:app_bench_bc_maia}
 
@@ -112,9 +124,6 @@ Players adapt their style when facing a large skill gap---weaker players take mo
 
 Puzzle understanding probes whether LLAMIA has internalized the subagent's positional representations well enough to predict human-aligned properties of game states. Both sub-tasks draw from the same 4-million-puzzle Lichess corpus,\footnote{\url{https://database.lichess.org/lichess_db_puzzle.csv.zst}} which provides community-derived ground-truth labels for difficulty and engagement. We hold out a shared test set of 5,000 puzzles, stratified by difficulty (Glicko-2 quintiles), theme (tactical motif), and interest (score quintiles) to ensure uniform coverage across the label space. Evaluation uses Spearman~$\rho$ between predicted and ground-truth values; the RL reward is a normalized mean-absolute-error penalty.
 
-\paragraph{Task expert.}
-The task expert for difficulty estimation is the model of \citet{milosz2024predicting}, the strongest published system for Lichess puzzle difficulty prediction. No prior work targets puzzle interest prediction; we compare against the frontier verbalized baseline only.
-
 \subsubsection{Difficulty Estimation}
 \label{sec:app_bench_puzzle_diff}
 
@@ -132,9 +141,6 @@ Lichess assigns each puzzle an interestingness score (range: $-100$ to $+100$) c
 
 Move annotation evaluates LLAMIA's ability to generate natural-language explanations for individual moves, conditioned on the board state and the move played. We follow the benchmark of \citet{jhamtani-etal-2018-learning}: 90,000 Lichess games annotated in English, with annotations categorized into five semantic dimensions---\emph{description} (what the move does), \emph{quality} (blunder, inaccuracy, good, best), \emph{planning} (rationale and lookahead), \emph{context} (links to prior or future moves), and \emph{comparative} (alternative moves and their justification). The standard benchmark provides the target move as input; we additionally evaluate zero-shot without this prior to test whether internalized representations can identify annotation-worthy moves.
 
-\paragraph{Task expert.}
-The task expert is SCC~\citep{zang2019automated}, a supervised encoder-decoder model trained on the same 90K corpus. We also report numbers from \citet{jhamtani-etal-2018-learning} as a second reference.
-
 \paragraph{Metrics.}
 \textbf{BLEU-2} and perplexity~\citep{lee2022improving} are evaluated per annotation category, following prior work. The primary metric is \textbf{G-eval}~\citep{liu2023g}: an LLM-as-judge framework in which GPT-4o rates each generated annotation on a 0--1 scale across four dimensions (relevance, accuracy, completeness, fluency). The judge receives the board FEN, the move in algebraic notation, and Lc0-BT4's top-3 engine lines as grounding context, so its assessments are anchored in engine analysis rather than surface plausibility alone. Per-annotation G-eval scores are averaged across the four dimensions; the corpus-level score is the mean over all test annotations. G-eval also serves as the RL reward signal for this task.
 
@@ -143,7 +149,7 @@ The task expert is SCC~\citep{zang2019automated}, a supervised encoder-decoder m
 \label{sec:app_bench_commentary}
 % =============================================================================
 
-Game-level commentary requires a coherent, multi-turn narrative spanning an entire game---unlike move-level annotation, errors compound across the narrative, and the model must track evolving themes (initiative shifts, pawn-structure transformations, time trouble). We introduce \textbf{Agadmator-2K}, the first large-scale dataset for this task: 1,900 narrated games from Agadmator's YouTube channel,\footnote{\url{https://www.youtube.com/@agadmator}} totaling approximately 500 hours. No task expert exists; this is a new evaluation target.
+Game-level commentary requires a coherent, multi-turn narrative spanning an entire game---unlike move-level annotation, errors compound across the narrative, and the model must track evolving themes (initiative shifts, pawn-structure transformations, time trouble). We introduce \textbf{Agadmator-2K}, the first large-scale dataset for this task: 1,900 narrated games from Agadmator's YouTube channel,\footnote{\url{https://www.youtube.com/@agadmator}} totaling approximately 500 hours.
 
 \paragraph{Dataset construction.}
 Move-segmented commentary is unavailable from YouTube. We construct it in four steps: (i)~transcripts are extracted via Whisper-v3-large; (ii)~video timestamps are aligned to PGN move sequences using a sliding-window move-tracking buffer; (iii)~GPT-4o labels which moves each transcript segment references, guided by the known PGN; (iv)~segments are accepted only when the inferred move order matches the PGN exactly, discarding retries and out-of-order narration. The test set consists of 100 games, held out by ascending view count to minimize overlap with LLM pretraining corpora. This is a heuristic proxy for low contamination, not a guarantee; we discuss contamination further in \S\ref{sec:app_bench_contamination}.
@@ -162,7 +168,7 @@ The RL reward is an equally weighted composite of G-eval and Highlight RMSE.
 \label{sec:app_bench_icp}
 % =============================================================================
 
-Instruction-conditioned planning (ICP) evaluates whether LLAMIA can reshape its policy in response to a natural-language directive about an opponent's known weakness (e.g., ``your opponent is significantly weaker in endgames''). Unlike the other tasks, ICP is a \emph{test-only} task with no RL reward: it probes whether the representations learned during multi-task training transfer to a novel form of collaboration---strategic preparation---that the model never optimized for directly. No task expert exists; this is a new evaluation target. We compare against GPT-4o\,+\,Lc0-BT4 (tool-calling) as the strongest available reference.
+Instruction-conditioned planning (ICP) evaluates whether LLAMIA can reshape its policy in response to a natural-language directive about an opponent's known weakness (e.g., ``your opponent is significantly weaker in endgames''). Unlike the other tasks, ICP is a \emph{test-only} task with no RL reward: it probes whether the representations learned during multi-task training transfer to a novel form of collaboration---strategic preparation---that the model never optimized for directly.
 
 \subsubsection{Motifs}
 \label{sec:app_bench_icp_motifs}
