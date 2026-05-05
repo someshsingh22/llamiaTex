@@ -2,11 +2,15 @@
 \label{sec:app_bench}
 % =============================================================================
 
-Four problems recur whenever an LLM orchestrator collaborates with a domain-expert subagent: imitating target behavior, predicting human-aligned state properties, explaining agent actions in natural language, and steering joint policy to follow natural-language instructions.
-In game playing these correspond to player modeling~\citep{mcilroy2020aligning,jacob2022modeling}, puzzle curation and coaching~\citep{lichess2024puzzles}, move annotation and game commentary~\citep{jhamtani-etal-2018-learning,zang2019automated}, and strategic preparation against known opponents.
-LLAMIA-Bench provides an evaluation task for each: behavior cloning, difficulty and interest estimation, annotation and commentary, and instruction-conditioned planning.
-Chess is the testbed because it offers all four at once: pretrained agents whose internal representations are mapped by interpretability work~\citep{jenner2024evidence}, public game databases at scale~\citep{Lichess,Caissabase}, established benchmarks with specialist baselines, and decades of human--engine practice.
-The four tasks range from a single-position state query (behavior cloning) to multi-move policy steering (instruction-conditioned planning), and from signals with partial textual correlates---move quality, puzzle difficulty---to ones without, such as aesthetic interest~(\cref{sec:app_bench_puzzle_int}).
+This section describes the datasets and evaluation protocol for LLAMIA-Bench.
+We find four major themes in how AI systems collaborate with domain-expert agents:
+\emph{Behavioral imitation}: reproducing human play at a target skill level, the problem behind bots like Play Magnus\footnote{\url{https://www.playmagnus.com}} and Maia~\citep{mcilroy2020aligning}.
+\emph{State assessment}: predicting human-aligned properties of game states such as difficulty and engagement, the core task in Lichess's puzzle rating system and Chess.com's adaptive training~\citep{lichess2024puzzles}.
+\emph{Explanation}: generating natural-language rationale for agent actions, from single-move annotation~\citep{jhamtani-etal-2018-learning,zang2019automated} to the game-length commentary produced by channels like Agadmator and GothamChess.
+\emph{Instruction-conditioned planning}: steering play toward a strategic objective given in natural language, the problem a coach's preparation tool must solve when told to target a known opponent weakness.
+These four themes place progressively harder demands on the communication channel between LLM and subagent: from a single-position state query (behavioral imitation) to multi-move policy adaptation (planning), and from signals with partial textual correlates like move quality to ones without, such as aesthetic interest~(\cref{sec:app_bench_puzzle_int}).
+LLAMIA-Bench instantiates each as an evaluation task.
+Chess serves as the testbed because it offers all four at once: pretrained agents whose internal representations are mapped by interpretability work~\citep{jenner2024evidence}, public game databases at scale~\citep{Lichess,Caissabase}, established benchmarks with specialist baselines, and decades of human--engine collaboration.
 
 % =============================================================================
 \subsection{Dataset}
