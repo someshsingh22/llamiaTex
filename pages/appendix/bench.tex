@@ -3,16 +3,15 @@
 \label{sec:app_bench}
 % =============================================================================
 
-LLAMIA-Bench is designed to probe the two failure modes of verbalized LLM--subagent communication identified in \cref{sec:methodology}: lossy compression of latent state and error compounding over multi-step interaction.
-We organize the benchmark around four collaboration themes, each placing progressively harder demands on the communication channel:
-\begin{enumerate}[leftmargin=*, itemsep=2pt, topsep=2pt]
-  \item \emph{Behavioral imitation}---reproducing human play at a target skill level, the problem behind bots like Play Magnus\footnote{\url{https://www.playmagnus.com}} and Maia~\citep{mcilroy2020aligning}. Requires a single-position state query.
-  \item \emph{State assessment}---predicting human-aligned properties of game states such as difficulty and engagement~\citep{lichess2024puzzles}. Tests whether the LLM can extract signals from internalized representations that have no textual correlate (\cref{sec:app_bench_puzzle_int}).
-  \item \emph{Explanation}---generating natural-language rationale for agent actions, from single-move annotation~\citep{jhamtani-etal-2018-learning,zang2019automated} to game-length commentary. Requires translating latent evaluation into language over multiple turns.
-  \item \emph{Instruction-conditioned planning}---steering play toward a strategic objective given in natural language. Requires multi-move policy adaptation, where verbalization errors compound across the planning horizon.
-\end{enumerate}
-
-Chess serves as the testbed because it offers all four themes at once: pretrained agents whose internal representations are mapped by interpretability work~\citep{jenner2024evidence}, public game databases at scale~\citep{Lichess,Caissabase}, established benchmarks with specialist baselines, and decades of human--engine collaboration.
+This section describes the datasets and evaluation protocol for LLAMIA-Bench.
+We find four major themes in how AI systems collaborate with domain-expert agents:
+\emph{Behavioral imitation}: reproducing human play at a target skill level, the problem behind bots like Play Magnus\footnote{\url{https://www.playmagnus.com}} and Maia~\citep{mcilroy2020aligning}.
+\emph{State assessment}: predicting human-aligned properties of game states such as difficulty and engagement, the core task in Lichess's puzzle rating system and Chess.com's adaptive training~\citep{lichess2024puzzles}.
+\emph{Explanation}: generating natural-language rationale for agent actions, from single-move annotation~\citep{jhamtani-etal-2018-learning,zang2019automated} to the game-length commentary produced by channels like Agadmator and GothamChess.
+\emph{Instruction-conditioned planning}: steering play toward a strategic objective given in natural language, the problem a coach's preparation tool must solve when told to target a known opponent weakness.
+These four themes place progressively harder demands on the communication channel between LLM and subagent: from a single-position state query (behavioral imitation) to multi-move policy adaptation (planning), and from signals with partial textual correlates like move quality to ones without, such as aesthetic interest~(\cref{sec:app_bench_puzzle_int}).
+LLAMIA-Bench instantiates each as an evaluation task.
+Chess serves as the testbed because it offers all four at once: pretrained agents whose internal representations are mapped by interpretability work~\citep{jenner2024evidence}, public game databases at scale~\citep{Lichess,Caissabase}, established benchmarks with specialist baselines, and decades of human--engine collaboration.
 
 % =============================================================================
 \subsection{Dataset}
@@ -149,13 +148,7 @@ Game-level commentary requires a coherent, multi-turn narrative spanning an enti
 Move-segmented commentary is unavailable from YouTube. We construct it in four steps: (i)~transcripts are extracted via Whisper-v3-large; (ii)~video timestamps are aligned to PGN move sequences using a sliding-window move-tracking buffer; (iii)~GPT-4o labels which moves each transcript segment references, guided by the known PGN; (iv)~segments are accepted only when the inferred move order matches the PGN exactly, discarding retries and out-of-order narration. The test set consists of 100 games, held out by ascending view count to minimize overlap with LLM pretraining corpora. This is a heuristic proxy for low contamination, not a guarantee; we discuss contamination further in \S\ref{sec:app_bench_contamination}.
 
 \paragraph{Metrics.}
-We use the same G-eval framework as move annotation (\S\ref{sec:app_bench_annotation}), adapted for game-level commentary: each generated segment is scored on relevance, completeness, clarity, and fluency, with the judge grounded by Lc0-BT4 engine lines and the ground-truth transcript. In addition:
-\begin{itemize}[leftmargin=*, itemsep=2pt]
-    \item \textbf{Quality RMSE}: GPT-4o reads the generated segment and predicts the centipawn evaluation of the board at that point; RMSE against engine ground truth measures how faithfully the commentary conveys positional value.
-    \item \textbf{Highlight RMSE}: GPT-4o predicts audience engagement (0--100) from the segment; RMSE against the YouTube replay-graph ground truth~\citep{singh2024teaching} measures alignment with human interest.
-    \item \textbf{BLEU-2}: $n$-gram overlap against the ground-truth transcript segment.
-\end{itemize}
-The RL reward is an equally weighted composite of G-eval and Highlight RMSE.
+We use the same G-eval framework as move annotation (\S\ref{sec:app_bench_annotation}), adapted for game-level commentary: each generated segment is scored on relevance, completeness, clarity, and fluency, with the judge grounded by Lc0-BT4 engine lines and the ground-truth transcript. We also use the Bleu-2 metric. The RL reward is G-eval.
 
 % =============================================================================
 \subsection{Instruction-Conditioned Planning}
