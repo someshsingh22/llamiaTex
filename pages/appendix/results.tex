@@ -5,7 +5,9 @@
 % EXPECTED VALUES — all numbers below are predicted based on the
 % performance landscape analysis (§\ref{sec:todo_perf_landscape}).
 % Replace with real experimental results as they arrive.
-% Systems: Task Expert, Frontier+Tool, LLAMIA-Verb, LLAMIA (4B/8B/14B)
+% Systems: Group D (Task Experts), Group A (Frontier text-only),
+%          Group B (Frontier+Tool = GPT-5.1+Lc0, see \cref{sec:app_baseline_frontier}),
+%          Group E (LLAMIA-Verb-RL, LLAMIA-static, LLAMIA-full at 4B/8B/14B)
 
 \subsection{Full LLAMIA-Bench Results Table}
 \label{sec:app_results_full}
@@ -38,16 +40,24 @@ Maia+MCTS (best-of-3)      & \underline{90} & 42 & -- & -- & -- & -- & -- \\
 SCC                          & -- & -- & -- & -- & \underline{62} & -- & -- \\
 CF-270M                      & -- & -- & \underline{85} & 35 & -- & -- & -- \\
 \midrule
-% ── Frontier + Tool ──────────────────────────────────────────
-GPT-4o + Lc0                & 20 & 36 & 53 & 10 & 62 & 52 & 9.2 \\
-LLaMA-3.1 405B + Lc0        & 21 & 40 & 50 & 8  & 61 & 44 & 10.0 \\
+% ── Group A: Frontier, text-only ─────────────────────────────
+GPT-5.1 (text only)          & XXX & XXX & XXX & XXX & XXX & XXX & XXX \\
 \midrule
-% ── LLAMIA-Verb (matched recipe) ────────────────────────────
-LLAMIA-Verb-4B               & 35 & 30 & 38 & 6  & 35 & 28 & 3 \\
-LLAMIA-Verb-8B               & 40 & 35 & 42 & 7  & 42 & 35 & 5 \\
-LLAMIA-Verb-14B              & 45 & 40 & 45 & 8  & 48 & 40 & 7 \\
+% ── Group B: Frontier + Verbalized Tool ──────────────────────
+% Best-performing frontier after model selection sweep (Tab.~\ref{tab:frontier_selection})
+GPT-5.1\,+\,Lc0              & XXX & XXX & XXX & XXX & XXX & XXX & XXX \\
 \midrule
-% ── LLAMIA ──────────────────────────────────────────────────
+% ── Group E: Matched-recipe ablations ────────────────────────
+LLAMIA-Verb-RL-4B            & 35 & 30 & 38 & 6  & 35 & 28 & 3 \\
+LLAMIA-Verb-RL-8B            & 40 & 35 & 42 & 7  & 42 & 35 & 5 \\
+LLAMIA-Verb-RL-14B           & 45 & 40 & 45 & 8  & 48 & 40 & 7 \\
+\midrule
+% ── Group E: LLAMIA-static (no dynamic re-encoding) ──────────
+LLAMIA-static-4B             & XXX & XXX & XXX & XXX & XXX & XXX & XXX \\
+LLAMIA-static-8B             & XXX & XXX & XXX & XXX & XXX & XXX & XXX \\
+LLAMIA-static-14B            & XXX & XXX & XXX & XXX & XXX & XXX & XXX \\
+\midrule
+% ── Group E: LLAMIA-full ─────────────────────────────────────
 LLAMIA-4B                    & 51 & 50 & 61 & 50 & 60 & 55 & 12 \\
 LLAMIA-8B                    & 54 & 54 & 66 & 60 & 67 & 68 & 15 \\
 LLAMIA-14B                   & \textbf{55} & \textbf{53} & \textbf{70} & \textbf{70} & \textbf{72} & \textbf{75} & \textbf{17} \\
@@ -81,11 +91,11 @@ Reported for completeness; not a headline result.)}
 
 \begin{table*}[h!]
 \centering
-\caption{\textbf{Behavior Cloning: expected results with LLAMIA-Verb baseline added.}
-Move-match accuracy across Maia benchmark Elo buckets and LLAMIA-Bench
-in-the-wild splits. LLAMIA-Verb converges on the same degenerate
-strategy as Frontier+Tool: mapping the engine's top-$k$th move to an
-Elo bucket, missing the style dimension. \textit{Values are predictions.}}
+\caption{\textbf{Behavior Cloning: move-match accuracy across Elo buckets and in-the-wild splits.}
+Frontier+Tool is GPT-5.1\,+\,Lc0 (selected in Tab.~\ref{tab:frontier_selection}).
+LLAMIA-Verb-RL converges on the same degenerate strategy as Frontier+Tool:
+mapping the engine's top-$k$th move to an Elo bucket, missing the style dimension.
+\textit{Values are predictions.}}
 \label{tab:bc_extended}
 \begin{adjustbox}{max width=\textwidth}
 \begin{tabular}{l|c|ccccc|ccc}
@@ -98,16 +108,15 @@ Elo bucket, missing the style dimension. \textit{Values are predictions.}}
 \midrule
 Maia+MCTS (best-of-3) & SL+Search & 0.50 & 0.51 & 0.53 & 0.54 & \underline{0.55} & 0.42 & 0.42 & 0.37 \\
 \midrule
-GPT-4o + Lc0     & ICL + Tool & 0.17 & 0.14 & 0.16 & 0.16 & 0.20 & 0.23 & 0.36 & 0.24 \\
-LLaMA-3.1 + Lc0  & ICL + Tool & 0.18 & 0.13 & 0.15 & 0.19 & 0.21 & 0.29 & 0.40 & 0.26 \\
+GPT-5.1\,+\,Lc0  & ICL+Tool   & XXX  & XXX  & XXX  & XXX  & XXX  & XXX  & XXX  & XXX  \\
 \midrule
-LLAMIA-Verb-4B    & GRPO-Verb  & 0.30 & 0.32 & 0.33 & 0.35 & 0.34 & 0.28 & 0.30 & 0.30 \\
-LLAMIA-Verb-8B    & GRPO-Verb  & 0.34 & 0.36 & 0.37 & 0.39 & 0.38 & 0.32 & 0.33 & 0.34 \\
-LLAMIA-Verb-14B   & GRPO-Verb  & 0.38 & 0.40 & 0.41 & 0.43 & 0.42 & 0.35 & 0.36 & 0.38 \\
+LLAMIA-Verb-RL-4B  & DAPO-Verb  & 0.30 & 0.32 & 0.33 & 0.35 & 0.34 & 0.28 & 0.30 & 0.30 \\
+LLAMIA-Verb-RL-8B  & DAPO-Verb  & 0.34 & 0.36 & 0.37 & 0.39 & 0.38 & 0.32 & 0.33 & 0.34 \\
+LLAMIA-Verb-RL-14B & DAPO-Verb  & 0.38 & 0.40 & 0.41 & 0.43 & 0.42 & 0.35 & 0.36 & 0.38 \\
 \midrule
-LLAMIA-4B         & SALT       & 0.48 & 0.50 & 0.51 & 0.52 & 0.50 & 0.42 & 0.41 & 0.46 \\
-LLAMIA-8B         & SALT       & 0.51 & 0.53 & 0.54 & 0.55 & 0.53 & 0.46 & 0.44 & 0.50 \\
-LLAMIA-14B        & SALT       & \textbf{0.53} & \textbf{0.55} & \textbf{0.56} & \textbf{0.58} & \textbf{0.56} & \textbf{0.52} & \textbf{0.47} & \textbf{0.54} \\
+LLAMIA-4B          & DAPO       & 0.48 & 0.50 & 0.51 & 0.52 & 0.50 & 0.42 & 0.41 & 0.46 \\
+LLAMIA-8B          & DAPO       & 0.51 & 0.53 & 0.54 & 0.55 & 0.53 & 0.46 & 0.44 & 0.50 \\
+LLAMIA-14B         & DAPO       & \textbf{0.53} & \textbf{0.55} & \textbf{0.56} & \textbf{0.58} & \textbf{0.56} & \textbf{0.52} & \textbf{0.47} & \textbf{0.54} \\
 \bottomrule[1.2pt]
 \end{tabular}
 \end{adjustbox}
@@ -139,17 +148,16 @@ retained as reference.}}
 \textbf{Model} & \textbf{Method} &
 \textbf{Planning} & \textbf{Comparative} & \textbf{Perplexity $\downarrow$} \\
 \midrule
-SCC              & FT         & 27.48 & 41.59 & -- \\
-GPT-4o + Lc0     & ICL + Tool & 30.13 & 42.29 & -- \\
-LLaMA-3.1 + Lc0  & ICL + Tool & 29.10 & 40.12 & 8.53 \\
+SCC                & FT         & 27.48 & 41.59 & -- \\
+GPT-5.1\,+\,Lc0   & ICL+Tool   & XXX   & XXX   & -- \\
 \midrule
-LLAMIA-Verb-4B    & GRPO-Verb  & 22.0  & 24.0  & 9.50 \\
-LLAMIA-Verb-8B    & GRPO-Verb  & 25.0  & 28.0  & 8.80 \\
-LLAMIA-Verb-14B   & GRPO-Verb  & 28.0  & 32.0  & 8.10 \\
+LLAMIA-Verb-RL-4B  & DAPO-Verb  & 22.0  & 24.0  & 9.50 \\
+LLAMIA-Verb-RL-8B  & DAPO-Verb  & 25.0  & 28.0  & 8.80 \\
+LLAMIA-Verb-RL-14B & DAPO-Verb  & 28.0  & 32.0  & 8.10 \\
 \midrule
-LLAMIA-4B         & SALT       & 30.0  & 40.0  & 7.50 \\
-LLAMIA-8B         & SALT       & 34.0  & 45.0  & 6.40 \\
-LLAMIA-14B        & SALT       & \textbf{39.0} & \textbf{50.0} & \textbf{5.50} \\
+LLAMIA-4B          & DAPO       & 30.0  & 40.0  & 7.50 \\
+LLAMIA-8B          & DAPO       & 34.0  & 45.0  & 6.40 \\
+LLAMIA-14B         & DAPO       & \textbf{39.0} & \textbf{50.0} & \textbf{5.50} \\
 \bottomrule[1.2pt]
 \end{tabular}
 \end{adjustbox}
@@ -160,9 +168,9 @@ LLAMIA-14B        & SALT       & \textbf{39.0} & \textbf{50.0} & \textbf{5.50} \
 
 \begin{table*}[h!]
 \centering
-\caption{\textbf{Game-Level Commentary: expected results with model-size
-scaling and LLAMIA-Verb.} G-eval, Quality RMSE, Highlight RMSE, BLEU-2.
-LLAMIA-Verb is worse than Frontier+Tool on this multi-step task because
+\caption{\textbf{Game-Level Commentary: G-eval, Quality RMSE, Highlight RMSE, BLEU-2.}
+Frontier+Tool is GPT-5.1\,+\,Lc0 (Tab.~\ref{tab:frontier_selection}).
+LLAMIA-Verb-RL is worse than Frontier+Tool on this multi-step task because
 RL-trained verbalization fragments the narrative. \textit{Values are predictions.}}
 \label{tab:commentary_extended}
 \begin{adjustbox}{max width=0.95\textwidth}
@@ -174,16 +182,15 @@ RL-trained verbalization fragments the narrative. \textit{Values are predictions
 \makecell{\textbf{Highlight}\\(RMSE) $\downarrow$} &
 \textbf{BLEU-2 $\uparrow$} \\
 \midrule
-GPT-4o + Lc0     & ICL + Tool & 0.52 & -- & 12.31 & 21.03 \\
-LLaMA-3.1 + Lc0  & ICL + Tool & 0.44 & -- & 14.47 & 25.07 \\
+GPT-5.1\,+\,Lc0   & ICL+Tool   & XXX  & --   & XXX  & XXX  \\
 \midrule
-LLAMIA-Verb-4B    & GRPO-Verb  & 0.32 & 5.50 & 18.0 & 28.0 \\
-LLAMIA-Verb-8B    & GRPO-Verb  & 0.37 & 4.80 & 16.0 & 32.0 \\
-LLAMIA-Verb-14B   & GRPO-Verb  & 0.42 & 4.20 & 14.0 & 36.0 \\
+LLAMIA-Verb-RL-4B  & DAPO-Verb  & 0.32 & 5.50 & 18.0 & 28.0 \\
+LLAMIA-Verb-RL-8B  & DAPO-Verb  & 0.37 & 4.80 & 16.0 & 32.0 \\
+LLAMIA-Verb-RL-14B & DAPO-Verb  & 0.42 & 4.20 & 14.0 & 36.0 \\
 \midrule
-LLAMIA-4B         & SALT       & 0.48 & 2.10 & 9.0  & 42.0 \\
-LLAMIA-8B         & SALT       & 0.55 & 1.50 & 7.0  & 50.0 \\
-LLAMIA-14B        & SALT       & \textbf{0.63} & \textbf{0.85} & \textbf{4.8} & \textbf{58.0} \\
+LLAMIA-4B          & DAPO       & 0.48 & 2.10 & 9.0  & 42.0 \\
+LLAMIA-8B          & DAPO       & 0.55 & 1.50 & 7.0  & 50.0 \\
+LLAMIA-14B         & DAPO       & \textbf{0.63} & \textbf{0.85} & \textbf{4.8} & \textbf{58.0} \\
 \bottomrule[1.2pt]
 \end{tabular}
 \end{adjustbox}
@@ -198,7 +205,7 @@ LLAMIA-14B        & SALT       & \textbf{0.63} & \textbf{0.85} & \textbf{4.8} & 
 Puzzle solving accuracy is a parity metric (not highlighted). The
 Difficulty/Interest split is the controlled experiment for
 non-verbalizability: same positions, same engine, same model, only the
-target signal differs. LLAMIA-Verb's small Interest improvement
+target signal differs. LLAMIA-Verb-RL's small Interest improvement
 ($\rho \leq 0.10$) is consistent with reward hacking (learning the
 statistical prior that minimizes MAE). \textit{Values are predictions.}}
 \label{tab:puzzle_extended}
@@ -210,17 +217,16 @@ statistical prior that minimizes MAE). \textit{Values are predictions.}}
 \textbf{Difficulty $\rho$} &
 \textbf{Interest $\rho$} \\
 \midrule
-CF-270M           & SFT        & 93.5 & 0.46 & 0.35 \\
-GPT-4o + Lc0      & ICL + Tool & --   & 0.53 & 0.10 \\
-LLaMA-3.1 + Lc0   & ICL + Tool & --   & 0.50 & 0.08 \\
+CF-270M              & SFT        & 93.5 & 0.46 & 0.35 \\
+GPT-5.1\,+\,Lc0     & ICL+Tool   & --   & XXX  & XXX  \\
 \midrule
-LLAMIA-Verb-4B     & GRPO-Verb  & 86.0 & 0.38 & 0.05 \\
-LLAMIA-Verb-8B     & GRPO-Verb  & 87.5 & 0.42 & 0.07 \\
-LLAMIA-Verb-14B    & GRPO-Verb  & 88.5 & 0.45 & 0.08 \\
+LLAMIA-Verb-RL-4B    & DAPO-Verb  & 86.0 & 0.38 & 0.05 \\
+LLAMIA-Verb-RL-8B    & DAPO-Verb  & 87.5 & 0.42 & 0.07 \\
+LLAMIA-Verb-RL-14B   & DAPO-Verb  & 88.5 & 0.45 & 0.08 \\
 \midrule
-LLAMIA-4B          & SALT       & 88.0 & 0.58 & 0.38 \\
-LLAMIA-8B          & SALT       & 90.0 & 0.65 & 0.45 \\
-LLAMIA-14B         & SALT       & \textbf{91.5} & \textbf{0.71} & \textbf{0.52} \\
+LLAMIA-4B            & DAPO       & 88.0 & 0.58 & 0.38 \\
+LLAMIA-8B            & DAPO       & 90.0 & 0.65 & 0.45 \\
+LLAMIA-14B           & DAPO       & \textbf{91.5} & \textbf{0.71} & \textbf{0.52} \\
 \bottomrule[1.2pt]
 \end{tabular}
 \end{adjustbox}
@@ -233,7 +239,7 @@ LLAMIA-14B         & SALT       & \textbf{91.5} & \textbf{0.71} & \textbf{0.52} 
 \centering
 \caption{\textbf{Instruction-Conditioned Planning: win-rate improvement
 (\%) by motif category.} Motif-anchored evaluation (ECO-based results in
-appendix as robustness check). LLAMIA-Verb is structurally
+appendix as robustness check). LLAMIA-Verb-RL is structurally
 disadvantaged: its RL-trained deference to engine output conflicts with
 ICP's requirement for selective override. Frontier+Tool is relatively
 closer to LLAMIA here than on other tasks, but still clearly behind.
@@ -250,15 +256,14 @@ closer to LLAMIA here than on other tasks, but still clearly behind.
 \textbf{Repetition} &
 \makecell{\textbf{Overall}\\\textbf{Improv.}} \\
 \midrule
-GPT-4o + Lc0         & 10  & 11  & 9  & 7  & 12  & 9.2  \\
-LLaMA-3.1 + Lc0      & 11.5 & 11.5 & 11 & 7  & 13  & 10.0 \\
+GPT-5.1\,+\,Lc0      & XXX & XXX & XXX & XXX & XXX & XXX  \\
 \midrule
-LLAMIA-Verb-4B        & 2   & 2   & 1  & 1  & 3   & 2.0  \\
-LLAMIA-Verb-8B        & 4   & 4   & 3  & 2  & 5   & 4.0  \\
-LLAMIA-Verb-14B       & 6   & 6   & 5  & 4  & 7   & 5.5  \\
+LLAMIA-Verb-RL-4B     & 2   & 2   & 1   & 1   & 3   & 2.0  \\
+LLAMIA-Verb-RL-8B     & 4   & 4   & 3   & 2   & 5   & 4.0  \\
+LLAMIA-Verb-RL-14B    & 6   & 6   & 5   & 4   & 7   & 5.5  \\
 \midrule
-LLAMIA-4B             & 11  & 12  & 9  & 7  & 13  & 12.0 \\
-LLAMIA-8B             & 14  & 16  & 12 & 9  & 16  & 15.0 \\
+LLAMIA-4B             & 11  & 12  & 9   & 7   & 13  & 12.0 \\
+LLAMIA-8B             & 14  & 16  & 12  & 9   & 16  & 15.0 \\
 LLAMIA-14B            & \textbf{18} & \textbf{20} & \textbf{15} & \textbf{12} & \textbf{21} & \textbf{18.0} \\
 \bottomrule[1.2pt]
 \end{tabular}
@@ -272,7 +277,7 @@ LLAMIA-14B            & \textbf{18} & \textbf{20} & \textbf{15} & \textbf{12} & 
 % visualization showing ordered motif emergence with chess-piece icon
 % annotations. Key finding: LLAMIA acquires motif categories in order
 % (Pawn Structures → Piece Coordination → Tactical Blunders → Endgames)
-% with sigmoid jumps, while LLAMIA-Verb stays near-flat throughout.
+% with sigmoid jumps, while ChessGPT stays near-flat throughout.
 
 \subsubsection{Turn-by-Turn Win-Rate}
 \label{sec:app_results_icp_turnbyturn}
@@ -299,7 +304,7 @@ LLAMIA-14B            & \textbf{18} & \textbf{20} & \textbf{15} & \textbf{12} & 
 %
 % The following qualitative examples should be added as figures:
 %
-% 1. BC top-k-to-Elo collapse: 3 positions where LLAMIA-Verb and
+% 1. BC top-k-to-Elo collapse: 3 positions where LLAMIA-Verb-RL and
 %    Frontier+Tool predict the same wrong move (the k-th engine move
 %    mapped to the target Elo) while LLAMIA predicts correctly by
 %    reading the style signal from the full policy distribution.
@@ -308,7 +313,7 @@ LLAMIA-14B            & \textbf{18} & \textbf{20} & \textbf{15} & \textbf{12} & 
 %    <5s time pressure) showing LLAMIA's attention maps shifting toward
 %    opponent king and sacrifice-candidate pieces under time pressure.
 %
-% 3. Interest reward hacking: 3 positions where LLAMIA-Verb predicts
+% 3. Interest reward hacking: 3 positions where LLAMIA-Verb-RL predicts
 %    ~same interest score for all (low variance, prior-fitting) while
 %    LLAMIA correctly distinguishes high-interest from low-interest
 %    positions. Show prediction variance histogram.
@@ -319,6 +324,6 @@ LLAMIA-14B            & \textbf{18} & \textbf{20} & \textbf{15} & \textbf{12} & 
 %
 % 5. Commentary narrative coherence: Side-by-side 5-move commentary
 %    excerpt: LLAMIA maintains strategic thread across moves;
-%    LLAMIA-Verb produces fragmented per-move tool-call summaries
+%    LLAMIA-Verb-RL produces fragmented per-move tool-call summaries
 %    that lose the narrative arc.
 %

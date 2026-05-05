@@ -12,187 +12,74 @@ LLAMIA-Bench spans four collaboration facets: \emph{behavioral calibration},
 \emph{instruction-conditioned adaptation}.
 Table~\ref{tab:bench_dataset} summarizes dataset provenance and task experts;
 Table~\ref{tab:bench_metrics} lists evaluation metrics per task.
-Splits marked~\itwmark{} are \emph{in-the-wild}: the test distribution is absent or
-shifted relative to Stage-2 training, so generalization must come from internalized
-representations rather than memorization.
+Splits marked~\itwmark{} are \emph{out-of-distribution (OOD)}: the test distribution is
+absent or shifted relative to Stage-2 training, so generalization must come from
+internalized representations rather than memorization.
 Where the original authors provide a fixed test split we use it; otherwise we sample
 a random held-out split.
 
 %% ── TABLE 1: DATASET PROVENANCE ──────────────────────────────────────────────
 \begin{table}[ht]
 \centering
-\setlength{\tabcolsep}{5pt}
-\somesh{1. Use LLAMIA Bench instead of In the wild 2. Some columns (Instruct Conditioned Planning are overflowing 3. For repeated items like Lichess Puzzles use a multirow or somehow combine them. 4. Dont repear Move annotation - Move annotation etc 5. Use test set size, wherever you know and can find use test set size in other places add tbd. For task experts use MAIA in Behavior Cloning. No task expert in interest prediction, but write in the paragraph properly that . For difficulty use https://arxiv.org/pdf/2410.11078  )}
-\caption{%
-  \textbf{LLAMIA-Bench: dataset and task provenance.}
-  \emph{Italic} task names are LLAMIA-Bench custom splits;
-  \itwmark{} marks in-the-wild splits (test distribution absent or shifted from
-  Stage-2 training).
-  Where the original authors provide a fixed test split we use it; otherwise a
-  random held-out split is drawn.
-  \textbf{Ours} = dataset constructed for this work.
-}
+\caption{LLAMIA-Bench: dataset and task provenance. \itwmark{} = OOD split (test distribution shifted or absent from Stage-2 training). \textbf{Ours} = constructed for this work.}
 \label{tab:bench_dataset}
-\begin{adjustbox}{max width=\textwidth}
-\renewcommand{\arraystretch}{1.35}
-\small
-\begin{tabular}{%
-  p{3.8cm}   % Task / Split
-  p{4.3cm}   % Source
-  p{1.9cm}   % Size
-  p{3.4cm}   % Task Expert
-}
-\toprule[1.2pt]
-\textbf{Task / Split} & \textbf{Source} &
-\textbf{Size (tr\,/\,te)} & \textbf{Task Expert} \\
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{llll}
+\toprule
+\textbf{Task / Split} & \textbf{Source} & \textbf{Train / Test} & \textbf{Task Expert} \\
 \midrule
-
-%% ── BEHAVIOR CLONING ─────────────────────────────────────────────────────────
-\rowcolor{clrBC}
-\multicolumn{4}{l}{\enspace\small\textbf{Behavior Cloning}} \\
-\rowcolor{clrBC}
-Maia (Elo buckets)
-  & MAIA-KDD, Lichess~\cite{mcilroy2020aligning}
-  & 12M\,/\,authors'
-  & Maia\,+\,MCTS~\cite{jacob2022modeling} \\
-\rowcolor{clrBC}
-\emph{In the wild}\,\itwmark{}
-  & MAIA-KDD filtered, Lichess (\textbf{Ours})
-  & $\leq$167K\,/\,--
-  & Maia (Elo-matched) \\
+\multicolumn{4}{l}{\textit{Behavior Cloning}} \\
+Maia (Elo buckets) & MAIA-KDD, Lichess \cite{mcilroy2020aligning} & 12M / authors' & Maia \cite{mcilroy2020aligning} \\
+GM-25\,\itwmark{} & Lichess, filtered (\textbf{Ours}) & $\leq$167K / \tbd & Maia \cite{mcilroy2020aligning} \\
+Low-Time\,\itwmark{} & Lichess, filtered (\textbf{Ours}) & 129K / \tbd & Maia \cite{mcilroy2020aligning} \\
+Elo Gap\,\itwmark{} & Lichess, filtered (\textbf{Ours}) & 34K / \tbd & Maia \cite{mcilroy2020aligning} \\
 \midrule
-
-%% ── PUZZLE UNDERSTANDING ─────────────────────────────────────────────────────
-\rowcolor{clrPuzzle}
-\multicolumn{4}{l}{\enspace\small\textbf{Puzzle Understanding}} \\
-\rowcolor{clrPuzzle}
-Difficulty Estimation
-  & Lichess Puzzles\textsuperscript{\textdagger}~\cite{lichess2024puzzles}
-  & 4M\,/\,random
-  & CF-270M~\cite{XXX} \\
-\rowcolor{clrPuzzle}
-Interest Estimation
-  & Lichess Puzzles\textsuperscript{\textdagger}~\cite{lichess2024puzzles}
-  & 4M\,/\,random
-  & CF-270M~\cite{XXX} \\
+\multicolumn{4}{l}{\textit{Puzzle Understanding}} \\
+Difficulty Estimation & \multirow{2}{*}{Lichess Puzzles \cite{lichess2024puzzles}} & 4M / \tbd & \cite{milosz2024predicting} \\
+Interest Estimation & & 4M / \tbd & --- \\
 \midrule
-
-%% ── MOVE ANNOTATION ──────────────────────────────────────────────────────────
-\rowcolor{clrAnnot}
-\multicolumn{4}{l}{\enspace\small\textbf{Move Annotation}} \\
-\rowcolor{clrAnnot}
-Move Annotation
-  & Lichess~\cite{jhamtani-etal-2018-learning}
-  & 90K\,/\,authors'
-  & \cite{zang2019automated}; \cite{jhamtani-etal-2018-learning} \\
+\multicolumn{4}{l}{\textit{Move Annotation}} \\
+Jhamtani et al. & Lichess \cite{jhamtani-etal-2018-learning} & 90K / authors' & SCC \cite{zang2019automated} \\
 \midrule
-
-%% ── GAME COMMENTARY ──────────────────────────────────────────────────────────
-\rowcolor{clrComm}
-\multicolumn{4}{l}{\enspace\small\textbf{Game Commentary}} \\
-\rowcolor{clrComm}
-Game Commentary
-  & Agadmator-2K\textsuperscript{\textdaggerdbl} (\textbf{Ours})
-  & 2K\,/\,100 games
-  & --- \\
+\multicolumn{4}{l}{\textit{Game Commentary}} \\
+Agadmator-2K & Agadmator YouTube (\textbf{Ours}) & 1.9K / 100 games & --- \\
 \midrule
-
-%% ── INSTRUCTION-CONDITIONED PLANNING ─────────────────────────────────────────
-\rowcolor{clrICP}
-\multicolumn{4}{l}{\enspace\small\textbf{Instruction-Conditioned Planning}} \\
-\rowcolor{clrICP}
-Strategic motifs
-  & \textbf{Ours}
-  & 250/motif\,/\,--
-  & GPT-4o\,+\,Lc0-BT4 \\
-
-\bottomrule[1.2pt]
+\multicolumn{4}{l}{\textit{Instruction-Conditioned Planning}} \\
+Strategic Motifs & \textbf{Ours} & 250/motif / 250 & GPT-4o + Lc0 \\
+\bottomrule
 \end{tabular}
 \end{adjustbox}
-{\footnotesize\vspace{4pt}
-  \itwmark{} In-the-wild split.
-  \quad
-  \textdagger\;\url{https://database.lichess.org/lichess_db_puzzle.csv.zst}
-  \quad
-  \textdaggerdbl\;\url{https://www.youtube.com/@agadmator}
-}
 \end{table}
 
 %% ── TABLE 2: METRICS ─────────────────────────────────────────────────────────
 \begin{table}[ht]
 \centering
-\setlength{\tabcolsep}{5pt}
-\caption{%
-  \textbf{LLAMIA-Bench: evaluation metrics.}
-  $\uparrow$ higher is better; $\downarrow$ lower is better.
-  Reward signals for tasks marked \tbd{} are to be finalized.
-}
+\caption{LLAMIA-Bench: evaluation metrics and RL reward signals. $\uparrow$ higher is better; $\downarrow$ lower is better.}
 \label{tab:bench_metrics}
-\begin{adjustbox}{max width=\textwidth}
-\renewcommand{\arraystretch}{1.35}
-\small
-\begin{tabular}{%
-  p{3.8cm}   % Task / Split
-  p{5.2cm}   % Metric(s)
-  p{4.6cm}   % RL Reward
-}
-\toprule[1.2pt]
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{lll}
+\toprule
 \textbf{Task / Split} & \textbf{Metric(s)} & \textbf{RL Reward} \\
 \midrule
-
-%% ── BEHAVIOR CLONING ─────────────────────────────────────────────────────────
-\rowcolor{clrBC}
-\multicolumn{3}{l}{\enspace\small\textbf{Behavior Cloning}} \\
-\rowcolor{clrBC}
-Maia (Elo buckets)
-  & Move-match accuracy per bucket $\uparrow$
-  & Move-match with target-Elo policy \\
-\rowcolor{clrBC}
-\emph{In the wild}\,\itwmark{}
-  & Move-match accuracy $\uparrow$
-  & Move-match with in-the-wild distribution \\
+\multicolumn{3}{l}{\textit{Behavior Cloning}} \\
+Maia (Elo buckets) & Move-match accuracy $\uparrow$ & Move-match with target-Elo policy \\
+GM-25\,\itwmark{} & Move-match accuracy $\uparrow$ & Move-match vs.\ target-GM distribution \\
+Low-Time\,\itwmark{} & Move-match accuracy $\uparrow$ & Move-match under clock-pressure \\
+Elo Gap\,\itwmark{} & Move-match accuracy $\uparrow$ & Move-match under skill-gap distribution \\
 \midrule
-
-%% ── PUZZLE UNDERSTANDING ─────────────────────────────────────────────────────
-\rowcolor{clrPuzzle}
-\multicolumn{3}{l}{\enspace\small\textbf{Puzzle Understanding}} \\
-\rowcolor{clrPuzzle}
-Difficulty Estimation
-  & Spearman $\rho$ vs.\ Glicko-2 $\uparrow$
-  & \tbd \\
-\rowcolor{clrPuzzle}
-Interest Estimation
-  & Spearman $\rho$ vs.\ engagement $\uparrow$
-  & \tbd \\
+\multicolumn{3}{l}{\textit{Puzzle Understanding}} \\
+Difficulty Estimation & Spearman $\rho$ vs.\ Glicko-2 $\uparrow$ & \tbd \\
+Interest Estimation & Spearman $\rho$ vs.\ engagement $\uparrow$ & \tbd \\
 \midrule
-
-%% ── MOVE ANNOTATION ──────────────────────────────────────────────────────────
-\rowcolor{clrAnnot}
-\multicolumn{3}{l}{\enspace\small\textbf{Move Annotation}} \\
-\rowcolor{clrAnnot}
-Move Annotation
-  & BLEU-2 $\uparrow$; Perplexity $\downarrow$ (5 categories)
-  & G-eval annotation quality \\
+\multicolumn{3}{l}{\textit{Move Annotation}} \\
+Jhamtani et al. & BLEU-2 $\uparrow$; Perplexity $\downarrow$ (5 categories) & G-eval annotation quality \\
 \midrule
-
-%% ── GAME COMMENTARY ──────────────────────────────────────────────────────────
-\rowcolor{clrComm}
-\multicolumn{3}{l}{\enspace\small\textbf{Game Commentary}} \\
-\rowcolor{clrComm}
-Game Commentary
-  & G-eval (0--1) $\uparrow$; Quality RMSE $\downarrow$; BLEU-2 $\uparrow$
-  & G-eval + Highlight RMSE (composite) \\
+\multicolumn{3}{l}{\textit{Game Commentary}} \\
+Agadmator-2K & G-eval (0--1) $\uparrow$; Quality RMSE $\downarrow$; BLEU-2 $\uparrow$ & G-eval + Highlight RMSE (equal weight) \\
 \midrule
-
-%% ── INSTRUCTION-CONDITIONED PLANNING ─────────────────────────────────────────
-\rowcolor{clrICP}
-\multicolumn{3}{l}{\enspace\small\textbf{Instruction-Conditioned Planning}} \\
-\rowcolor{clrICP}
-Strategic motifs
-  & Win-rate improvement (\%pp, 95\,\% CI) $\uparrow$
-  & Win-rate differential (Elo-swap protocol) \\
-
-\bottomrule[1.2pt]
+\multicolumn{3}{l}{\textit{Instruction-Conditioned Planning}} \\
+Strategic Motifs & Win-rate improvement (\%pp, 95\,\% CI) $\uparrow$ & Win-rate differential (Elo-swap protocol) \\
+\bottomrule
 \end{tabular}
 \end{adjustbox}
 \end{table}
@@ -226,20 +113,20 @@ Behavior cloning tasks measure LLAMIA's ability to imitate human-like playstyles
 
 We evaluate on the MAIA-KDD held-out test set~\cite{mcilroy2020aligning}, stratified into five Elo buckets: 1100, 1300, 1500, 1700, and 1900. The test set is player--game disjoint from all training data. Each bucket is treated as an independent task; the aggregate BC score in the main paper is the unweighted average across buckets. The baseline Maia models are trained on 12M games each, one network per Elo bracket.
 
-\subsubsection{GM-25 (in-the-wild)}
+\subsubsection{GM-25}
 \label{sec:app_bench_bc_gm}
 
-GM-25 targets the top-25 rated grandmasters in FIDE history by peak rating.\footnote{\url{https://en.wikipedia.org/wiki/List_of_chess_players_by_peak_FIDE_rating}} Each grandmaster constitutes a separate behavioral target. The maximum available corpus for any individual GM is 4,641 games (Viktor Korchnoi),\footnote{\url{https://www.365chess.com/top-chess-players-games.php}} representing less than 3\% of the training data required by current state-of-the-art per-GM models~\cite{mcilroy2020aligning}. This split is in-the-wild because no Stage-2 training data is drawn from these specific GM corpora: generalization must come from the internalized agent state and the model's cross-Elo behavioral representations.
+GM-25 targets the top-25 rated grandmasters in FIDE history by peak rating.\footnote{\url{https://en.wikipedia.org/wiki/List_of_chess_players_by_peak_FIDE_rating}} Each grandmaster constitutes a separate behavioral target. The maximum available corpus for any individual GM is 4,641 games (Viktor Korchnoi),\footnote{\url{https://www.365chess.com/top-chess-players-games.php}} representing less than 3\% of the training data required by current state-of-the-art per-GM models~\cite{mcilroy2020aligning}. This is an OOD split: no Stage-2 training data is drawn from these specific GM corpora, so generalization must come from the internalized agent state and the model's cross-Elo behavioral representations.
 
-\subsubsection{Low-Time (in-the-wild)}
+\subsubsection{Low-Time}
 \label{sec:app_bench_bc_time}
 
-Time management is central to Rapid and Blitz formats: a player's strategy changes markedly when either player is under severe clock pressure, regardless of material or positional standing. We extract positions where either player has very low remaining time (as flagged by Lichess) or where cumulative time usage differs by more than 50\% between the two players. Positions are stratified by game phase (opening, middlegame, endgame) and sampled equally across time controls, yielding 129,000 positions. This split is in-the-wild because explicit clock-pressure context is absent from Stage-2 training data.
+Time management is central to Rapid and Blitz formats: a player's strategy changes markedly when either player is under severe clock pressure, regardless of material or positional standing. We extract positions where either player has very low remaining time (as flagged by Lichess) or where cumulative time usage differs by more than 50\% between the two players. Positions are stratified by game phase (opening, middlegame, endgame) and sampled equally across time controls, yielding 129,000 positions. This is an OOD split: explicit clock-pressure context is absent from Stage-2 training data.
 
-\subsubsection{Elo Gap (in-the-wild)}
+\subsubsection{Elo Gap}
 \label{sec:app_bench_bc_elo}
 
-Players adapt their strategy significantly when facing opponents at a large skill gap, as occurs in tournaments and exhibition matches. We filter games where the Elo difference between players exceeds 500 points, yielding 34,000 games. This split is in-the-wild because extreme skill-gap matchups are rare in the training distribution and require the model to condition on opponent strength from contextual signals alone.
+Players adapt their strategy significantly when facing opponents at a large skill gap, as occurs in tournaments and exhibition matches. We filter games where the Elo difference between players exceeds 500 points, yielding 34,000 games. This is an OOD split: extreme skill-gap matchups are rare in the training distribution and require the model to condition on opponent strength from contextual signals alone.
 
 % =============================================================================
 \subsection{Puzzle Interest and Difficulty Estimation}
@@ -251,14 +138,14 @@ Puzzle understanding tasks probe whether LLAMIA has internalized the agent's str
 \subsubsection{Difficulty Estimation}
 \label{sec:app_bench_puzzle_diff}
 
-Puzzle difficulty is operationalized via a Glicko-2 rating system: each human solving attempt is treated as a rated match between solver and puzzle; the Glicko-2 rating accumulated over all attempts serves as ground truth. The model is asked to predict difficulty on a normalized scale; evaluation uses Spearman $\rho$ between predicted values and ground-truth Glicko-2 ratings on a held-out test split.
+Puzzle difficulty is operationalized via a Glicko-2 rating system: each human solving attempt is treated as a rated match between solver and puzzle; the Glicko-2 rating accumulated over all attempts serves as ground truth. The model is asked to predict difficulty on a normalized scale; evaluation uses Spearman $\rho$ between predicted values and ground-truth Glicko-2 ratings on a held-out test split. We compare against \citet{milosz2024predicting} as the task expert, the strongest published model on Lichess puzzle difficulty prediction.
 
 \tbd{} \emph{Test split size and RL reward formulation to be finalized.}
 
 \subsubsection{Interest Estimation}
 \label{sec:app_bench_puzzle_int}
 
-The interestingness score (range: $-100$ to $+100$) is computed from Lichess community upvotes and downvotes, weighted by solver performance. The model predicts interest; evaluation uses Spearman $\rho$ against the ground-truth signal on a held-out test split.
+The interestingness score (range: $-100$ to $+100$) is computed from Lichess community upvotes and downvotes, weighted by solver performance. The model predicts interest; evaluation uses Spearman $\rho$ against the ground-truth signal on a held-out test split. No task-specific baseline exists for predicting puzzle interestingness; results for this task are compared against the frontier verbalized baseline only.
 
 \tbd{} \emph{Test split size and RL reward formulation to be finalized.}
 
@@ -312,34 +199,19 @@ We curate 25 strategic motifs across five categories, selected for (a) presence 
 
 \begin{table}[H]
 \centering
-\small
-\setlength{\tabcolsep}{5pt}
-\renewcommand{\arraystretch}{1.3}
-\begin{adjustbox}{max width=\textwidth}
-\begin{tabular}{p{3.2cm} p{6.8cm} p{5.4cm}}
-\toprule
-\textbf{Category} & \textbf{Description} & \textbf{Detection} \\
-\midrule
-Endgames
-  & King-and-pawn, rook, queen, opposite-colour bishop endings; Lucena/Philidor positions; minor-piece vs.\ pawn.
-  & Total material (excl.\ kings) $<13$\,pts. \\
-Pawn Structures
-  & Isolated, doubled, backward, and passed pawns; pawn chains; hanging pawns.
-  & Structural-analysis API; target structure persists $\geq$3 consecutive moves. \\
-Tactical Blunders
-  & Knight forks, pins, overloaded defenders, mate-in-$K$ ($K\!\leq\!5$), king safety failures.
-  & Engine evaluation shift $\geq$400\,cp within 2 moves. \\
-Piece Coordination
-  & Two rooks vs.\ queen; knight\,+\,bishop vs.\ rook; bishop pair vs.\ bishop\,+\,knight; rook on open file vs.\ unconnected rooks.
-  & Material configuration matches the target imbalance. \\
-Repetition Traps
-  & Forced threefold-repetition sequences.
-  & Position hash appears 3 times with the opponent to move. \\
-\bottomrule
-\end{tabular}
-\end{adjustbox}
 \caption{ICP motif categories with descriptions and automated detection criteria.}
 \label{tab:icp_motifs}
+\begin{tabular}{lll}
+\toprule
+\textbf{Category} & \textbf{Description} & \textbf{Detection criterion} \\
+\midrule
+Endgames & K+P, rook, queen, opp-colour bishop endings; Lucena/Philidor; minor vs.\ pawn & Total material (excl.\ kings) $<13$ pts \\
+Pawn Structures & Isolated, doubled, backward, passed pawns; pawn chains; hanging pawns & Target structure persists $\geq$3 consecutive moves \\
+Tactical Blunders & Knight forks, pins, overloaded defenders, mate-in-$K$ ($K\leq5$), king safety & Eval shift $\geq$400\,cp within 2 moves \\
+Piece Coordination & Two rooks vs.\ queen; N+B vs.\ R; bishop pair vs.\ B+N; rook on open file & Material configuration matches target imbalance \\
+Repetition Traps & Forced threefold-repetition sequences & Position hash appears 3 times with opponent to move \\
+\bottomrule
+\end{tabular}
 \end{table}
 
 \subsubsection{Evaluation}

@@ -126,59 +126,36 @@ them as new evaluation targets.
   & \textbf{Data Scale} \\
 \midrule
 
-%% ── GAMEPLAY ────────────────────────────────────────────────────────────────
-\multicolumn{4}{l}{\enspace\small\textbf{Gameplay}} \\
-Elo Rating
-  & Transformer-270M~\cite{ruoss2024grandmaster}
-  & SL
-  & 15B FEN \\
-Puzzle Solving
-  & Lc0 T82 (400 MCTS)~\cite{monroe2024mastering}
-  & RL+Search
-  & 2.87B FEN \\
-\midrule
 
 %% ── BEHAVIOR CLONING ────────────────────────────────────────────────────────
 \rowcolor{clrBC}
 \multicolumn{4}{l}{\enspace\small\textbf{Behavior Cloning}} \\
 \rowcolor{clrBC}
 Maia (Elo buckets)
-  & Maia\,+\,MCTS~\cite{jacob2022modeling}
-  & SL+Search
+  & Maia~\cite{mcilroy2020aligning}
+  & SL
   & 12M/bracket \\
 \rowcolor{clrBC}
-\emph{In the wild}\,\itwmark{}
-  & Maia (Elo-matched)~\cite{mcilroy2020aligning}
+GM-25\,/\,Low-Time\,/\,Elo Gap\,\itwmark{}
+  & Maia~\cite{mcilroy2020aligning}
   & SL
   & 12M \\
 \midrule
 
-%% ── BEHAVIORAL STYLOMETRY ───────────────────────────────────────────────────
-\multicolumn{4}{l}{\enspace\small\textbf{Behavioral Stylometry}} \\
-Stylometry
-  & ---
-  & ---
-  & --- \\
-\midrule
 
 %% ── PUZZLE UNDERSTANDING ────────────────────────────────────────────────────
 \rowcolor{clrPuzzle}
 \multicolumn{4}{l}{\enspace\small\textbf{Puzzle Understanding}} \\
 \rowcolor{clrPuzzle}
 Difficulty Estimation
-  & CF-270M~\cite{XXX}
+  & \cite{milosz2024predicting}
   & SFT
   & 4M \\
 \rowcolor{clrPuzzle}
 Interest Estimation
-  & CF-270M~\cite{XXX}
-  & SFT
-  & 4M \\
-\rowcolor{clrPuzzle}
-Theme Classification
-  & Lc0-BT4~\cite{monroe2024mastering}
-  & RL
-  & 6.1B FEN \\
+  & ---
+  & ---
+  & --- \\
 \midrule
 
 %% ── MOVE ANNOTATION ─────────────────────────────────────────────────────────
@@ -206,11 +183,6 @@ Game Commentary
 \multicolumn{4}{l}{\enspace\small\textbf{Instruction-Conditioned Planning}} \\
 \rowcolor{clrICP}
 Strategic motifs
-  & GPT-4o\,+\,Lc0-BT4
-  & ICL+Tool
-  & --- \\
-\rowcolor{clrICP}
-\emph{Out-of-distribution}\,\itwmark{}
   & GPT-4o\,+\,Lc0-BT4
   & ICL+Tool
   & --- \\
