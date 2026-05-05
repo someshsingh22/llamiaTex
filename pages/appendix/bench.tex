@@ -3,15 +3,16 @@
 \label{sec:app_bench}
 % =============================================================================
 
-This section describes the datasets and evaluation protocol for LLAMIA-Bench.
-We find four major themes in how AI systems collaborate with domain-expert agents:
-\emph{Behavioral imitation}: reproducing human play at a target skill level, the problem behind bots like Play Magnus\footnote{\url{https://www.playmagnus.com}} and Maia~\citep{mcilroy2020aligning}.
-\emph{State assessment}: predicting human-aligned properties of game states such as difficulty and engagement, the core task in Lichess's puzzle rating system and Chess.com's adaptive training~\citep{lichess2024puzzles}.
-\emph{Explanation}: generating natural-language rationale for agent actions, from single-move annotation~\citep{jhamtani-etal-2018-learning,zang2019automated} to the game-length commentary produced by channels like Agadmator and GothamChess.
-\emph{Instruction-conditioned planning}: steering play toward a strategic objective given in natural language, the problem a coach's preparation tool must solve when told to target a known opponent weakness.
-These four themes place progressively harder demands on the communication channel between LLM and subagent: from a single-position state query (behavioral imitation) to multi-move policy adaptation (planning), and from signals with partial textual correlates like move quality to ones without, such as aesthetic interest~(\cref{sec:app_bench_puzzle_int}).
-LLAMIA-Bench instantiates each as an evaluation task.
-Chess serves as the testbed because it offers all four at once: pretrained agents whose internal representations are mapped by interpretability work~\citep{jenner2024evidence}, public game databases at scale~\citep{Lichess,Caissabase}, established benchmarks with specialist baselines, and decades of human--engine collaboration.
+LLAMIA-Bench is designed to probe the two failure modes of verbalized LLM--subagent communication identified in \cref{sec:methodology}: lossy compression of latent state and error compounding over multi-step interaction.
+We organize the benchmark around four collaboration themes, each placing progressively harder demands on the communication channel:
+\begin{enumerate}[leftmargin=*, itemsep=2pt, topsep=2pt]
+  \item \emph{Behavioral imitation}---reproducing human play at a target skill level, the problem behind bots like Play Magnus\footnote{\url{https://www.playmagnus.com}} and Maia~\citep{mcilroy2020aligning}. Requires a single-position state query.
+  \item \emph{State assessment}---predicting human-aligned properties of game states such as difficulty and engagement~\citep{lichess2024puzzles}. Tests whether the LLM can extract signals from internalized representations that have no textual correlate (\cref{sec:app_bench_puzzle_int}).
+  \item \emph{Explanation}---generating natural-language rationale for agent actions, from single-move annotation~\citep{jhamtani-etal-2018-learning,zang2019automated} to game-length commentary. Requires translating latent evaluation into language over multiple turns.
+  \item \emph{Instruction-conditioned planning}---steering play toward a strategic objective given in natural language. Requires multi-move policy adaptation, where verbalization errors compound across the planning horizon.
+\end{enumerate}
+
+Chess serves as the testbed because it offers all four themes at once: pretrained agents whose internal representations are mapped by interpretability work~\citep{jenner2024evidence}, public game databases at scale~\citep{Lichess,Caissabase}, established benchmarks with specialist baselines, and decades of human--engine collaboration.
 
 % =============================================================================
 \subsection{Dataset}
@@ -26,20 +27,25 @@ Where the original authors provide a fixed test split we use it; otherwise we sa
 %% ── TABLE 1: DATASET PROVENANCE ──────────────────────────────────────────────
 \begin{table}[ht]
 \centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.3}
 \caption{LLAMIA-Bench: dataset and task provenance. \textbf{Ours} = constructed for this work.}
 \label{tab:bench_dataset}
+\vspace{4pt}
 \begin{adjustbox}{max width=\linewidth}
-\begin{tabular}{llll}
+\begin{tabular}{p{3.5cm} p{4.2cm} p{2.4cm} p{3.0cm}}
 \toprule
-\textbf{Task} & \textbf{Source} & \textbf{Train / Test} & \textbf{Task Expert} \\
+\textbf{Task} & \textbf{Source} & \textbf{Train\,/\,Test} & \textbf{Task Expert} \\
 \midrule
-Behavior Cloning & MAIA-KDD, Lichess \cite{mcilroy2020aligning} & 12M / authors'\textsuperscript{*} & Maia \cite{mcilroy2020aligning} \\
-Puzzle Understanding & Lichess Puzzles \cite{lichess2024puzzles} & 4M / \tbd & \cite{milosz2024predicting} \\
-Move Annotation & Lichess \cite{jhamtani-etal-2018-learning} & 90K / authors' & SCC \cite{zang2019automated} \\
-Game Commentary & Agadmator YouTube (\textbf{(Ours)}) & 1.9K / 100 games & --- \\
-Instr.-Cond.\ Planning & Synthetic Motifs\textbf{(Ours)} & 250/motif / 250 & --- \\
+Behavior Cloning       & MAIA-KDD, Lichess~\cite{mcilroy2020aligning}    & 12M / authors'\textsuperscript{*} & Maia~\cite{mcilroy2020aligning} \\
+Puzzle Understanding   & Lichess Puzzles~\cite{lichess2024puzzles}        & 4M / 5K       & \cite{milosz2024predicting} \\
+Move Annotation        & Lichess~\cite{jhamtani-etal-2018-learning}      & 90K / authors'  & SCC~\cite{zang2019automated} \\
+Game Commentary        & Agadmator YouTube (\textbf{Ours})               & 1.9K / 100      & ---\textsuperscript{\textdagger} \\
+Instr.-Cond.\ Planning & Synthetic Motifs (\textbf{Ours})                & 250/motif / 250 & ---\textsuperscript{\textdagger} \\
 \bottomrule
-\multicolumn{4}{l}{\textsuperscript{*}\,Plus three OOD splits (GM-25, Low-Time, Elo Gap); see \S\ref{sec:app_bench_bc}.}
+\multicolumn{4}{p{13.1cm}}{\footnotesize\textsuperscript{*}\;Plus three OOD splits (GM-25, Low-Time, Elo Gap); see \S\ref{sec:app_bench_bc}.} \\
+\multicolumn{4}{p{13.1cm}}{\footnotesize\textsuperscript{\textdagger}\;New evaluation target; no prior task-specific model exists.}
 \end{tabular}
 \end{adjustbox}
 \end{table}
@@ -47,155 +53,168 @@ Instr.-Cond.\ Planning & Synthetic Motifs\textbf{(Ours)} & 250/motif / 250 & ---
 %% ── TABLE 2: METRICS ─────────────────────────────────────────────────────────
 \begin{table}[ht]
 \centering
-\caption{LLAMIA-Bench: evaluation metrics and RL reward signals. $\uparrow$ higher is better; $\downarrow$ lower is better.}
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.3}
+\caption{LLAMIA-Bench: evaluation metrics and RL reward signals. $\uparrow$ higher is better; $\downarrow$ lower is better. Section references point to detailed metric definitions.}
 \label{tab:bench_metrics}
+\vspace{4pt}
 \begin{adjustbox}{max width=\linewidth}
-\begin{tabular}{lll}
+\begin{tabular}{p{3.5cm} p{5.2cm} p{3.4cm}}
 \toprule
 \textbf{Task} & \textbf{Metric(s)} & \textbf{RL Reward} \\
 \midrule
-Behavior Cloning      & Move-match accuracy $\uparrow$            & Move-match accuracy \\
-Puzzle Understanding  & Spearman $\rho$ $\uparrow$                & Normalized MAE $\downarrow$ \\
-Move Annotation       & G-eval $\uparrow$;\enspace BLEU-2 $\uparrow$ & G-eval \\
-Game Commentary       & G-eval $\uparrow$;\enspace BLEU-2 $\uparrow$ & G-eval \\
-Instr.-Cond.\ Planning\textsuperscript{\textdagger} & Tournament Elo $\uparrow$ & --- \\
+Behavior Cloning       & Move-match accuracy $\uparrow$                                              & Move-match accuracy \\
+Puzzle Understanding   & Spearman $\rho$ $\uparrow$ (\S\ref{sec:app_bench_puzzle})                   & Normalized MAE $\downarrow$ \\
+Move Annotation        & G-eval $\uparrow$;\enspace BLEU-2 $\uparrow$ (\S\ref{sec:app_bench_annotation}) & G-eval \\
+Game Commentary        & G-eval $\uparrow$;\enspace BLEU-2 $\uparrow$ (\S\ref{sec:app_bench_commentary}) & G-eval \\
+Instr.-Cond.\ Planning\textsuperscript{\textdagger} & Tournament Elo $\uparrow$ (\S\ref{sec:app_bench_icp_eval}) & --- \\
 \bottomrule
-\multicolumn{3}{l}{\textsuperscript{\textdagger}\,Test-only task; no RL reward signal.}
+\multicolumn{3}{p{12.1cm}}{\footnotesize\textsuperscript{\textdagger}\;Test-only task; no RL reward signal.}
 \end{tabular}
 \end{adjustbox}
 \end{table}
-
-% =============================================================================
-\subsection{Gameplay}
-\label{sec:app_bench_gameplay}
-% =============================================================================
-
-Gameplay tasks evaluate LLAMIA as an active player: playing-strength estimation via gauntlet tournament (Elo Rating) and single-position puzzle solving. Unlike behavior-cloning and stylometry tasks, gameplay rewards are determined entirely by game outcome, providing the cleanest RL signal on the benchmark.
-
-\subsubsection{Elo Rating}
-\label{sec:app_bench_gameplay_elo}
-
-Playing strength is measured via a Gauntlet tournament protocol: LLAMIA plays 1,000 games against a fixed reference pool of engines spanning 1200--2800 Elo, with openings drawn from ECO codes. BayesElo~\cite{coulom2008whole} produces a posterior Elo estimate with 95\% CI. The reference pool is held constant across all evaluated models to ensure comparability. Stage-2 RL training optimizes game-outcome reward directly, making this metric the most tightly coupled to the training objective.
-
-\subsubsection{Puzzle Solving}
-\label{sec:app_bench_gameplay_puzzle}
-
-Puzzles are sampled uniformly from the held-out 1,000-puzzle Lichess test split. Each puzzle requires a forced-mate or best-sequence solution of length 2--15 half-moves; exact-sequence accuracy (all moves correct in order) is the sole metric. LLAMIA re-queries the agent after each move, re-encoding the updated board state; the episode terminates on the first incorrect move.
 
 % =============================================================================
 \subsection{Behavior Cloning}
 \label{sec:app_bench_bc}
 % =============================================================================
 
-Behavior cloning tasks measure LLAMIA's ability to imitate human-like playstyles conditioned on player skill level or persona. The primary evaluation metric across all splits is \textbf{move-match accuracy}: the fraction of positions where the model's top-1 predicted move exactly matches the move played by a player in the target cohort. We follow the MAIA evaluation protocol~\cite{mcilroy2020aligning}: Maia variants use best-of-$N$ sampling; LLAMIA uses a single forward pass unless stated otherwise.
+Behavior cloning measures whether LLAMIA can imitate human play conditioned on skill level or player identity. The metric across all splits is \textbf{move-match accuracy}: the fraction of positions where the model's top-1 predicted move exactly matches the target player's move. We follow the MAIA evaluation protocol~\citep{mcilroy2020aligning}: Maia variants use best-of-$N$ sampling; LLAMIA uses a single forward pass.
+
+\paragraph{Task expert.}
+The task expert for behavior cloning is the Maia family~\citep{mcilroy2020aligning}: per-Elo-bracket convolutional networks trained on 12M games each, optionally augmented with MCTS search~\citep{jacob2022modeling}. On the standard Maia benchmark, Maia\,+\,MCTS represents the published state of the art. On the three OOD splits below, we compare against an Elo-matched Maia network (without MCTS) as a reference, since no specialized models exist for these distributions.
 
 \subsubsection{Maia Benchmark (Elo Buckets)}
 \label{sec:app_bench_bc_maia}
 
-We evaluate on the MAIA-KDD held-out test set~\cite{mcilroy2020aligning}, stratified into five Elo buckets: 1100, 1300, 1500, 1700, and 1900. The test set is player--game disjoint from all training data. Each bucket is treated as an independent task; the aggregate BC score in the main paper is the unweighted average across buckets. The baseline Maia models are trained on 12M games each, one network per Elo bracket.
+We evaluate on the MAIA-KDD held-out test set~\citep{mcilroy2020aligning}, stratified into five Elo buckets: 1100, 1300, 1500, 1700, and 1900. The test set is player--game disjoint from all training data. Each bucket is treated as an independent task; the aggregate BC score reported in the main paper is the unweighted average across buckets.
 
-\subsubsection{GM-25}
+\subsubsection{GM-25 (OOD)}
 \label{sec:app_bench_bc_gm}
 
-GM-25 targets the top-25 rated grandmasters in FIDE history by peak rating.\footnote{\url{https://en.wikipedia.org/wiki/List_of_chess_players_by_peak_FIDE_rating}} Each grandmaster constitutes a separate behavioral target. The maximum available corpus for any individual GM is 4,641 games (Viktor Korchnoi),\footnote{\url{https://www.365chess.com/top-chess-players-games.php}} representing less than 3\% of the training data required by current state-of-the-art per-GM models~\cite{mcilroy2020aligning}. This is an OOD split: no Stage-2 training data is drawn from these specific GM corpora, so generalization must come from the internalized agent state and the model's cross-Elo behavioral representations.
+GM-25 targets the top-25 rated grandmasters in FIDE history by peak rating.\footnote{\url{https://en.wikipedia.org/wiki/List_of_chess_players_by_peak_FIDE_rating}} Each grandmaster is a separate behavioral target. The largest available per-GM corpus is 4,641 games (Viktor Korchnoi),\footnote{\url{https://www.365chess.com/top-chess-players-games.php}} less than 3\% of the data that per-GM Maia models require~\citep{mcilroy2020aligning}. No Stage-2 training data is drawn from these GM corpora; generalization must come from internalized representations and cross-Elo behavioral transfer.
 
-\subsubsection{Low-Time}
+\subsubsection{Low-Time (OOD)}
 \label{sec:app_bench_bc_time}
 
-Time management is central to Rapid and Blitz formats: a player's strategy changes markedly when either player is under severe clock pressure, regardless of material or positional standing. We extract positions where either player has very low remaining time (as flagged by Lichess) or where cumulative time usage differs by more than 50\% between the two players. Positions are stratified by game phase (opening, middlegame, endgame) and sampled equally across time controls, yielding 129,000 positions. This is an OOD split: explicit clock-pressure context is absent from Stage-2 training data.
+Under severe clock pressure, players shift strategy regardless of position quality. We extract positions where either player's remaining clock is below 10\% of the initial time control, or where cumulative time usage differs by more than 50\% between the two sides. Positions are stratified by game phase (opening, middlegame, endgame) and sampled equally across time controls, yielding 129,000 positions. Clock-context metadata is absent from Stage-2 training, making this an OOD split: the model must infer time-pressure effects from the position and move alone.
 
-\subsubsection{Elo Gap}
+\subsubsection{Elo Gap (OOD)}
 \label{sec:app_bench_bc_elo}
 
-Players adapt their strategy significantly when facing opponents at a large skill gap, as occurs in tournaments and exhibition matches. We filter games where the Elo difference between players exceeds 500 points, yielding 34,000 games. This is an OOD split: extreme skill-gap matchups are rare in the training distribution and require the model to condition on opponent strength from contextual signals alone.
+Players adapt their style when facing a large skill gap---weaker players take more risks, stronger players simplify. We filter Lichess Rapid and Classical games where the Elo difference exceeds 500 points, yielding 34,000 games (68,000 player-side instances). Extreme skill-gap matchups are rare in the Stage-2 training distribution; conditioning on opponent strength must emerge from contextual signals rather than memorization.
 
 % =============================================================================
-\subsection{Puzzle Interest and Difficulty Estimation}
+\subsection{Puzzle Understanding}
 \label{sec:app_bench_puzzle}
 % =============================================================================
 
-Puzzle understanding tasks probe whether LLAMIA has internalized the agent's strategic representations well enough to make human-like judgments about puzzle characteristics. Both splits use the same 4-million-puzzle Lichess corpus,\footnote{\url{https://database.lichess.org/lichess_db_puzzle.csv.zst}} enriched with popularity scores and community metadata.
+Puzzle understanding probes whether LLAMIA has internalized the subagent's positional representations well enough to predict human-aligned properties of game states. Both sub-tasks draw from the same 4-million-puzzle Lichess corpus,\footnote{\url{https://database.lichess.org/lichess_db_puzzle.csv.zst}} which provides community-derived ground-truth labels for difficulty and engagement. Evaluation uses Spearman~$\rho$ between predicted and ground-truth values; the RL reward is a normalized mean-absolute-error penalty.
+
+\paragraph{Task expert.}
+The task expert for difficulty estimation is the model of \citet{milosz2024predicting}, the strongest published system for Lichess puzzle difficulty prediction. No prior work targets puzzle interest prediction; we compare against the frontier verbalized baseline only.
 
 \subsubsection{Difficulty Estimation}
 \label{sec:app_bench_puzzle_diff}
 
-Puzzle difficulty is operationalized via a Glicko-2 rating system: each human solving attempt is treated as a rated match between solver and puzzle; the Glicko-2 rating accumulated over all attempts serves as ground truth. The model is asked to predict difficulty on a normalized scale; evaluation uses Spearman $\rho$ between predicted values and ground-truth Glicko-2 ratings on a held-out test split. We compare against \citet{milosz2024predicting} as the task expert, the strongest published model on Lichess puzzle difficulty prediction.
-
-\tbd{} \emph{Test split size and RL reward formulation to be finalized.}
+Puzzle difficulty is operationalized via a Glicko-2 rating system~\citep{glickman2012example}: each human solving attempt is treated as a rated match between solver and puzzle, and the Glicko-2 rating accumulated over all attempts serves as ground truth. The model receives the puzzle position and solution line, and predicts difficulty on a normalized scale. Evaluation uses Spearman~$\rho$ between predicted values and ground-truth Glicko-2 ratings on a held-out split of \tbd{XXX} puzzles.
 
 \subsubsection{Interest Estimation}
 \label{sec:app_bench_puzzle_int}
 
-The interestingness score (range: $-100$ to $+100$) is computed from Lichess community upvotes and downvotes, weighted by solver performance. The model predicts interest; evaluation uses Spearman $\rho$ against the ground-truth signal on a held-out test split. No task-specific baseline exists for predicting puzzle interestingness; results for this task are compared against the frontier verbalized baseline only.
-
-\tbd{} \emph{Test split size and RL reward formulation to be finalized.}
+Lichess assigns each puzzle an interestingness score (range: $-100$ to $+100$) computed from community upvotes and downvotes, weighted by solver performance. This signal has no straightforward textual correlate: a puzzle's aesthetic appeal depends on motif rarity, surprise, and solution elegance---features encoded in the subagent's positional representation but absent from any verbalized move list. The model predicts interest from the same input as difficulty; evaluation uses Spearman~$\rho$ on a held-out split of \tbd{XXX} puzzles. Interest estimation is the diagnostic task on LLAMIA-Bench: the non-verbalizable nature of the target signal means that all text-mediated systems collapse on this task (\cref{sec:results_vg}).
 
 % =============================================================================
 \subsection{Move Annotation}
 \label{sec:app_bench_annotation}
 % =============================================================================
 
-Move annotation evaluates LLAMIA's ability to generate natural-language explanations for individual moves, conditioned on the board state and the specific move to be annotated. We follow the benchmark and evaluation setup of \citet{jhamtani-etal-2018-learning}, using 90,000 Lichess games annotated in English. Each annotation is evaluated across five semantic dimensions:
+Move annotation evaluates LLAMIA's ability to generate natural-language explanations for individual moves, conditioned on the board state and the move played. We follow the benchmark of \citet{jhamtani-etal-2018-learning}: 90,000 Lichess games annotated in English, with annotations categorized into five semantic dimensions---\emph{description} (what the move does), \emph{quality} (blunder, inaccuracy, good, best), \emph{planning} (rationale and lookahead), \emph{context} (links to prior or future moves), and \emph{comparative} (alternative moves and their justification). The standard benchmark provides the target move as input; we additionally evaluate zero-shot without this prior to test whether internalized representations can identify annotation-worthy moves.
 
-\begin{enumerate}[leftmargin=*, itemsep=1pt]
-    \item \textbf{Description}: surface-level description of what the move does.
-    \item \textbf{Quality}: assessment of move quality (blunder, inaccuracy, good, best).
-    \item \textbf{Planning}: rationale and lookahead behind the move choice.
-    \item \textbf{Context}: contextual information linking this move to prior or future moves.
-    \item \textbf{Comparative}: suggestion of a better alternative and its justification.
-\end{enumerate}
+\paragraph{Task expert.}
+The task expert is SCC~\citep{zang2019automated}, a supervised encoder-decoder model trained on the same 90K corpus. We also report numbers from \citet{jhamtani-etal-2018-learning} as a second reference.
 
-Primary metrics are BLEU-2 and perplexity~\cite{lee2022improving}, evaluated per category. The RL reward is a G-eval annotation quality score. Note that standard benchmarks assume the move to be annotated is given, which introduces a selection bias toward moves following recognizable opening lines; LLAMIA is also evaluated zero-shot without this prior.
+\paragraph{Metrics.}
+\textbf{BLEU-2} and perplexity~\citep{lee2022improving} are evaluated per annotation category, following prior work. The primary metric is \textbf{G-eval}~\citep{liu2023g}: an LLM-as-judge framework in which GPT-4o rates each generated annotation on a 0--1 scale across four dimensions (relevance, accuracy, completeness, fluency). The judge receives the board FEN, the move in algebraic notation, and Lc0-BT4's top-3 engine lines as grounding context, so its assessments are anchored in engine analysis rather than surface plausibility alone. Per-annotation G-eval scores are averaged across the four dimensions; the corpus-level score is the mean over all test annotations. G-eval also serves as the RL reward signal for this task.
 
 % =============================================================================
 \subsection{Game-Level Commentary}
 \label{sec:app_bench_commentary}
 % =============================================================================
 
-Game-level commentary requires the model to produce a coherent, multi-turn narrative spanning an entire chess game---a task that move-level annotation benchmarks do not capture. We introduce \textbf{Agadmator-2K}, the first large-scale dataset for this task, comprising 2,000 narrated games from Agadmator's YouTube channel,\footnote{\url{https://www.youtube.com/@agadmator}} totaling approximately 500 hours.
+Game-level commentary requires a coherent, multi-turn narrative spanning an entire game---unlike move-level annotation, errors compound across the narrative, and the model must track evolving themes (initiative shifts, pawn-structure transformations, time trouble). We introduce \textbf{Agadmator-2K}, the first large-scale dataset for this task: 1,900 narrated games from Agadmator's YouTube channel,\footnote{\url{https://www.youtube.com/@agadmator}} totaling approximately 500 hours. No task expert exists; this is a new evaluation target.
 
 \paragraph{Dataset construction.}
-Move-segmented commentary is not directly available from YouTube. We construct it as follows: (i) transcripts are extracted using Whisper-v3-large; (ii) video timestamps are aligned to PGN move sequences via a sliding-window move-tracking buffer; (iii) GPT-4o annotates which moves are referenced within each transcript segment, guided by the known PGN; (iv) segments are accepted only when move order matches the PGN exactly, eliminating errors from retries or out-of-order narration. For evaluation, 100 games are held out sorted by ascending view count to minimize overlap with LLM pretraining corpora.
+Move-segmented commentary is unavailable from YouTube. We construct it in four steps: (i)~transcripts are extracted via Whisper-v3-large; (ii)~video timestamps are aligned to PGN move sequences using a sliding-window move-tracking buffer; (iii)~GPT-4o labels which moves each transcript segment references, guided by the known PGN; (iv)~segments are accepted only when the inferred move order matches the PGN exactly, discarding retries and out-of-order narration. The test set consists of 100 games, held out by ascending view count to minimize overlap with LLM pretraining corpora. This is a heuristic proxy for low contamination, not a guarantee; we discuss contamination further in \S\ref{sec:app_bench_contamination}.
 
 \paragraph{Metrics.}
+We use the same G-eval framework as move annotation (\S\ref{sec:app_bench_annotation}), adapted for game-level commentary: each generated segment is scored on relevance, completeness, clarity, and fluency, with the judge grounded by Lc0-BT4 engine lines and the ground-truth transcript. In addition:
 \begin{itemize}[leftmargin=*, itemsep=2pt]
-    \item \textbf{G-eval} (0--1): following \citet{liu2023g} and \citet{kim2024bridging}, covering four dimensions: relevance, completeness, clarity, fluency. GPT-4o serves as LLM judge for the chess-specific dimensions (relevance, completeness), using Lc0-BT4 tool-calling alongside the ground-truth segment to ground its assessments in engine analysis.
-    \item \textbf{Quality RMSE}: GPT-4o is given the generated commentary segment and asked to infer the centipawn evaluation of the board at that point; RMSE against engine ground truth measures how faithfully the commentary conveys strategic value.
-    \item \textbf{Highlight RMSE}: GPT-4o predicts audience engagement (0--100) from the commentary; RMSE against YouTube replay-graph ground truth~\cite{singh2024teaching} measures human-interest alignment.
-    \item \textbf{BLEU-2}: standard $n$-gram overlap against the ground-truth transcript segment.
+    \item \textbf{Quality RMSE}: GPT-4o reads the generated segment and predicts the centipawn evaluation of the board at that point; RMSE against engine ground truth measures how faithfully the commentary conveys positional value.
+    \item \textbf{Highlight RMSE}: GPT-4o predicts audience engagement (0--100) from the segment; RMSE against the YouTube replay-graph ground truth~\citep{singh2024teaching} measures alignment with human interest.
+    \item \textbf{BLEU-2}: $n$-gram overlap against the ground-truth transcript segment.
 \end{itemize}
-The RL reward is a composite of G-eval and Highlight RMSE weighted equally.
+The RL reward is an equally weighted composite of G-eval and Highlight RMSE.
 
 % =============================================================================
 \subsection{Instruction-Conditioned Planning}
 \label{sec:app_bench_icp}
 % =============================================================================
 
-Instruction-conditioned planning (ICP) evaluates whether LLAMIA can reshape its joint policy in response to a natural-language directive about an opponent's known strategic weakness (e.g., ``your opponent is significantly weaker in endgames''). Success is measured not by move quality in isolation but by whether the model actively steers the game toward the instructed vulnerability domain and then capitalizes on it.
+Instruction-conditioned planning (ICP) evaluates whether LLAMIA can reshape its policy in response to a natural-language directive about an opponent's known weakness (e.g., ``your opponent is significantly weaker in endgames''). Unlike the other tasks, ICP is a \emph{test-only} task with no RL reward: it probes whether the representations learned during multi-task training transfer to a novel form of collaboration---strategic preparation---that the model never optimized for directly. No task expert exists; this is a new evaluation target. We compare against GPT-4o\,+\,Lc0-BT4 (tool-calling) as the strongest available reference.
 
 \subsubsection{Motifs}
 \label{sec:app_bench_icp_motifs}
 
-We curate 25 strategic motifs across five categories, selected for (a) presence across all skill levels, (b) automated detectability, and (c) diversity of required planning horizon.
+We curate 25 strategic motifs across five categories, selected for (a)~presence across all skill levels, (b)~automated detectability, and (c)~diversity of planning horizon (single-move tactics to multi-phase endgame steering).
 
 \begin{table}[H]
 \centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.3}
 \caption{ICP motif categories with descriptions and automated detection criteria.}
 \label{tab:icp_motifs}
-\begin{tabular}{lll}
+\vspace{4pt}
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{p{2.7cm} p{7.0cm} p{4.5cm}}
 \toprule
 \textbf{Category} & \textbf{Description} & \textbf{Detection criterion} \\
 \midrule
-Endgames & K+P, rook, queen, opp-colour bishop endings; Lucena/Philidor; minor vs.\ pawn & Total material (excl.\ kings) $<13$ pts \\
-Pawn Structures & Isolated, doubled, backward, passed pawns; pawn chains; hanging pawns & Target structure persists $\geq$3 consecutive moves \\
-Tactical Blunders & Knight forks, pins, overloaded defenders, mate-in-$K$ ($K\leq5$), king safety & Eval shift $\geq$400\,cp within 2 moves \\
-Piece Coordination & Two rooks vs.\ queen; N+B vs.\ R; bishop pair vs.\ B+N; rook on open file & Material configuration matches target imbalance \\
-Repetition Traps & Forced threefold-repetition sequences & Position hash appears 3 times with opponent to move \\
+Endgames
+  & K$+$P, rook, queen, opposite-colour bishop endings; Lucena/Philidor positions; minor piece vs.\ pawn
+  & Total material (excl.\ kings) $<$13\,pts \\
+Pawn Structures
+  & Isolated, doubled, backward, and passed pawns; pawn chains; hanging pawns
+  & Target structure persists $\geq$3 consecutive moves \\
+Tactical Blunders
+  & Knight forks, pins, overloaded defenders, mate-in-$K$ ($K\!\leq\!5$), king-safety failures
+  & Eval shift $\geq$400\,cp within 2 moves \\
+Piece Coordination
+  & Two rooks vs.\ queen; N$+$B vs.\ R; bishop pair vs.\ B$+$N; rook on open file vs.\ unconnected rooks
+  & Material config.\ matches target imbalance \\
+Repetition Traps
+  & Forced threefold-repetition sequences
+  & Position hash appears 3$\times$ with opponent to move \\
 \bottomrule
 \end{tabular}
+\end{adjustbox}
 \end{table}
 
-\subsubsection{Evaluation}
+\subsubsection{Data Generation}
+\label{sec:app_bench_icp_data}
+
+For each motif category we generate 250 evaluation games. Starting positions are sampled from Lichess Classical games (2000+ Elo, $\geq$40 moves) at move 15--20 to ensure a rich middlegame with the motif category still reachable. Positions are filtered to exclude those where the engine evaluation already exceeds $\pm$200\,cp, ensuring neither side has a decisive advantage before the instruction takes effect. Each model receives the position and a natural-language instruction specifying the opponent's weakness category; it then plays against Lc0-BT4 from that position onward.
+
+\subsubsection{Evaluation Protocol: Tournament Elo}
 \label{sec:app_bench_icp_eval}
 
-When a motif is detected, the opponent engine is downgraded from Lc0-BT4 ($>$2500\,Elo) to Maia-1900 ($\sim$1900\,Elo). Because LLAMIA plays at approximately 2200\,Elo, successful steering yields a winnable position against the weaker replacement. Each model plays 50 games per category (250 games total) with openings drawn uniformly at random. Win-rate improvement is reported in percentage points above the uninstructed LLAMIA baseline, with 95\,\% bootstrap confidence intervals over 1,000 resamples; differences $>$5\,\%pp are statistically significant at $p<0.05$ via paired permutation test.
+ICP uses a \textbf{tournament Elo} protocol to measure the strength gain from instruction conditioning. When the automated detector identifies that the game has entered the instructed motif domain (Table~\ref{tab:icp_motifs}), the opponent engine is downgraded from Lc0-BT4 ($>$2500\,Elo) to Maia-1900 ($\sim$1900\,Elo), simulating the opponent's known weakness. Each model plays 50 games per motif category (250 total) with random openings. From the win/draw/loss outcomes across all 250 games, we compute a BayesElo~\citep{coulom2008whole} tournament rating against the fixed opponent pool; this is the \emph{Tournament Elo} reported in Table~\ref{tab:bench_metrics}. We additionally report win-rate improvement in percentage points above the uninstructed LLAMIA baseline, with 95\% bootstrap confidence intervals over 1,000 resamples; differences $>$5\,\%pp are significant at $p<0.05$ via paired permutation test.
+
+% =============================================================================
+\subsection{Data Contamination Statement}
+\label{sec:app_bench_contamination}
+% =============================================================================
+
+\tbd{} \emph{Contamination analysis to be written. Should cover: (i) overlap between Lichess test positions and known LLM pretraining corpora (The Pile, RedPajama, CommonCrawl chess subsets); (ii) the ascending-view-count heuristic for Agadmator-2K test games and its limitations; (iii) the fact that PGN move strings appear widely in pretraining data but FEN-conditioned evaluations do not; (iv) GM-25 games and their availability on public databases.}
