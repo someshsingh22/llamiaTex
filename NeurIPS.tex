@@ -1,13 +1,94 @@
 %%%%%%%% NeurIPS 2025 SUBMISSION FILE %%%%%%%%%%%%%%%%%
-
 \documentclass{article}
+% -------------------------
+% NEURIPS STYLE (MUST BE FIRST)
+% -------------------------
+% For arXiv / preprint use:
+%\usepackage[preprint]{neurips_2026}
+% For double-blind submission, use the line below instead:
+\usepackage{neurips_2026}
+% For accepted final version:
+% \usepackage[main, final]{neurips_2026}
 
-% if you need to pass options to natbib, use, e.g.:
-%     \PassOptionsToPackage{numbers, compress}{natbib}
-% before loading neurips_2025
+% -------------------------
+% CORE MATH
+% -------------------------
+\usepackage{amsmath,amssymb,amsfonts,mathtools}
 
-% Use the following line for the initial blind version submitted for review:
-\usepackage{neurips_2025}
+% -------------------------
+% FIGURES & TABLES
+% -------------------------
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{xltabular}
+\usepackage{array}
+\usepackage{colortbl}
+\usepackage{tablefootnote}
+\usepackage{adjustbox}
+\usepackage{float}
+\usepackage{mdframed}
+\usepackage{placeins}
+\usepackage[leftmargin=1em, rightmargin=1em, indentfirst=false]{quoting}
+\usepackage{wrapfig}
+% -------------------------
+% TEXT & FORMATTING
+% -------------------------
+\usepackage{enumitem}
+\usepackage{soul}
+\usepackage{xfrac}
+\usepackage{verbatim}
+\usepackage{tabto}
+\usepackage{fancyvrb}
+\usepackage{nicefrac}
+
+% -------------------------
+% CODE
+% -------------------------
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\tcbuselibrary{listings,breakable}
+
+% -------------------------
+% SYMBOLS & MISC
+% -------------------------
+\usepackage{fontawesome5}
+\usepackage{tikzsymbols}
+
+
+
+% -------------------------
+% THEOREMS
+% -------------------------
+\usepackage{amsthm}
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% -------------------------
+% COMMENTS
+% -------------------------
+
+% -------------------------
+% HYPERREF / CLEVEREF (LOAD AFTER neurips_2026)
+% -------------------------
+\usepackage{url}
+\usepackage[pagebackref,breaklinks,colorlinks]{hyperref}
+\usepackage[capitalize,noabbrev]{cleveref}
+
 
 % For camera-ready / accepted version, use instead:
 % \usepackage[final]{neurips_2025}
@@ -15,14 +96,12 @@
 % For preprint, use:
 % \usepackage[preprint]{neurips_2025}
 
-\usepackage[utf8]{inputenc} % allow utf-8 input
-\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+%\usepackage[utf8]{inputenc} % allow utf-8 input   \usepackage[T1]{fontenc} % use 8-bit T1 fonts
 \usepackage{hyperref}       % hyperlinks
 \usepackage{url}            % simple URL typesetting
 \usepackage{booktabs}       % professional-quality tables
 \usepackage{amsfonts}       % blackboard math symbols
-\usepackage{nicefrac}       % compact symbols for 1/2, etc.
-\usepackage{microtype}      % microtypography
+\usepackage{nicefrac}       % compact symbols for 1/2, etc     % microtypography
 \usepackage{xcolor}         % colors
 \usepackage{colortbl}       % \cellcolor, \rowcolor in tables
 
@@ -92,15 +171,15 @@
 % THEOREMS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \theoremstyle{plain}
-\newtheorem{theorem}{Theorem}[section]
-\newtheorem{proposition}[theorem]{Proposition}
-\newtheorem{lemma}[theorem]{Lemma}
-\newtheorem{corollary}[theorem]{Corollary}
+% \newtheorem{theorem}{Theorem}[section]
+% \newtheorem{proposition}[theorem]{Proposition}
+% \newtheorem{lemma}[theorem]{Lemma}
+% \newtheorem{corollary}[theorem]{Corollary}
 \theoremstyle{definition}
-\newtheorem{definition}[theorem]{Definition}
-\newtheorem{assumption}[theorem]{Assumption}
+% \newtheorem{definition}[theorem]{Definition}
+% \newtheorem{assumption}[theorem]{Assumption}
 \theoremstyle{remark}
-\newtheorem{remark}[theorem]{Remark}
+% \newtheorem{remark}[theorem]{Remark}
 
 \input{math_commands.tex}
 
@@ -110,18 +189,15 @@
 
 \title{Internalizing Heterogeneous Agents in Language Model Reasoning}
 
-% The \author macro works with any number of authors. There are two commands
 % used to separate the names and addresses of multiple authors: \And and \AND.
-\author{%
-  Anonymous Authors
-}
+
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
   Multi-agent systems coordinate specialized agents to solve complex tasks requiring both general reasoning and domain-specific expertise. Because these systems communicate primarily through natural language, research has focused on language-based agents where LLMs collaborate with other LLMs through text. However, many domains like game playing and robotics rely on state-of-the-art pretrained non-language agents, whose capabilities are encoded in latent state representations rather than text. When integrated into LLM-based systems, these domain agents are accessed through \emph{verbalization} that compress their rich policy distributions, value estimates, and learned features into sparse symbolic summaries. The extent to which verbalization solves this multi-agent collaboration remains an open question.
-  Evaluating emergent behaviors and diverse collaboration strategies in multi-agent systems has been a persistent challenge, largely due to the lack of domains that combine verifiable metrics with meaningful collaborative tasks. Chess, with its long history of human-agent collaboration, naturally provides both: humans have collaborated with engines for decades on commentary, analysis, and planning, producing well-defined tasks with established evaluation protocols. We curate \textsc{LLAMIA-Bench}, spanning [XXX] collaborative tasks that stress different facets of LLM-agent interaction. We first show that verbalized agent collaboration, even with RL, yields underwhelming performance on tasks requiring deeper collaboration. To address this, we introduce \textit{latent state internalization}, a novel integration paradigm that projects the agent's continuous representations into $K{=}32$ tokens within the LLM's chain of thought, with dynamic re-encoding as the LLM's actions evolve the environment state. Through internalization, a single 13B model matches or exceeds task-specific specialists across all benchmark categories while outperforming [XXX]$\times$ larger LLMs.
+  Evaluating emergent behaviors and diverse collaboration strategies in multi-agent systems has been a persistent challenge, largely due to the lack of domains that combine verifiable metrics with meaningful collaborative tasks. Chess, with its long history of human-agent collaboration, naturally provides both: humans have collaborated with engines for decades on commentary, analysis, and planning, producing well-defined tasks with established evaluation protocols. We curate \textsc{LLAMIA-Bench}, spanning [XXX] collaborative tasks that stress different facets of LLM-agent interaction. We first show that verbalized agent collaboration, even with RL, yields underwhelming performance on tasks requiring deeper collaboration. To address this, we introduce \textit{latent state internalization}, a novel integration paradigm that projects the agent's continuous representations into $K{=}32$ tokens within the LLM's chain of thought, with dynamic re-encoding as the LLM's actions evolve the environment state. Through internalization, a single 13B model matches or exceeds task-specific specialists across all benchmark categories while outperforming [XXX]$\times$ larger LLMs.\somesh{FIX LATEX WIDTH}
 \end{abstract}
 
 \input{pages/intro}

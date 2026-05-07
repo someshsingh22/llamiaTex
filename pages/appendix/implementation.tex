@@ -109,6 +109,7 @@ Eval temperature               & ---    & 0.0  \\
 \vspace{2mm}\caption{Training hyperparameters. Stage 1 values are indicative best-practice defaults;
 Stage 2 values will be updated upon final runs.}
 \label{tab:hparams}
+\somesh{Split into two tables side by side}
 \end{table}
 
 \subsubsection{Stage 1: Projector Alignment}
@@ -217,7 +218,7 @@ Tools (the board is stateful across calls):
 \label{sec:app_toolcall_tools}
 \label{sec:app_toolcall_example}
 
-\begin{tcolorbox}[toolbox, title={Tool API Summary}]
+\begin{tcolorbox}[toolbox, title={Tool API Summary}, label=box:toolschema]
 \renewcommand{\arraystretch}{1.2}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{@{}p{4.5cm}p{4.2cm}p{6cm}@{}}
@@ -239,4 +240,4 @@ Tools (the board is stateful across calls):
 \texttt{get\_policy} runs the minimum search for a single visit per root child and returns
 raw NN beliefs before MCTS modifies them.
 \end{tcolorbox}
-\somesh{Add in caption that tool json is a part of the LLM's prompt }
+\somesh{Add in caption that tool json is a part of the LLM's prompt, explain how it differs in context of LLAMIA Verb vs LLAMIA, remove get\_policy}

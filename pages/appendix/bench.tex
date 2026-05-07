@@ -1,5 +1,5 @@
 \newpage
-\section{Datasets \& Benchmarks}
+\section{LLAMIA-Bench}
 \label{sec:app_bench}
 % =============================================================================
 
@@ -29,18 +29,18 @@ Where the original authors provide a fixed test split we use it; otherwise we sa
 \small
 \setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.4}
-\caption{\textbf{LLAMIA-Bench: dataset provenance.} \textbf{Ours} = constructed for this work. OOD = out-of-distribution test split (\S\ref{sec:app_bench_bc}).}
+\caption{\textbf{LLAMIA-Bench: dataset provenance.\somesh{Fix number of of train points}} \textbf{Ours} = constructed for this work. OOD = out-of-distribution test split (\S\ref{sec:app_bench_bc}).}
 \label{tab:bench_dataset}
 \vspace{4pt}
 \begin{adjustbox}{max width=\linewidth}
-\begin{tabular}{p{4.8cm} p{5.8cm} p{2.4cm}}
+\begin{tabular}{c p{7cm} c}
 \toprule
 \textbf{Task / Source} & \textbf{Description} & \textbf{Train\,/\,Test} \\
 \midrule
-\makecell[tl]{Behavior Cloning \\ {\scriptsize MAIA-KDD, Lichess~\cite{mcilroy2020aligning}}}
+\makecell[tl]{Behavior Cloning \\ {\scriptsize ~\cite{mcilroy2020aligning}}}
   & Predict the move a human of a given Elo would play; 5 Elo buckets (1100--1900)
   & 12M / authors' \\
-\makecell[tl]{\quad\emph{In the wild} (OOD) \\ {\scriptsize MAIA-KDD, Lichess (\textbf{Ours})}}
+\makecell[tl]{\quad\emph{In the wild} (OOD) \\ {\scriptsize (\textbf{Ours})}}
   & Three OOD splits: GM-25 (top-25 GMs), Low-Time (clock pressure $<$10\%), Elo Gap ($>$500 pts)
   & $\leq$167K / --- \\
 \midrule
@@ -101,17 +101,17 @@ Behavior cloning measures whether LLAMIA can imitate human play conditioned on s
 
 We evaluate on the MAIA-KDD held-out test set~\citep{mcilroy2020aligning}, stratified into five Elo buckets: 1100, 1300, 1500, 1700, and 1900. The test set is player--game disjoint from all training data. Each bucket is treated as an independent task; the aggregate BC score reported in the main paper is the unweighted average across buckets.
 
-\subsubsection{GM-25 (OOD)}
+\subsubsection{GM-25}
 \label{sec:app_bench_bc_gm}
 
 GM-25 targets the top-25 rated grandmasters in FIDE history by peak rating.\footnote{\url{https://en.wikipedia.org/wiki/List_of_chess_players_by_peak_FIDE_rating}} Each grandmaster is a separate behavioral target. The largest available per-GM corpus is 4,641 games (Viktor Korchnoi),\footnote{\url{https://www.365chess.com/top-chess-players-games.php}} less than 3\% of the data that per-GM Maia models require~\citep{mcilroy2020aligning}. No Stage-2 training data is drawn from these GM corpora; generalization must come from internalized representations and cross-Elo behavioral transfer.
 
-\subsubsection{Low-Time (OOD)}
+\subsubsection{Low-Time}
 \label{sec:app_bench_bc_time}
 
 Under severe clock pressure, players shift strategy regardless of position quality. We extract positions where either player's remaining clock is below 10\% of the initial time control, or where cumulative time usage differs by more than 50\% between the two sides. Positions are stratified by game phase (opening, middlegame, endgame) and sampled equally across time controls, yielding 129,000 positions. Clock-context metadata is absent from Stage-2 training, making this an OOD split: the model must infer time-pressure effects from the position and move alone.
 
-\subsubsection{Elo Gap (OOD)}
+\subsubsection{Elo Gap}
 \label{sec:app_bench_bc_elo}
 
 Players adapt their style when facing a large skill gap---weaker players take more risks, stronger players simplify. We filter Lichess Rapid and Classical games where the Elo difference exceeds 500 points, yielding 34,000 games (68,000 player-side instances). Extreme skill-gap matchups are rare in the Stage-2 training distribution; conditioning on opponent strength must emerge from contextual signals rather than memorization.
