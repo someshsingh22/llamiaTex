@@ -2,19 +2,38 @@
 \label{sec:app_data}
 % =============================================================================
 
+% =============================================================================
 \subsection{Dataset Construction}
 \label{sec:app_data_construction}
 
-\subsubsection{Stage 1: Projector Alignment Data}
+% =============================================================================
+\subsubsection{Stage~1: Projector Alignment Data}
 \label{sec:app_data_stage1}
 
-\subsubsection{Stage 2: Task-Specific RL Data}
+Stage~1 trains the LatentBridge projector $H_\varphi$ on state--policy pairs from the Lc0-BT4 forward pass. We construct the dataset as follows:
+
+\paragraph{Source.} We sample 5M positions from the Lichess evaluation database (January 2013 -- December 2024), filtering for standard-time-control games between rated players ($\geq$1200 Elo). Positions are sampled uniformly across game phases (opening: moves 1--15, middlegame: moves 16--35, endgame: moves 36+) to prevent phase bias.
+
+\paragraph{Label generation.} For each position, we run a single BT4 forward pass (no MCTS search) to obtain the raw policy distribution $\pi_\text{BT4}(s)$, the value head output $V(s)$, and the penultimate-layer activations $\vh_s \in \R^{1024}$. The training target is the top-1 move from the policy head, formatted as either UCI or SAN notation (70\%\,/\,30\%). The activation $\vh_s$ is the input to the projector.
+
+\paragraph{Prompt diversity.} Each position is paired with one of four question types (Section~\ref{sec:app_prompts_stage1}): position evaluation, principal variation, legal moves, or brief description. Question types are sampled uniformly. This diversity prevents the projector from overfitting to a single output format.
+
+\paragraph{Split.} The 5M positions are split by game ID (not by position) to prevent train/test leakage: 4.5M training, 250K validation, 250K held-out test. No game appears in more than one split.
+
+% =============================================================================
+\subsubsection{Stage~2: Task-Specific RL Data}
 \label{sec:app_data_stage2}
 
-\subsection{Train/Test Leakage Audit}
-\label{sec:app_data_leakage}
+Stage~2 uses DAPO rollouts on task-specific prompts. The training data for RL consists of:
 
-\subsection{Pre-Cutoff vs.\ Post-Cutoff Contamination Tests}
-\label{sec:app_data_cutoff}
+\paragraph{Behavior Cloning.} 500K positions from Lichess games, stratified by player Elo (100-point bins from 1100 to 2600). Each position is paired with the move actually played by the human player. The reward signal is binary: 1 if LLAMIA's predicted move matches the human move, 0 otherwise.
+
+\paragraph{Puzzle Understanding.} 200K puzzles from the Lichess puzzle database, each annotated with difficulty rating and popularity score. The reward is a scaled negative absolute error between LLAMIA's prediction and the ground truth.
+
+\paragraph{Move Annotation.} 100K annotated positions from the GameKnot~\cite{Gameknot} and Lichess annotation corpora. The reward is a G-eval score (GPT-4o judge) comparing LLAMIA's annotation to the reference.
+
+\paragraph{Game Commentary.} 50K annotated game segments (15--30 moves each) from grandmaster commentary databases, chess books transcribed to PGN, and Lichess studies with annotations. The reward combines a G-eval score for commentary quality with BLEU-2 against reference commentaries.
+
+\paragraph{Instruction-Conditioned Play.} ICP is \emph{test-only}. No ICP-specific data is used during RL training. Performance on ICP reflects transfer from the training tasks, not direct optimization. This design is critical: it tests whether internalization enables the model to generalize strategic instruction-following from related training signals.
 
 % =============================================================================
