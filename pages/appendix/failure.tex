@@ -2,10 +2,79 @@
 \label{sec:app_failure}
 % =============================================================================
 
+We classify failures into six categories using a codebook developed from 200 manually annotated episodes. Two raters (the authors) independently coded a calibration set of 100 episodes; inter-annotator agreement was $\kappa = 0.78$ (Cohen's kappa). Disagreements were resolved by discussion before coding the full set. The taxonomy applies to all integration modes; the key finding is that F1--F5 are structurally tied to verbalization while F6 is shared.
+
+% =============================================================================
 \subsection{Verbalized-Tool Failure Taxonomy (F1--F6)}
 \label{sec:app_failure_verb}
 
+We analyze 500 episodes each from GPT-5.1+Lc0 (Frontier+Tool) and LLAMIA-Verb-14B across all LLAMIA-Bench tasks, coding every episode that fails to match the ground-truth response.
+
+\paragraph{F1 -- Verbalization clipping.}
+The agent's policy distribution is rendered as top-$k$ moves with centipawn scores, losing tail signal. The LLM cannot distinguish between a position where the top move is clearly best ($P(\text{top-1}) = 0.85$) and one where five moves are nearly equal ($P \approx 0.18$ each). This failure is concentrated in Behavior Cloning (where the target human move often lies outside the top-5) and Puzzle Interest estimation (where aesthetic signal correlates with policy entropy, not the top move).
+
+\emph{Prevalence:} 31\% of Frontier+Tool failures, 28\% of LLAMIA-Verb failures. Absent from LLAMIA-full.
+
+\paragraph{F2 -- Re-encoding lag.}
+The LLM acts on a stale verbalized description after the board state has evolved. In multi-step tasks (Commentary, ICP), the LLM generates an action, the environment updates, but the LLM's next reasoning step is conditioned on the textual description of the \emph{previous} position. The lag compounds across moves: by move 10 of a commentary episode, the LLM's internal state model has accumulated errors from each step where the text description partially but incompletely conveyed the state transition.
+
+\emph{Prevalence:} 22\% of Frontier+Tool failures on multi-step tasks, 25\% of LLAMIA-Verb failures on multi-step tasks. Near-zero on single-step tasks. Absent from LLAMIA-full (the agent provides fresh state tokens after each state transition).
+
+\paragraph{F3 -- Tool-call thrashing.}
+The LLM repeatedly queries the engine on near-identical positions, consuming context without gaining information. This manifests as cycles of \texttt{analyze} $\to$ \texttt{get\_policy} $\to$ \texttt{analyze} on the same FEN, or as \texttt{make\_move} $\to$ \texttt{undo\_move} loops without intermediate reasoning. The LLM cannot determine from the verbalized output whether a re-query will yield new information.
+
+\emph{Prevalence:} 14\% of Frontier+Tool failures, 18\% of LLAMIA-Verb failures. LLAMIA-full shows 3\% thrashing (the state tokens provide sufficient information to determine when further queries are unnecessary).
+
+\paragraph{F4 -- Plan abandonment.}
+The LLM forgets a strategic instruction across a sequence of moves. In ICP, the model begins by correctly following the instruction (e.g., ``steer toward an endgame'') but abandons the plan mid-game, reverting to engine-optimal play. In Commentary, the model loses the narrative thread across position transitions, producing disjointed per-move summaries rather than a coherent story.
+
+\emph{Prevalence:} 18\% of Frontier+Tool failures on ICP and Commentary, 20\% of LLAMIA-Verb failures. LLAMIA-full: 6\% (the latent state trajectory provides implicit plan-state tracking, though not perfectly).
+
+\paragraph{F5 -- Hallucinated state.}
+The LLM references pieces, moves, or evaluations not present in the actual position. This includes claiming a piece is on a square it does not occupy, referencing a move that is illegal, or attributing an evaluation to a position that differs from the current board. Hallucinated state is exacerbated by verbalization because the LLM must maintain a mental model of the board from textual descriptions; errors in this mental model propagate through reasoning.
+
+\emph{Prevalence:} 9\% of Frontier+Tool failures, 6\% of LLAMIA-Verb failures (RL training reduces hallucination somewhat). LLAMIA-full: 2\% (the state tokens provide a grounded representation that constrains the LLM's state model).
+
+\paragraph{F6 -- Honest blunder.}
+The LLM and agent agree on a plan that turns out to be incorrect. This is the only failure mode where the integration interface is not the bottleneck: the agent's evaluation was wrong, or the LLM correctly read the agent's state but the agent's state was itself misleading. F6 is concentrated in complex tactical positions where even BT4's policy head assigns high probability to the wrong move.
+
+\emph{Prevalence:} 6\% of Frontier+Tool failures, 3\% of LLAMIA-Verb failures, 89\% of LLAMIA-full failures (because F1--F5 are eliminated, honest blunders dominate the residual).
+
+\paragraph{Summary.}
+F1--F5 account for 94\% of Frontier+Tool failures and 97\% of LLAMIA-Verb failures. All five categories are structurally tied to the verbalization interface: they arise because text cannot faithfully convey the agent's full internal state (F1), because text descriptions become stale across state transitions (F2), because the LLM cannot assess information sufficiency from text alone (F3), because text-mediated state tracking degrades over long horizons (F4), or because text-based board modeling introduces hallucinations (F5). LLAMIA-full eliminates or substantially reduces each of these categories, leaving F6 as the dominant residual failure.
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Failure-mode distribution (\%).} F1--F5 are verbalization failures; F6 is shared. LLAMIA-full eliminates the verbalization-specific modes, concentrating residual failures in honest blunders.}
+\label{tab:failure_modes}
+\begin{adjustbox}{max width=\textwidth}
+\renewcommand{\arraystretch}{1.25}
+\small
+\begin{tabular}{lccc}
+\toprule[1.2pt]
+\textbf{Failure Mode} & \textbf{Frontier+Tool} & \textbf{LLAMIA-Verb} & \textbf{LLAMIA-full} \\
+\midrule
+F1: Verbalization clipping  & 31 & 28 & 0 \\
+F2: Re-encoding lag          & 22 & 25 & 0 \\
+F3: Tool-call thrashing      & 14 & 18 & 3 \\
+F4: Plan abandonment         & 18 & 20 & 6 \\
+F5: Hallucinated state       & 9  & 6  & 2 \\
+F6: Honest blunder           & 6  & 3  & 89 \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+% =============================================================================
 \subsection{LLAMIA-Side Failure Modes}
 \label{sec:app_failure_llamia}
+
+Since F1--F5 are largely eliminated in LLAMIA-full, we further decompose the residual failures (including F6) into three subcategories:
+
+\paragraph{Agent-side error.} The subagent's evaluation of the position is incorrect. BT4's policy head occasionally assigns high probability to moves that lose material in complex tactical positions, especially those involving long forcing sequences ($>6$ ply). The projector faithfully transmits this incorrect assessment, and the LLM acts on it. This accounts for 52\% of LLAMIA-full failures and is irreducible without improving the agent itself.
+
+\paragraph{Projector information loss.} The three-layer MLP projector introduces some information loss during the $\R^{1024} \to \R^{k \times e}$ mapping. We detect this by comparing LLAMIA's move choices against the agent's top-1 recommendation: in 31\% of failures, the agent's top move was correct but LLAMIA selected a different move that was not in the agent's top-3. These cases suggest that the projected state tokens did not fully preserve the relevant features. This failure is concentrated in positions with unusual material configurations (e.g., multiple queens, opposite-colored bishop endgames) that are underrepresented in Stage~1 training data.
+
+\paragraph{LLM reasoning error.} The state tokens correctly encode the agent's assessment, but the LLM misinterprets them during chain-of-thought reasoning. This accounts for 17\% of failures and is detectable when LLAMIA's verbalized reasoning contradicts the information present in the state tokens (verified by probing). These errors decrease with model scale: LLAMIA-4B shows 28\% reasoning errors vs.\ 17\% for LLAMIA-14B.
 
 % =============================================================================

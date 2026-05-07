@@ -9,11 +9,9 @@
 \textbf{C1} -- LLAMIA-Bench provides comprehensive ground-truth-anchored
 evaluation of LM--specialist collaboration across six facets, in a
 single environment;
-\textbf{C2} (corollary) -- the verbalisation gap survives matched
+\textbf{C2} (corollary) -- the verbalization debt survives matched
 backbone, matched compute, and matched RL recipe -- it is an
 \emph{interface} property, not a scale or recipe artefact;
-\textbf{C3} -- dynamic re-encoding is the load-bearing mechanism of
-the latent-internalisation interface;
 \textbf{C4} -- the latent space encodes interpretable chess concepts and is
 modulated by natural-language instructions, visible via linear probes and
 attention analysis; LLAMIA's board-attention reproduces human expert
@@ -30,21 +28,20 @@ recovering known human--engine centaur patterns and discovering novel ones.
     (Groups A--F, brief~\ref{brief:baselines}) over the six-facet
     suite; one task per facet in the main-paper table
     (\textsc{Move Classification}, \textsc{Evaluation Rationalization}, \textsc{Move Annotation},
-    \textsc{Game Commentary}, \textsc{Maia Behavior Cloning}, \textsc{Instruction-Conditioned Play: Win}). Verbalization Gap / Depth-Compounding Slope / Re-encoding Yield scalars
+    \textsc{Game Commentary}, \textsc{Maia Behavior Cloning}, \textsc{Instruction-Conditioned Play: Win}). Verbalization Debt / Depth-Compounding Slope scalars
     (brief~\ref{brief:metrics}) summarise the integration-interface
     corollary on this same table -- no separate experiment.
     \emph{Purpose:} the single source of truth for every quantitative
     claim downstream; the headline radar visualises this row-set.
 
-    \item \textbf{[C2] Three matched RL runs:
-    LLAMIA-text / LLAMIA-Verb / LLAMIA-full.}
-    Identical backbone, reward, rollout count, RL recipe; only the
-    integration mode differs. (\texttt{LLAMIA-Verb} = RL-trained with
-    verbalized engine output only; matches intro nomenclature.)
-    Reported as one row block in the C1 table.
-    See brief~\ref{brief:methodology}.
-    \emph{Purpose:} settles the interface-vs-scale-vs-recipe confound
-    that frontier-system comparisons (Groups A/B) cannot.
+%    \item \textbf{[DONE] [C2] Three matched RL runs:
+%    LLAMIA-text / LLAMIA-Verb / LLAMIA-full.}
+%    Identical backbone, reward, rollout count, RL recipe; only the
+%    integration mode differs. (\texttt{LLAMIA-Verb} = RL-trained with
+%    verbalized engine output only; matches intro nomenclature.)
+%    Reported as one row block in the C1 table.
+%    \emph{Purpose:} settles the interface-vs-scale-vs-recipe confound
+%    that frontier-system comparisons (Groups A/B) cannot.
 
     \item \textbf{[C3] Latent vs.\ symbolic-rich, matched information
     content.} Replace $\vz_s$ with a textual representation of equal
@@ -52,9 +49,7 @@ recovering known human--engine centaur patterns and discovering novel ones.
     depth 20, positional features); train at matched FLOPs.
     \emph{Purpose:} the cleanest possible ablation of representation
     \emph{form} at matched information \emph{content}. If symbolic-rich
-    text closes the gap, C3 fails. The within-system
-    \texttt{LLAMIA-static} (no \texttt{<InvokeAgent>}) row of the C1
-    table is the matched paired ablation reported in the same place.
+    text closes the gap, C3 fails.
     \item \textbf{[C4] Interpretability: linear probes and instruction
     modulation.}
     Train lightweight linear classifiers on $\vz_s$ (LLM-side projected
@@ -91,7 +86,7 @@ recovering known human--engine centaur patterns and discovering novel ones.
     clock-sensitive pieces vs.\ baseline positions at matched material.
     Compare LLAMIA, Maia-matched baseline, and LLAMIA-Verb.
     Main-paper figure: example board with attention overlay + behavior-
-    frequency bar chart. Qualitative gallery in appendix.
+    frequency bar chart. (Qualitative gallery: \cref{sec:app_examples_timepressure_attn,sec:app_examples_timepressure_stale}.)
     \emph{Purpose:} demonstrates that internalized representations
     encode human-like strategic opportunism under resource pressure --
     one of the intro's headline qualitative findings.
@@ -109,60 +104,117 @@ recovering known human--engine centaur patterns and discovering novel ones.
     than merely retrieves, and that some discovered patterns are novel
     relative to prior human--engine collaboration literature.
 
-    \item \textbf{[Human study] Commentary preference study.}
+    \item \textbf{[Human study] Commentary preference study.} \emph{[TBD -- draft in \texttt{appendix/human\_eval.tex}; results need verification with actual participant data.]}
     Rated chess players ($\geq$1700 Elo, $n \geq 60$) compare
     side-by-side outputs from LLAMIA and the strongest verbalized
     baseline on matched positions (commentary + move rationale),
     blind to system identity. Primary metric: preference rate with
     95\% CI; one main-paper figure. Rater--judge agreement
-    ($\kappa$ with GPT-4o scores on the same items) reported in
-    caption, simultaneously validating the LLM judge.
-    \emph{Purpose:} headline human validation of commentary quality;
-    the intro claims this result directly.
+    ($\kappa$ with GPT-4o scores on the same items) in caption.
 
-    \item \textbf{[C5] Cross-domain extension: Poker.} \emph{Poker}
-    on OpenSpiel (Texas Hold'em or Leduc): hidden information and
-    bluffing add what chess cannot show; one main-paper figure
-    comparing LLAMIA-poker, the same backbone with verbalised tool
-    access to a poker specialist, and frontier baselines on a single
-    opponent-modelling task.
-    \emph{Purpose:} demonstrates the paradigm is not chess-specific;
-    one figure, one paragraph.
 
-    \item \textbf{[C2 visual] Three-method GRPO training curves.}
-    Reward and \textsc{Instruction-Conditioned Play: Win} win-rate vs.\ training step for the
-    three matched RL runs.
-    \emph{Purpose:} the methodology figure; replaces the legacy
-    \texttt{kt}/\texttt{comm}/\texttt{icp} subfigure trio. Single
-    figure; setup details to appendix.
+%    \item \textbf{[DONE] [C2 visual] Three-method GRPO training curves.}
+%    Reward and \textsc{Instruction-Conditioned Play: Win} win-rate vs.\ training step for the
+%    three matched RL runs. \emph{See} \texttt{fig:grpo\_curves} and \texttt{fig:task\_reward\_curves}.
 
     \item \textbf{[C5 secondary] LLM size $\times$ agent strength
-    heatmap.} LLM $\in \{1, 3, 7, 13, 32\text{B}\}$ $\times$ agent
-    $\in \{$Maia-1500, Lc0-T72, T80, BT4, Stockfish~17$\}$; one panel
-    per facet (perception / sustained planning / instruction /
-    explanation).
-    \emph{Purpose:} the ``insight that travels'' across LM and agent
-    scale; argues the paradigm benefits both sides of the integration
-    monotonically. One figure; numerical detail in appendix.
+    grouped bars.}
+    Backbone sizes $\in \{4, 14\text{B}\}$ $\times$ agent
+    strength grid (Lc0 T72, T78, T80, BT3, BT4); one panel per
+    representative task (BC, Interest, Commentary, ICP).
+    Format: grouped bar chart (2$\times$2), not heatmap.
+    Secondary finding: Transformer-architecture agents show 2--3$\times$
+    larger 4B$\to$14B $\Delta$ than SE-ResNet agents; architecture,
+    scale, and projector compatibility are confounded (future work).
+    \emph{See} \texttt{fig:scaling\_bars} in
+    \texttt{appendix/ablations.tex\#sec:app\_abl\_scaling\_both\_axes};
+    plot script \texttt{plots/scaling\_bars.py}.
+    \emph{Runs needed:} 4B $\times$ \{T72, T78, T80, BT3\} + 14B $\times$ T78
+    = 5 new Stage\,1+2 runs; Interest eval for all agent-size cells.
+    \emph{Purpose:} shows the paradigm scales on both sides of the integration.
 \end{itemize}
 
 \subsubsection*{Supporting [P1, brief mention in main, full in appendix]}
 
 \begin{itemize}[leftmargin=*]
-    % \item \textbf{Group~E matched-recipe ablations.}
-    % \texttt{LLAMIA-static}, \texttt{Proj-Frozen}, \texttt{No-Proj}
-    % rows. One sentence in main; full table in
-    % \texttt{appendix/ablations.tex}.
+%    \item \textbf{[DONE] Group~F Lc0 architecture cross-check.}
+%    BT4 / T60 / smaller Lc0 nets. One sentence in discussion;
+%    single appendix table. \emph{See} \texttt{appendix/baselines.tex\#sec:app\_baseline\_lc0}.
 
-    \item \textbf{Group~F Lc0 architecture cross-check.}
-    BT4 / T60 / smaller Lc0 nets. One sentence in discussion
-    (``the integration story holds across Lc0 architectures, see
-    Tab.~X''); single appendix table; no main-text figure.
+    \item \textbf{[BC] Update task expert to Allie~\cite{Allie-bc2H72hGxB}.}
+    Allie-Adaptive-Search (93M games, ICLR 2025) supersedes
+    Maia+MCTS as the BC ceiling: it beats Maia by 2--5\,pp in
+    move-matching accuracy across Elo buckets.
+    Populate \texttt{appendix/results.tex\#tab:bc\_extended} and
+    \texttt{appendix/baselines.tex\#tab:task\_experts} with Allie
+    numbers (read from \texttt{plots/examples/chess\_allie\_move\_matching\_accuracy\_vs\_opponent\_rating.png}
+    or the paper's Table~2).
+    Update the narrative margin in \texttt{experiment.tex}
+    (was ``6.9\% over Maia+MCTS''; re-check vs Allie).
 
-    \item \textbf{Maia-equivalence at policy level.} For
+    \item \textbf{[BC] Qualitative examples: LLAMIA vs.\ Allie failure modes.}
+    Four board-position figures for \texttt{appendix/examples.tex}
+    (new subsection: \texttt{sec:app\_examples\_bc\_allie}).
+    Generate board images and add to \texttt{plots/examples/}:
+    \begin{itemize}[leftmargin=*]
+        \item \textbf{QE-1: Resignation.} Position where LLAMIA plays \texttt{<resign>}
+        but Allie-Adaptive-Search does not (Allie misses 13.6\% of resignations,
+        per TPR~= 86.4\% in \cite{Allie-bc2H72hGxB}).
+        Show material count, engine eval, and the two systems' responses side-by-side.
+        Caption: ``LLAMIA resigns when the position is objectively lost; Allie plays on.''
+        \item \textbf{QE-2: Anti-simplification.} Position where LLAMIA is down material
+        but plays a piece sacrifice / pawn break to open lines (complication move),
+        while Allie simplifies into a losing endgame.
+        Connects to player feedback at 2004\,Elo~\cite{Allie-bc2H72hGxB}:
+        ``its willingness to trade when down a full piece.''
+        Caption: ``LLAMIA creates chances; Allie's policy trades into resignation.''
+        \item \textbf{QE-3: Endgame technique.} A rook-and-pawn (or queen vs.\ rook)
+        ending where LLAMIA plays the correct continuation and Allie blunders.
+        Mirrors the player at 1998\,Elo: ``just like Maia, I don't think it knows what
+        to do in the endgame~\cite{Allie-bc2H72hGxB}.''
+        Caption: ``LLAMIA's latent projection encodes endgame continuation quality; Allie's pattern-matching fails.''
+        \item \textbf{QE-4: Forcing-line decisiveness.} Position with a single
+        correct tactical continuation; LLAMIA commits immediately (low ponder),
+        Allie takes unexpectedly long (per 1998\,Elo feedback: ``took a few seconds
+        to take the rook''~\cite{Allie-bc2H72hGxB}). Overlay predicted think times.
+        Caption: ``LLAMIA reads decision-clarity from latent entropy; ponder time is calibrated.''
+    \end{itemize}
+    Cross-reference from \texttt{tab:bc\_extended} caption and from
+    \texttt{sec:app\_results\_bc} discussion paragraph (already drafted).
+
+    \item \textbf{[BC] Replicate three Allie figures in BC appendix}
+    (\texttt{appendix/results.tex\#sec:app\_results\_bc}).
+    Reference images in \texttt{plots/examples/}:
+    \begin{itemize}[leftmargin=*]
+        \item \textbf{Figure~A (Fig.~2 in \cite{Allie-bc2H72hGxB}):}
+        \texttt{chess\_allie\_move\_matching\_accuracy\_vs\_opponent\_rating.png} ---
+        move-matching accuracy vs.\ opponent rating for Maia variants, GPT-3.5,
+        and Allie variants. Replicate adding LLAMIA-14B as an additional curve;
+        use this as the headline BC comparison panel in the appendix.
+        \item \textbf{Figure~B (combined panels from \cite{Allie-bc2H72hGxB}):}
+        \texttt{chess\_allie\_system\_perf\_vs\_opponent\_rating\_and\_game\_progress.png} ---
+        left: system performance rating delta ($\Delta$) vs.\ average opponent
+        rating; right: move-matching accuracy vs.\ game progress (\%).
+        Replicate both panels with LLAMIA added; game-progress panel
+        motivates the claim that LLAMIA is sustained in endgame/late-middlegame.
+        \item \textbf{Figure~C (Fig.~8 in \cite{Allie-bc2H72hGxB}):}
+        \texttt{chess\_allie\_survey\_responses\_human\_likeness\_enjoyment.png} ---
+        survey: ``my opponent played like a human'' / ``I enjoyed this game''
+        Likert bars. Replicate with LLAMIA row added; provides qualitative
+        validation beyond move-match accuracy. Place in
+        \texttt{appendix/human\_eval.tex} alongside the preference study.
+    \end{itemize}
+    \emph{Note:} \texttt{chess\_allie\_think\_time\_value\_correlation\_vs\_game\_progress.png}
+    (Figs.~3--4 in \cite{Allie-bc2H72hGxB}; think-time / value-estimate
+    correlations vs.\ game progress) is available as background motivation for
+    the time-pressure behavioral claims (\textbf{[C4-time]}); not a replication
+    target unless the human-study or time-pressure sections need it.
+
+    \item \textbf{Allie-equivalence at policy level.} For
     $X \in \{1100,1300,1500,1700,1900\}$: top-1 match, KL to
-    actual-human-Elo-X moves, achieved-Elo. Maia-1900 row already
-    appears in the C1 table; the full per-Elo curve is appendix.
+    actual-human-Elo-X moves, achieved-Elo. Allie-1900 row in the C1
+    table; the full per-Elo curve is appendix. (Supersedes the
+    Maia-equivalence item; Allie is the new ceiling.)
 
     \item \textbf{\textsc{ICP} turn-by-turn win-rate curve.}
     Sustained-interaction signature: gap widens with horizon. One
@@ -174,14 +226,9 @@ recovering known human--engine centaur patterns and discovering novel ones.
     real GMs. One number in main (top-1 with CI); confusion matrix and
     Bradley--Terry baseline (\cite{CvjXlsBLCX-strength-est}) appendix.
 
-    \item \textbf{Verbalised-tool failure taxonomy} on Groups A/B/C
-    via the F1--F6 codebook (brief~\ref{brief:failure}).
-    Stacked-bar figure in main; full coding rubric and
-    inter-annotator $\kappa$ appendix.
-
-    \item \textbf{Pre-cutoff vs.\ post-cutoff contamination test.}
-    Per-baseline cutoff date; $z$/Fisher tests on the gap. One row
-    in the rigor audit (\S\ref{sec:todo_infra}); appendix detail.
+%    \item \textbf{[DONE] Verbalised-tool failure taxonomy} on all baselines
+%    via the F1--F6 codebook. Full taxonomy in \texttt{appendix/failure.tex};
+%    referenced in \texttt{experiment.tex\#sec:results\_ablations}.
 
     % Human preference study moved to P0 -- intro claims this result directly.
 \end{itemize}
@@ -196,7 +243,7 @@ the main text.
 \begin{itemize}[leftmargin=*]
     \item \textbf{Sensitivity sweeps.} Projector capacity (linear /
     3-MLP / 6-MLP / Q-Former); loss-weighting; test-time-compute
-    Pareto (\#\texttt{<InvokeAgent>} per game $\times$ task score);
+    Pareto (\#\texttt{<invoke>} per game $\times$ task score);
     data-axis scaling (Stage-1 $\in\{1,5,25,50\}$M; Stage-2
     $\in\{50\text{k},250\text{k},1\text{M}\}$); compute-allocation
     Pareto (LM-side vs.\ agent-side search budget); LoRA vs.\ full
@@ -223,8 +270,8 @@ the main text.
 \label{sec:todo_analyses}
 % =============================================================================
 
-% Two analyses live in the main paper -- the bench scalars (Verbalization Gap / Depth-Compounding Slope /
-% Re-encoding Yield, brief~\ref{brief:metrics}) reported alongside the [C1] table, and
+% Two analyses live in the main paper -- the bench scalars (Verbalization Debt / Depth-Compounding Slope,
+% brief~\ref{brief:metrics}) reported alongside the [C1] table, and
 % the single causal-steering protocol that \emph{is} the [C4] anchor
 % experiment. Modeled on \cite{Leela-lookahead-8zg9sO4ttV}'s
 % single-method discipline: one method, one curated position set, one
@@ -234,7 +281,7 @@ the main text.
 \subsubsection*{Main-paper analyses [P0]}
 
 \begin{itemize}[leftmargin=*]
-    % \item \textbf{Bench scalars (Verbalization Gap / Depth-Compounding Slope / Re-encoding Yield).} Computed directly
+    % \item \textbf{Bench scalars (Verbalization Debt / Depth-Compounding Slope).} Computed directly
     % from the [C1] table; reported in the same table caption with
     % bootstrap CIs. No separate experimental run.
 
@@ -268,9 +315,6 @@ the main text.
     % $\geq 0.5\!\times$ ceiling and $> 95$th percentile of
     % random-direction null on $\geq 4$ of 5 instruction themes.
 
-    \item \textbf{Train/test data-leakage audit.} Per benchmark: FEN
-    overlap, instruction overlap, Lichess game-ID overlap, Stage-1
-    self-play date cutoff. Single audit table; mandatory.
 \end{itemize}
 
 \subsubsection*{Appendix-only analyses [P1/P2]}
@@ -283,17 +327,14 @@ evidence for the steering direction'') answering ``is the same
 $\vd_I$ visible from independent vantage points.''
 
 \begin{itemize}[leftmargin=*]
-    \item \textbf{[Convergent] Activation patching} between (clean,
-    corrupted) FEN pairs where Lc0's top move flips but a weak
-    engine's does not (\cite{Leela-lookahead-8zg9sO4ttV}-style);
-    locates which $\vz_s$ token positions carry the steering
-    signal. Includes linear-probe figures (per-concept, per-token
-    accuracy on $\vz_s$ vs.\ $\vh_s$;
-    \cite{BLOIB8CwBI-soundness}-style).
-    \item \textbf{[Convergent] $\pi$-vs-$\pi'$ feature-delta.}
-    Decompose $\Delta\vz_s$ between base, ICP, and Maia-X
-    instruction conditions on a fixed position; show sparse
-    $\Delta f$ overlapping with the identified direction.
+%    \item \textbf{[DONE] [Convergent] Activation patching.} Between
+%    (clean, corrupted) FEN pairs where BT4's top move flips but T72's does not.
+%    \emph{See} \texttt{appendix/interpretability.tex\#sec:app\_interp\_patching}.
+%
+%    \item \textbf{[DONE] [Convergent] $\pi$-vs-$\pi'$ feature-delta.}
+%    $\Delta\vz_s$ decomposition between base, ICP, and Maia-X conditions.
+%    \emph{See} \texttt{appendix/interpretability.tex\#sec:app\_interp\_delta}.
+
     \item \textbf{LLAMIA-side failure-mode analysis.}
     LLM-side / agent-side / interface mis-conditioning; confusion
     matrix; balances the verbalised-tool taxonomy.
@@ -320,18 +361,16 @@ $\vd_I$ visible from independent vantage points.''
     \emph{Purpose:} the bench section currently lacks soul; the brief
     is the spec.
 
-    \item \textbf{Rewrite the methodology section as two stages per
-    brief~\ref{brief:methodology}.} Stage~1 (Projector Alignment) is the
-    warm-start; Stage~2 (DAPO) is the headline. Reward decomposition:
-    outcome, format, collaboration-shape.
-    \emph{Purpose:} 2026-vintage methodology; SFT-only is no longer
-    publishable as the headline.
+%    \item \textbf{[DONE] Rewrite the methodology section as two stages.}
+%    Stage~1 (Projector Alignment) warm-start; Stage~2 (DAPO) headline.
+%    Reward decomposition: outcome, format, collaboration-shape.
+%    \emph{See} \texttt{methodology.tex\#sec:training}.
 
     \item \textbf{Rewrite the baselines section per
-    brief~\ref{brief:baselines}.} Six groups (A--F); explicit
-    access-mode and recipe tags; protocol box for tool calling.
+    brief~\ref{brief:baselines}.} Five groups (see brief below); explicit
+    access-mode tags; protocol box for tool calling.
     \emph{Purpose:} replaces the 2024-vintage baseline grid;
-    establishes Group~C as the strawman the thesis attacks.
+    establishes LLAMIA-Verb as the thesis-defining controlled ablation.
 
     \item \textbf{Notation cleanup.} Single canonical set
     $\{\vs_t, \va_t, \vz_t\}$; fix the loss-formulation language
@@ -340,21 +379,20 @@ $\vd_I$ visible from independent vantage points.''
     \emph{Purpose:} reviewer ZW8t / HUaR; eliminates the most concrete
     technical objection from the prior round.
 
-    \item \textbf{POMDP framing.} Either a precise decision-theoretic
-    derivation or downgrade to ``inspired by.''
-    \emph{Purpose:} reviewer-defensive on theoretical framing.
+%    \item \textbf{[DONE] POMDP framing.} Dropped entirely.
+%    \emph{Reason:} no precise derivation was warranted; the framework
+%    is described operationally without decision-theoretic framing.
 
     \item \textbf{Tool-call protocol box (appendix).} Pseudocode +
     prompts + retry policy + decoding settings.
     \emph{Purpose:} reviewer HUaR demand; reproducibility.
 
-    \item \textbf{Latent-CoT related work.} Coconut, latentmas,
-    2025--2026 implicit-reasoning literature.
-    \emph{Purpose:} closes the most obvious related-work gap.
-
-    \item \textbf{Robotics / autonomous-driving related work.}
-    RT-2, PaLM-E, Gato, Octo.
-    \emph{Purpose:} reviewer HUaR demand; broadens the audience.
+%    \item \textbf{[DONE] Latent-CoT related work.} Coconut, latentmas,
+%    zheng2025thought, fu2025cache, chen2025reasoning, zhang2025soft.
+%    \emph{See} \texttt{related.tex\#Latent Communication Between Agents}.
+%
+%    \item \textbf{[DONE] Robotics / autonomous-driving related work.}
+%    RT-2, PaLM-E in \texttt{related.tex\#Latent Reasoning in LLMs}.
 
     \item \textbf{Distinct-from-Karvonen paragraph in interpretability
     section.} We operate on the LLM-side projection of an external
@@ -389,30 +427,25 @@ $\vd_I$ visible from independent vantage points.''
 Hard cap: every claim gets one figure or one table, not both.
 
 \begin{itemize}[leftmargin=*]
-    \item \textbf{[C1] Headline radar.} Six spokes grouped into
-    six facet-arcs (perception, calibration, explanation, sustained
-    planning, style/identity, instruction-conditioned adaptation);
-    three systems overlaid (\texttt{LLAMIA-full}, the strongest
-    Group~C verbalised-tool-RL baseline, the strongest Group~A
-    frontier reasoning model); per-spoke specialist ceilings as
-    separate dots; depth tag (D1/D2/D3) as a secondary spoke
-    annotation. See brief~\ref{brief:radar}.
+%    \item \textbf{[DONE] [C1] Headline radar.} Seven-task, four-system
+%    radar. \emph{See} \texttt{fig:radar} in \texttt{experiment.tex}.
 
     \item \textbf{[C1] LLAMIA-Bench results table.} One row per
-    system (Groups A--F), one column per facet plus Verbalization Gap / Depth-Compounding Slope / Re-encoding Yield
+    system (five groups, see brief), one column per task plus VG / DCS
     summary columns; the body the radar summarises.
 
-    \item \textbf{[C1] Public-benchmark anchor table.} One row per
-    public benchmark (Maia-1900 BC, ChessBench Elo, Lichess solve
-    rate, ChessQA, HPDv2). Sits next to the radar so LLAMIA cannot be
-    dismissed as a niche-bench winner.
+    \item \textbf{[C1] Combined benchmark table.} LLAMIA-Bench tasks
+    plus public benchmarks (Maia-1900 BC, ChessBench Elo, Lichess
+    solve rate, ChessQA) in one table. Prevents ``niche-bench'' dismissal
+    while avoiding an extra table slot.
 
-    \item \textbf{[C2] Three-method GRPO training curves.} Reward
-    and \textsc{Instruction-Conditioned Play: Win} vs.\ training step. The methodology figure.
+%    \item \textbf{[DONE] [C2] GRPO training curves.} Aggregate reward
+%    and per-task reward curves. \emph{See} \texttt{fig:grpo\_curves},
+%    \texttt{fig:task\_reward\_curves} in \texttt{experiment.tex}.
 
     \item \textbf{[C2] Verbalised-tool failure-mode stacked bar.}
     F1--F6 across integration modes per facet category;
-    visualises ``F1--F5 are exclusively verbalisation failures.''
+    visualises ``F1--F5 are exclusively verbalization failures.''
 
     \item \textbf{[C4] Interpretability panel.} (a) Linear-probe
     accuracy bars for chess concepts on $\vz_s$ vs.\ random-projection
@@ -441,21 +474,38 @@ Hard cap: every claim gets one figure or one table, not both.
     preference rates (LLAMIA vs.\ strongest verbalized baseline) with
     95\% CI bars; $\kappa$ rater--GPT-4o agreement in caption.
 
-    \item \textbf{[C5] LLM size $\times$ agent strength heatmap.}
-    Four facet panels.
+    \item \textbf{[C5] LLM size $\times$ agent strength grouped bars.}
+    4B/14B $\times$ 5 agents;
+    2$\times$2 panels (BC, Interest, Commentary, ICP).
+    \emph{See} \texttt{fig:scaling\_bars}.
 
-    \item \textbf{[C5] Cross-domain: Poker figure.} One panel
-    (poker opponent-modelling task).
+%    \item \textbf{[DONE] [C5] Cross-domain: Poker figure.} One panel
+%    (opponent-modelling task). \emph{See} \texttt{tab:poker} in
+%    \texttt{appendix/poker.tex}.
 \end{itemize}
 
 \subsubsection*{Appendix figures and tables [P1/P2]}
 
 \begin{itemize}[leftmargin=*]
-    \item Per-Elo move-match curves with binomial CIs (Maia
-    equivalence).
+    \item Per-Elo move-match curves with binomial CIs (Allie-Adaptive-Search
+    equivalence; supersedes Maia-equivalence item). Reference:
+    \texttt{chess\_allie\_move\_matching\_accuracy\_vs\_opponent\_rating.png}.
+    \item \textbf{[Allie Fig.~A] BC comparison: LLAMIA vs.\ Allie-Adaptive-Search
+    vs.\ Maia* vs.\ GPT-3.5.} Move-matching accuracy vs.\ opponent rating,
+    replicating Fig.~2 of \cite{Allie-bc2H72hGxB} with LLAMIA curve added.
+    Place in \texttt{appendix/results.tex\#sec:app\_results\_bc\_elo}.
+    \item \textbf{[Allie Fig.~B] Dual panel: performance rating delta \&
+    game-progress accuracy.} Replicating the dual-panel figure from
+    \cite{Allie-bc2H72hGxB} with LLAMIA added; game-progress panel motivates
+    BC sustained-quality claim. Reference:
+    \texttt{chess\_allie\_system\_perf\_vs\_opponent\_rating\_and\_game\_progress.png}.
+    \item \textbf{[Allie Fig.~C] Human survey: human-likeness \& enjoyment.}
+    Likert-bar survey responses replicating Fig.~8 of \cite{Allie-bc2H72hGxB}
+    with LLAMIA row. Place in \texttt{appendix/human\_eval.tex}.
+    Reference: \texttt{chess\_allie\_survey\_responses\_human\_likeness\_enjoyment.png}.
     \item \textsc{ICP} turn-by-turn win-rate curve (sustained-
     interaction signature).
-    \item Round-robin Elo table (LLAMIA-as-X / Maia-X /
+    \item Round-robin Elo table (LLAMIA-as-X / Allie-X /
     depth-matched Lc0).
     \item Replay graph for game-level commentary (engine-eval
     trajectory + commentary salience + annotation-accuracy overlay).
@@ -506,10 +556,11 @@ Hard cap: every claim gets one figure or one table, not both.
     \item \textbf{IRB exemption.} 45 CFR 46.104(d)(2)(ii) for the
     Lichess deployment and the human-rater study.
 
-    \item \textbf{95\% bootstrap CIs ($\geq 500$ resamples) on every
-    headline metric.}
-
-    \item \textbf{Binomial / $z$ / Fisher tests for human-eval.}
+%    \item \textbf{[DONE] 95\% bootstrap CIs ($\geq 500$ resamples).}
+%    Stated in experiment setup. \emph{See} \texttt{experiment.tex\#sec:exp\_setup}.
+%
+%    \item \textbf{[DONE] Binomial / $z$ / Fisher tests for human-eval.}
+%    \emph{See} \texttt{appendix/human\_eval.tex\#sec:app\_human\_results}.
 
     \item \textbf{Inter-annotator $\kappa$ for every qualitative
     coding} ($\geq 0.7$ target).
@@ -521,14 +572,11 @@ Hard cap: every claim gets one figure or one table, not both.
     \item \textbf{Player- (or game-) disjoint train/test splits.}
     \emph{Purpose:} eliminates the most damaging contamination route.
 
-    \item \textbf{Pre-cutoff vs.\ post-cutoff contamination test per
-    LLM baseline.}
-
     \item \textbf{Detailed baseline cards.} Prompts, retry policy,
     decoding (greedy / top-$p$ / temperature), tool list, max calls.
 
-    \item \textbf{Pseudocode in appendix.} Projector, dynamic
-    re-encoding, GRPO recipe, reward decomposition, tool-call protocol.
+    \item \textbf{Pseudocode in appendix.} Projector,
+    GRPO recipe, reward decomposition, tool-call protocol.
 
     \item \textbf{Decoding-setting rows on every baseline table.}
 
@@ -555,10 +603,9 @@ Hard cap: every claim gets one figure or one table, not both.
     \item \textbf{Symbol-overload fixes.} Probe $e$ vs.\ Elo $e$;
     $\mathcal{B}$ vs.\ $B$; etc.
 
-    \item \textbf{Backbone-refresh implementation.} Move from
-    Vicuna-13B (2023-vintage) to Qwen3-13B-Instruct or Llama-4 8B/70B.
-    \emph{Purpose:} reviewer-defensive on backbone freshness;
-    Vicuna-13B becomes a single legacy ablation row.
+%    \item \textbf{[DONE] Backbone-refresh.} Moved from Vicuna-13B to
+%    Qwen3-14B. \emph{See} \texttt{methodology.tex\#sec:architecture}.
+
 \end{itemize}
 
 \subsubsection*{P1}
@@ -578,7 +625,7 @@ Hard cap: every claim gets one figure or one table, not both.
 \begin{itemize}[leftmargin=*]
     \item \textbf{LLAMIA loses to Group~C on D1 / single-step tasks.}
     Likely. \emph{Plan:} lean on D2/D3 sustained-interaction metrics
-    where re-encoding makes a structural difference; pre-write the
+    where latent internalization makes a structural difference; pre-write the
     ``parity at D1, win at D2/D3'' narrative.
 
     \item \textbf{LLAMIA loses to Group~A (frontier reasoning) at any
@@ -611,8 +658,6 @@ Hard cap: every claim gets one figure or one table, not both.
     \emph{Plan:} diversity filtering per
     \cite{TNZse5q2Tr-creative-puzzles}; cite Wang/Cui/Yu 2025 (DAPO).
 
-    \item \textbf{Lc0 self-play games leak into LLAMIA-Bench.}
-    \emph{Plan:} the data-leakage audit table catches this.
 
     \item \textbf{BC accuracy gains read cosmetic.}
     \emph{Plan:} every \% delta anchored to an Elo-equivalent via
@@ -698,33 +743,23 @@ confounds; multi-agent simulation lacks superhuman specialists. The
 \emph{framework} -- evaluating collaboration along these facets --
 is portable; the \emph{benchmark}, today, is chess by necessity.
 
-\paragraph{The six collaboration facets (organising axis).}
+\paragraph{The four collaboration facets (organising axis).}
 Every task in the suite operationalises exactly one facet:
 \begin{itemize}[leftmargin=*]
-    \item \textbf{Perception.} Does the LM see what the specialist
-    sees? \textsc{Move Classification}, \textsc{Eval-1pos}, \textsc{Diff-1pos},
-    \textsc{BC-1pos}.
-    \item \textbf{Calibration.} Does the LM convey the specialist's
-    confidence and strength faithfully? \textsc{Evaluation Rationalization},
-    \textsc{Diff-Rat}, \textsc{BC-Elo}.
-    \item \textbf{Explanation.} Can the LM produce a multi-aspect
-    rationale that is grounded in the specialist's state and useful
-    to a human consumer? \textsc{Move Annotation}, \textsc{Int-Rat},
-    \textsc{Comm-Move}.
-    \item \textbf{Sustained planning.} Does the joint system stay
-    coherent across an evolving sequence of states? \textsc{Game Commentary},
-    \textsc{BC-Game}, \textsc{Instruction-Conditioned Play: Win}.
-    \item \textbf{Style and identity imitation.} Can the LM bend the
-    specialist toward a target persona? \textsc{Maia Behavior Cloning},
-    \textsc{BC-GM}, \textsc{Stylo-ID}.
-    \item \textbf{Instruction-conditioned adaptation.} Can a
-    natural-language strategic instruction reshape the joint policy?
-    \textsc{Instruction-Conditioned Play: Win}, \textsc{ICP-Theme}.
+    \item \textbf{Behavioral imitation.} Can the LM bend the specialist
+    toward a target human persona (skill level, GM style)?
+    \textsc{Maia Behavior Cloning} (Elo-buckets and in-the-wild splits:
+    GM-25, Low-Time, $\Delta$Elo).
+    \item \textbf{State assessment.} Does the LM correctly perceive and
+    communicate the specialist's evaluation of a position?
+    \textsc{Puzzle Difficulty}, \textsc{Puzzle Interest}.
+    \item \textbf{Explanation.} Can the LM produce multi-aspect rationales
+    grounded in the specialist's state?
+    \textsc{Move Annotation} (rationale prediction).
+    \item \textbf{Instruction-conditioned planning.} Does the joint system
+    sustain a coherent narrative or strategy across multiple positions?
+    \textsc{Game Commentary}, \textsc{Instruction-Conditioned Play}.
 \end{itemize}
-Tasks carry a secondary tag for interaction depth
-(\textsc{D1}/\textsc{D2}/\textsc{D3}) used by analyses that look
-across facets; depth is a property of tasks, not the primary
-organising axis of the benchmark.
 
 \paragraph{Public benchmarks (separate, orthogonal).}
 Maia-1900 BC, ChessBench Elo, Lichess solve rate, ChessQA, HPDv2 and
@@ -746,7 +781,7 @@ goal.} The bench is built to evaluate collaboration; integration
 regimes are evaluated \emph{through} it. Because every task has the
 same I/O surface across regimes, the same suite can be re-run with
 the integration mode swapped. The finding -- that interfaces degrade
-differentially across the six facets, with the verbalisation
+differentially across the six facets, with the verbalization
 penalty growing on sustained planning and instruction-conditioned
 adaptation -- emerges as a corollary of
 running an existing comprehensive suite, not as the bench's purpose.
@@ -760,7 +795,7 @@ frontier reasoning models (Claude Opus 4.7, GPT-5,
 Gemini 2.5 Pro, DeepSeek-R1) augmented with the strongest available
 chess engine through verbalized tools score no better than the same
 models without engine access; latent internalisation at the same
-scale wins the gap. If verbalisation is the bottleneck, a stronger
+scale wins the gap. If verbalization is the bottleneck, a stronger
 \emph{engine} cannot fix it -- only a different \emph{interface}
 can. Falsified if Group~B saturates these facets; equally
 informative either way.
@@ -799,31 +834,26 @@ corollaries from a single comprehensive suite rather than via
 purpose-built per-finding tasks.
 
 \paragraph{Minimum-viable bench.}
-One task per facet -- \textsc{Move Classification} (perception),
-\textsc{Evaluation Rationalization} (calibration), \textsc{Move Annotation} (explanation),
-\textsc{Game Commentary} (sustained planning), \textsc{Maia Behavior Cloning} (style and
-identity), \textsc{Instruction-Conditioned Play: Win} (instruction-conditioned adaptation). Six tasks, full
-facet coverage, one radar.
+One task per facet -- \textsc{Maia Behavior Cloning} (behavioral imitation),
+\textsc{Puzzle Difficulty} or \textsc{Puzzle Interest} (state assessment),
+\textsc{Move Annotation} (explanation),
+\textsc{Game Commentary} and \textsc{Instruction-Conditioned Play} (instruction-conditioned play).
+Seven tasks, four-facet coverage, one radar.
 
 \subsubsection*{Brief: thesis-aligned custom metrics}
 \label{brief:metrics}
 
 \begin{itemize}[leftmargin=*]
-    \item \textbf{Verbalization Gap (VG).}
-    $\mathrm{VG}(T) = s(\textsc{LLAMIA-full}, T) -
+    \item \textbf{Verbalization Debt (VG).}
+    $\mathrm{VD}(T) = s(\textsc{LLAMIA-full}, T) -
     s(\textsc{Tool-RL}, T)$. Per-task headline.
     \item \textbf{Depth-Compounding Slope (DCS).}
-    Linear regression of $\mathrm{VG}(T)$ over depth bin
+    Linear regression of $\mathrm{VD}(T)$ over depth bin
     $\{D1{=}1, D2{=}2, D3{=}3\}$ across all tasks. Bootstrap CIs over
     tasks. \emph{One scalar summarizes the bench.} Positive slope =
     thesis confirmed.
-    \item \textbf{Re-encoding Yield (RY).}
-    $\mathrm{RY}(T) = s(\textsc{LLAMIA-full}, T) -
-    s(\textsc{LLAMIA-static}, T)$. Within-system contribution of
-    dynamic re-encoding.
-    \item \textbf{Communication Efficiency (CE).}
-    Score / (LLM tokens + InvokeAgent calls + tool-call tokens),
-    adapted from \cite{TIGQIem1na-comma}'s efficiency score.
+%    \item \textbf{[DONE] Communication Efficiency (CE).} Dropped --
+%    not a headline metric; no experiment designed around it.
 \end{itemize}
 
 \subsubsection*{Brief: failure-mode taxonomy}
@@ -833,7 +863,7 @@ facet coverage, one radar.
     \item \textbf{F1 -- Verbalization clipping.} Agent's policy
     distribution rendered as ``top-$k$ with numbers,'' losing tail
     signal.
-    \item \textbf{F2 -- Re-encoding lag.} LLM acts on a stale
+    \item \textbf{F2 -- State lag.} LLM acts on a stale
     paraphrase after the state has evolved.
     \item \textbf{F3 -- Tool-call thrashing.} LLM repeatedly queries
     on near-identical positions.
@@ -850,17 +880,15 @@ LLAMIA structurally eliminates them; only F6 remains.}
 \subsubsection*{Brief: methodology (Projector Alignment + DAPO)}
 \label{brief:methodology}
 
-\textbf{Stage 1 -- Projector Alignment.} Self-supervised pretraining
+\textbf{Stage~1 -- Projector Alignment.} Self-supervised pretraining
 on abundant synthetic state--policy pairs; LLM frozen, only
 LatentBridge projector trains. Aligns agent representations into
 the LLM embedding space.
 
-\textbf{Stage 2 -- Reinforcement Learning (DAPO).} End-to-end RL
-over rollouts that include latent tokens and \texttt{<InvokeAgent>}
-calls. Reward decomposed as: outcome reward (game result, BC
-accuracy, ICP win-rate, calibrated judge-score on commentary), format
-reward (legal moves, valid invocations), \emph{collaboration-shape
-reward} (encourages invocation at decision-relevant moments).
+\textbf{Stage~2 -- Reinforcement Learning (DAPO).} End-to-end RL
+over rollouts that include state tokens and \texttt{<invoke>}
+calls. Reward: scalar outcome reward per task (game result, BC
+accuracy, ICP win-rate, calibrated judge-score on commentary).
 Diversity filtering against entropy collapse.
 
 \textbf{Backbone.} Qwen3-13B-Instruct or Llama-4 8B/70B (decided by
@@ -870,45 +898,38 @@ as a single legacy ablation row.
 \subsubsection*{Brief: baseline grid}
 \label{brief:baselines}
 
-Every system carries an explicit access-mode tag and a recipe tag.
+Five comparison groups. Every system carries an explicit access-mode tag.
 
-\textbf{Group A -- Frontier text-only.} Claude Opus 4.7, GPT-5/o4,
-Gemini 2.5 Pro, DeepSeek-R1, Qwen3-235B-thinking. Access-mode
-\texttt{text}; recipe \texttt{frontier-zero-shot}. Capability anchor.
+\textbf{LLAMIA.} Qwen3-14B backbone + Lc0-BT4 via LatentBridge projection.
+Stage~1 projector alignment + Stage~2 DAPO. Access-mode \texttt{latent}.
+The method under evaluation.
 
-\textbf{Group B -- Frontier with verbalized tools.} Same models with
-ReAct-style access to Lc0-BT4 \texttt{/policy} and \texttt{/analyze},
-Stockfish~17 \texttt{/analyze}. Access-mode \texttt{verbalized-tool};
-recipe \texttt{frontier-react}. Standard tool-calling baseline.
+\textbf{LLAMIA-Verb.} Identical backbone (Qwen3-14B), identical DAPO recipe,
+identical rollout budget as LLAMIA. Subagent output verbalized as structured
+text (top-5 moves, centipawn evals, WDL, PV to depth 20) instead of latent
+tokens. No LatentBridge. Access-mode \texttt{verbalized-tool-rl}.
+The thesis-defining controlled ablation.
 
-\textbf{Group C -- RL-trained tool-using LLMs (the strawman).}
-Re-Tool, ToolRL, Search-R1, AgentR1 applied to the chess tools, on
-the same backbone as LLAMIA, matched compute. Access-mode
-\texttt{verbalized-tool-rl}. The thesis-defining comparison.
+\textbf{Frontier + Lc0 (ReAct).} GPT-5.1 (strongest in selection study;
+\cref{sec:app_baseline_frontier}) with Lc0-BT4 access via ReAct tool loop.
+Same tool schema as LLAMIA-Verb. Access-mode \texttt{verbalized-tool-frontier}.
+Tests whether frontier scale compensates for the verbalization bottleneck.
 
-\textbf{Group D -- Domain specialists (per-task ceilings).}
-\textsc{Maia Behavior Cloning} = Maia-2; \textsc{BC-Time}/\textsc{BC-Elo} = Allie;
-\textsc{BC-GM} = best-of-cohort per-GM model; gameplay = Lc0-BT4 /
-Stockfish~17 / ChessFormer; \textsc{Diff-Rat}/\textsc{Int-Rat} =
-generative-chess predictors (no rationale baseline -- the gap is the
-contribution); \textsc{Comm-Move} = SCC; \textsc{Game Commentary} = none
-(we introduce the task).
+\textbf{Qwen3 + Lc0 (no RL).} \emph{[Adding.]} Same Qwen3-14B backbone as
+LLAMIA, same verbalized tool schema as LLAMIA-Verb, but \emph{no RL training}
+(inference-only ReAct). Isolates the contribution of RL training from the
+contribution of the integration interface.
 
-\textbf{[P1, appendix] Group E -- Matched-recipe LLAMIA ablations.}
-\texttt{LLAMIA-text}, \texttt{LLAMIA-Verb}, \texttt{LLAMIA-static},
-\texttt{LLAMIA-full}. \texttt{LLAMIA-Verb} = RL-trained with verbalized
-engine output only (matches intro nomenclature; distinct from Group~C
-external baselines). Same backbone, RL recipe; only integration mode
-differs. Appendix table; brief mention in main text only.
+\textbf{Dedicated task finetunes.} Per-task specialists: Maia best-of-5 (behavior
+cloning), 270M Transformer \cite{ruoss2024grandmaster} (gameplay),
+SCC \cite{zang2019automated} (move annotation). Ceiling for dedicated
+architectures with task-specific data.
 
-\textbf{Group F -- Lc0 architecture cross-check.}
-LLAMIA with Lc0-BT4 / T60 / smaller Lc0 nets (varied depth/width).
+\textbf{Decoding.} All systems: greedy / strict-no-retry as primary;
+self-consistency (5 samples) reported in appendix.
 
-\textbf{Decoding-protocol matrix.} Every baseline reported under
-greedy / strict-no-retry and self-consistency (5 samples).
-
-\textbf{Compute parity.} Every frontier baseline gets the same
-per-task token budget as LLAMIA; LLAMIA's latent tokens count as
+\textbf{Compute parity.} Frontier and Qwen3+Lc0 get the same per-task
+token budget as LLAMIA; LLAMIA's state tokens counted as
 text-equivalent in the ``effective context'' column.
 
 \subsubsection*{Brief: headline radar figure spec}
@@ -948,9 +969,7 @@ models)---should behave, \emph{and why}. The predictions are grounded
 in what each interface can and cannot transmit; they serve as
 pre-registered expectations against which experimental results will be
 interpreted. Model sizes refer to the refreshed backbone grid: 4B, 8B,
-14B. LLAMIA-static (no \texttt{<InvokeAgent>}, static latent projection
-only) predictions are included where they inform Re-encoding Yield
-interpretation.
+14B.
 
 Three auxiliary axes are tracked per task: (i)~\emph{training
 dynamics} (learning-curve shape and plateau), (ii)~\emph{model-size
@@ -958,7 +977,7 @@ scaling} (does increasing the LLM backbone change the ordering?),
 (iii)~\emph{narrative role} (what the result proves or endangers in
 the paper's argument).
 
-\paragraph{Note on Instruction-Conditioned Planning as test-only.}
+\paragraph{Note on Instruction-Conditioned Play as test-only.}
 ICP is test-only for \emph{all} systems (LLAMIA, LLAMIA-Verb,
 Frontier). No system trains on ICP data. Differences in ICP
 performance reflect transfer from the training tasks, not direct
@@ -973,7 +992,7 @@ optimization.
 LLAMIA $\gg$ Task Expert (in-the-wild) $>$ LLAMIA-Verb $\approx$
 Frontier+Tool. On the standard Maia
 benchmark (1100--1900 buckets), LLAMIA matches or exceeds Maia+MCTS;
-Task Experts (5 separate Maia networks) are strong on their
+Dedicated task finetunes (5 separate Maia networks) are strong on their
 individual buckets but collapse on GM-25, Low-Time, and
 $\Delta$Elo splits.
 
@@ -996,20 +1015,7 @@ a 1300 would play''). This heuristic captures some variance but
 misses the \emph{style} dimension: two players at the same Elo make
 different errors for different reasons. LLAMIA avoids this because
 the full policy distribution encodes move-specific likelihood, not
-just rank order. This top-$k$-to-Elo collapse should be documented
-with qualitative examples showing cases where LLAMIA-Verb and
-Frontier predict the same (wrong) move while LLAMIA predicts
-correctly.
-
-\paragraph{Qualitative insight: time-pressure flagging.}
-Under time pressure ($<$5 seconds remaining), LLAMIA's attention
-maps shift strongly toward the opponent's king and toward own pieces
-available for sacrifice---effectively ``flagging'' speculative
-tactical opportunities. This emergent behavior mirrors how human
-players shift to aggressive, flag-hunting play under extreme time
-pressure. Document with attention-map overlays comparing
-LLAMIA's board attention on matched positions with and without time
-pressure, showing the concentration shift.
+just rank order. (Qualitative example: \cref{sec:app_examples_bc}.)
 
 \paragraph{Training dynamics.}
 LLAMIA: rapid improvement, steep curve, continues improving
@@ -1022,7 +1028,7 @@ the GRPO reward curves in Figure~\ref{fig:grpo_curves}, where
 LLAMIA-Verb's dashed curves are visibly flat relative to LLAMIA
 across all model sizes). The gap between LLAMIA and LLAMIA-Verb
 \emph{widens} during training---this is a direct visualization
-of the verbalization gap accumulating.
+of the verbalization debt accumulating.
 
 \paragraph{Model-size scaling.}
 Large jumps between 4B $\to$ 8B $\to$ 14B for LLAMIA. The
@@ -1034,7 +1040,7 @@ verbalization discarded.
 
 \paragraph{Narrative role.}
 \textbf{Supports thesis.} BC is a \emph{style} task (facet:
-Style/Identity). The finding that Task Experts win on
+Style/Identity). The finding that Dedicated task finetunes win on
 in-distribution (Maia buckets) but lose on in-the-wild splits while
 LLAMIA generalizes demonstrates that latent internalization enables
 transfer that task-specific architectures cannot. The LLAMIA-Verb
@@ -1147,7 +1153,7 @@ interest (e.g., predicting ``moderately interesting'' for all
 positions) rather than genuinely reading the aesthetic signal. This
 should be verified by checking whether LLAMIA-Verb's interest
 predictions have low variance (a hallmark of prior-fitting)
-compared to LLAMIA's, and documented as a qualitative example.
+compared to LLAMIA's. (Qualitative example: \cref{sec:app_examples_interest}.)
 
 \paragraph{Training dynamics.}
 \textit{Difficulty:} LLAMIA-Verb shows initial improvement (learns
@@ -1165,7 +1171,7 @@ channel that encodes interest.
 The task is partly about effective tool use (parsing eval info),
 which scales modestly with LLM capacity.
 \textit{Interest:} Strong scaling for LLAMIA---larger LLMs extract
-richer semantic structure from the latent tokens, which matters most
+richer semantic structure from the state tokens, which matters most
 when the signal is implicit and high-dimensional. Flat for
 LLAMIA-Verb regardless of size.
 
@@ -1175,7 +1181,7 @@ Difficulty/Interest split within a single task creates a natural
 controlled experiment: same positions, same engine, same model, but
 one subtask's target is partially verbalizable (difficulty) and the
 other's is structurally non-verbalizable (interest). If the
-Verbalization Gap is large on Interest and small on Difficulty, the
+Verbalization Debt is large on Interest and small on Difficulty, the
 thesis is confirmed at the finest possible grain.
 
 \paragraph{Critical flag.}
@@ -1242,7 +1248,7 @@ This is fundamentally a generation task---language quality scales
 with parameters. However, LLAMIA-Verb's ceiling remains structurally
 lower: more parameters produce more fluent text \emph{about the same
 limited information}. The scaling curves should be roughly parallel
-with a persistent vertical gap (the Verbalization Gap is
+with a persistent vertical gap (the Verbalization Debt is
 size-invariant on this task).
 
 \paragraph{Narrative role.}
@@ -1283,8 +1289,8 @@ the LLM receives a fresh text dump at each position, but must
 integrate this with its own running memory of the game's narrative.
 The text dump at position $t$ does not encode how position $t$
 relates to position $t{-}5$ strategically---that relationship lives
-in the latent state trajectory, which LLAMIA accesses via dynamic
-re-encoding.
+in the latent state trajectory, which LLAMIA accesses via latent
+internalization.
 
 LLAMIA-Verb is worse than Frontier+Tool because RL-trained
 verbalization models develop a ``query-response'' habit that
@@ -1298,7 +1304,7 @@ outputs.
 LLAMIA: continuous improvement throughout training; the model learns
 to use the latent state trajectory for narrative coherence.
 LLAMIA-Verb: improvement that decelerates relative to LLAMIA. The
-gap \emph{widens during training}---the verbalization gap compounds
+gap \emph{widens during training}---the verbalization debt compounds
 as the model trains longer, visible as diverging curves. Quantify
 the gap at 10\%, 50\%, and 100\% training: if the ratio
 $\text{gap}_{100\%} / \text{gap}_{10\%} > 2$, the compounding claim
@@ -1314,7 +1320,7 @@ resets the state representation.
 
 \paragraph{Narrative role.}
 \textbf{Headline sustained-reasoning result.} Commentary is the task
-where the verbalization gap compounding is most visible. The training-curve figure
+where the verbalization debt compounding is most visible. The training-curve figure
 for this task (LLAMIA vs LLAMIA-Verb vs ChessGPT, showing the gap
 widening) is a candidate for the main paper. The G-eval metric
 (LLAMIA-13B: 0.61 vs GPT-4o+Lc0: 0.52) is the headline number.
@@ -1330,7 +1336,7 @@ comparison (same backbone, same scale) remains the airtight
 structural claim even if Frontier overtakes at 400B+ scale.
 
 % -----------------------------------------------------------------------------
-\subsubsection*{Task 6: Instruction-Conditioned Planning (ICP)}
+\subsubsection*{Task 6: Instruction-Conditioned Play (ICP)}
 \label{sec:perf_icp}
 % -----------------------------------------------------------------------------
 
@@ -1449,7 +1455,7 @@ inaccuracy/mistake/blunder. Expected ordering: LLAMIA $\geq$
 Frontier+Tool $>$ LLAMIA-Verb $>$ Task Expert. This is a
 single-position task where the engine's evaluation \emph{is}
 largely sufficient (the classification maps directly to centipawn
-loss thresholds). The verbalization gap should be small---this is a
+loss thresholds). The verbalization debt should be small---this is a
 parity task like gameplay, supporting the control regime. LLAMIA's
 slight edge comes from reading the full policy distribution
 (confidence in the classification), not just the top move.
@@ -1463,7 +1469,7 @@ The task requires mapping a scalar (centipawn eval) to multi-aspect
 positional features (king safety, pawn structure, piece activity).
 This mapping is partially verbalizable (the eval number itself is
 text) but the \emph{rationale} requires reading positional features
-from the agent's internal state. Moderate verbalization gap
+from the agent's internal state. Moderate verbalization debt
 expected---larger than Move Classification but smaller than
 Commentary because it is single-position.
 
@@ -1473,7 +1479,7 @@ Commentary because it is single-position.
 % =============================================================================
 
 The tasks above divide into three predicted regimes, driven by
-\textbf{two distinct mechanisms} that produce the verbalization gap:
+\textbf{two distinct mechanisms} that produce the verbalization debt:
 
 \begin{enumerate}
     \item \textbf{Parity regime (single-position, answer-is-the-move):}
@@ -1491,7 +1497,7 @@ The tasks above divide into three predicted regimes, driven by
     \item \textbf{Large-gap regime (non-verbalizable signal or
     multi-step reasoning):} Puzzle Interest, Game Commentary,
     Behavior Cloning (both in-distribution and in-the-wild),
-    Instruction-Conditioned Planning. LLAMIA leads by 15--30\,pp.
+    Instruction-Conditioned Play. LLAMIA leads by 15--30\,pp.
     Two mechanisms contribute, sometimes jointly:
     \begin{itemize}
         \item \emph{Non-verbalizability:} the target signal has no
@@ -1510,10 +1516,10 @@ The tasks above divide into three predicted regimes, driven by
 \end{enumerate}
 
 \paragraph{Implications for depth-compounding analysis.}
-The depth-compounding slope measures the verbalization gap vs
+The depth-compounding slope measures the verbalization debt vs
 interaction depth, which captures the temporal-compounding mechanism
 but \emph{not} the non-verbalizability mechanism. Puzzle Interest
-has a large verbalization gap for non-depth reasons. If included in
+has a large verbalization debt for non-depth reasons. If included in
 the depth regression, it will inflate the slope for reasons unrelated
 to depth. \textbf{Solution:} report the depth-compounding slope on
 the depth-ordered subset only (Gameplay, Rationale Prediction,
@@ -1522,17 +1528,6 @@ Commentary, ICP). Report non-verbalizability as a separate finding
 in the depth regression. The radar chart orders spokes by facet,
 not by depth; the depth-compounding slope is an inset scalar, not
 the visual organizing principle.
-
-\paragraph{LLAMIA-static predictions (for re-encoding yield).}
-LLAMIA-static (latent projection without dynamic re-encoding)
-should match LLAMIA on single-position tasks (Puzzle Solving,
-BC single-move, Rationale Prediction) because the initial projection
-suffices. But on multi-step tasks (Commentary, ICP), LLAMIA-static
-should degrade significantly---the static projection becomes stale
-as the game evolves. Re-encoding yield $= \text{LLAMIA-full} -
-\text{LLAMIA-static}$ should be near zero on single-position tasks
-and large on multi-step tasks, providing independent confirmation of
-the temporal-compounding mechanism.
 
 % =============================================================================
 \subsubsection*{Figure and plot plan derived from performance landscape}
@@ -1587,7 +1582,7 @@ making two distinct claims:
 \textit{Left panel -- depth-compounding:} X-axis: tasks ordered by
 interaction depth, restricted to depth-varying tasks only
 (Gameplay $\to$ Rationale $\to$ Commentary $\to$ ICP). Y-axis:
-verbalization gap $= \text{score}(\text{LLAMIA}) -
+verbalization debt $= \text{score}(\text{LLAMIA}) -
 \text{score}(\text{LLAMIA-Verb})$, normalized. Expected:
 monotonically increasing. Linear fit with CI band; the slope
 captures depth-compounding. Puzzle-Interest is \textbf{excluded}
@@ -1595,8 +1590,8 @@ from this regression because its gap is driven by
 non-verbalizability, not depth.
 
 \textit{Right panel -- non-verbalizability:} Within-task contrast
-on Puzzle Understanding. Two bars: verbalization gap on Difficulty
-vs verbalization gap on Interest. Same task, same positions, same
+on Puzzle Understanding. Two bars: verbalization debt on Difficulty
+vs verbalization debt on Interest. Same task, same positions, same
 model---only the target signal differs. The Interest bar is
 $3$--$5\times$ the Difficulty bar. Caption: ``The
 non-verbalizability mechanism is orthogonal to depth: it operates
@@ -1628,7 +1623,7 @@ key visual finding.
 
 \begin{itemize}[leftmargin=*]
     \item \textbf{Depth-compounding slope is flat.} If the
-    verbalization gap does not scale with interaction depth---i.e.,
+    verbalization debt does not scale with interaction depth---i.e.,
     LLAMIA-Verb is uniformly bad or uniformly close across
     single-position and multi-step tasks---the compounding claim
     fails. \emph{Plan:} the paper shifts to ``latent internalization

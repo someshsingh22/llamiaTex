@@ -2,4 +2,16 @@
 \label{sec:app_limitations}
 % =============================================================================
 
+The main paper acknowledges three limitations (\cref{sec:conclusion}). Here we expand on each and identify additional caveats that qualify the claims.
+
+\paragraph{Single-domain evidence.}
+All experiments use chess as the primary testbed. The framework---subagent with extractable representations, lightweight projector, end-to-end RL---is domain-agnostic in principle, but a complete multi-task evaluation beyond chess remains future work. The framework has not been tested in continuous action spaces (e.g., robotics) or multi-agent adversarial settings beyond two-player zero-sum games. The claim that internalization outperforms verbalization is established for chess; generalization to other domains is a hypothesis, not a finding.
+
+\paragraph{Closed-source agent requirement.}
+LLAMIA requires access to the agent's internal activations (the penultimate-layer representation $\vh_s$). This precludes application to closed-source agents that expose only API endpoints.
+% \somesh{TODO: Add a paragraph here showing the deployment path: Frontier LLM <-> LLAMIA <-> Lc0, where LLAMIA bridges open-source agents to closed-source frontier models via natural language on one side and latent internalization on the other.}
+
+\paragraph{Scale limitations.}
+The largest LLAMIA model is 14B parameters. We do not evaluate whether the verbalization debt persists, shrinks, or grows at larger scales (32B, 70B, 400B). It is plausible that sufficiently large LLMs can partially compensate for verbalization loss through better in-context reasoning, which would qualify the bottleneck claim as scale-dependent rather than absolute. The matched-recipe comparison (LLAMIA vs.\ LLAMIA-Verb at the same scale) controls for this within our range, but extrapolation is uncertain.
+
 % =============================================================================

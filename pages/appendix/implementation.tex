@@ -42,7 +42,7 @@ Qwen3-8B  & 8B  & 4{,}096 & 36 & 32 (8) & 32{,}768 \\
 Qwen3-14B & 14B & 5{,}120 & 40 & 40 (8) & 32{,}768 \\
 \bottomrule
 \end{tabular}
-\vspace{2mm}\caption{Backbone LLM architectures. All variants use GQA with 8 KV heads. Chain-of-thought reasoning is disabled (\texttt{enable\_thinking=False}) following~\cite{XXX}.
+\vspace{2mm}\caption{Backbone LLM architectures. All variants use GQA with 8 KV heads. Chain-of-thought reasoning is disabled (\texttt{enable\_thinking=False}) following~\cite{yang2025qwen3}.
 \texttt{max\_model\_len} is set to 32{,}768 tokens shared across system prompt, history, tool I/O, and response; \texttt{MAX\_ROUNDS=20} caps LLM calls per query.}
 \label{tab:backbone}
 \end{table}
@@ -55,19 +55,19 @@ Qwen3-14B & 14B & 5{,}120 & 40 & 40 (8) & 32{,}768 \\
 \begin{table}[h]
 \centering
 \small
-\begin{tabular}{lll}
+\begin{tabular}{ll}
 \toprule
-\textbf{Parameter}       & \textbf{Chess (Lc0-BT4)} & \textbf{Poker} \\
+\textbf{Parameter}       & \textbf{Chess (Lc0-BT4)} \\
 \midrule
-Input dimension $d$      & 1024      & \tbd \\
-Output tokens $k$        & 16        & 16   \\
-MLP layers               & 3         & 3    \\
-Activation               & GeLU      & GeLU \\
-Source layer             & 15 of 15  & \tbd \\
+Input dimension $d$      & 1024      \\
+Output tokens $k$        & 32        \\
+MLP layers               & 3         \\
+Activation               & GeLU      \\
+Source layer             & 15 of 15  \\
 \bottomrule
 \end{tabular}
-\vspace{2mm}\caption{LatentBridge projector $H_\varphi$ configuration per domain. $H_\varphi$ is a three-layer MLP with GeLU activations mapping the specialist's
-residual stream into $k{=}16$ tokens of dimension $e$ matching the LLM's hidden size
+\vspace{2mm}\caption{LatentBridge projector $H_\varphi$ configuration. $H_\varphi$ is a three-layer MLP with GeLU activations mapping the subagent's
+residual stream into $k{=}32$ tokens of dimension $e$ matching the LLM's hidden size
 (see \cref{sec:token_ablation} for the $k$ ablation).
 A special \texttt{<state>} token anchors each injection site; $k$ contiguous positions
 immediately following it are overwritten with $\vz_t = H_\varphi(\vh_{s_t})$ before the
@@ -91,55 +91,52 @@ The rollout vLLM instance and lc0 server fleet co-reside on the same GPUs;
 \small
 \begin{tabular}{lll}
 \toprule
-\textbf{Hyperparameter}        & \textbf{Stage 1 (Projector)} & \textbf{Stage 2 (GRPO)} \\
+\textbf{Hyperparameter}        & \textbf{Stage~1 (Projector)} & \textbf{Stage~2 (DAPO)} \\
 \midrule
 LR ($H_\varphi$)               & 2e-4   & 1e-5 \\
 LR ($F_\theta$)                & ---    & 1e-6 \\
 Batch size                     & 256    & 128  \\
 Steps / Epochs                 & 2 epochs & 3{,}000 steps \\
 KL coefficient $\beta$         & ---    & 0.01 \\
-Clip $\varepsilon$             & ---    & 0.2  \\
+Clip $\varepsilon_l / \varepsilon_h$ & ---    & 0.2\,/\,0.28  \\
 Group size $G$                 & ---    & 8    \\
-$k$ (latent tokens)            & 16     & 16   \\
+$k$ (state tokens)            & 32     & 32   \\
 Max sequence length            & 32{,}768 & 32{,}768 \\
 Rollout temperature            & ---    & 1.0  \\
 Eval temperature               & ---    & 0.0  \\
 \bottomrule
 \end{tabular}
-\vspace{2mm}\caption{Training hyperparameters. Stage 1 values are indicative best-practice defaults;
-Stage 2 values will be updated upon final runs.}
+\vspace{2mm}\caption{Training hyperparameters. Stage~1 values are indicative best-practice defaults;
+Stage~2 values will be updated upon final runs.}
 \label{tab:hparams}
 \end{table}
 
-\subsubsection{Stage 1: Projector Alignment}
+\subsubsection{Stage~1: Projector Alignment}
 \label{sec:app_stage1}
 
-Stage 1 trains $H_\varphi$ alone with $F_\theta$ frozen on 5\,M state--policy pairs
+Stage~1 trains $H_\varphi$ alone with $F_\theta$ frozen on 5\,M state--policy pairs
 drawn from lc0's forward pass over the Lichess evaluation database.
 Each example pairs a FEN with lc0's top moves and pawn evaluations; the model minimizes
 cross-entropy over verbalized policy output conditioned on
 $\vz_s = H_\varphi(\vh_s)$ and a fixed prompt template (\cref{sec:app_prompts}).
-Skipping Stage 1 causes training instability during the first 40\% of Stage 2
-(\cref{sec:stage_ablation}).
+Skipping Stage~1 causes training instability during the first 40\% of Stage~2
+(\cref{sec:abl_sft_static_rl_dynamic}).
 
-\subsubsection{Stage 2: Reinforcement Learning (GRPO)}
+\subsubsection{Stage~2: Reinforcement Learning (DAPO)}
 \label{sec:app_stage2}
 
-Stage 2 fine-tunes both $F_\theta$ and $H_\varphi$ via GRPO~\cite{shao2024deepseekmath}
+Stage~2 fine-tunes both $F_\theta$ and $H_\varphi$ via DAPO~\cite{yu2025dapo}
 through VERL~0.7.1 with an external vLLM rollout server.
-The reward decomposes as
-$\mathcal{R}(\tau) = R_{\mathrm{outcome}} + R_{\mathrm{format}} + R_{\mathrm{collab}}$:
-task outcome, a binary format gate (legal move / well-formed invocation), and a
-collaboration signal that rewards \texttt{<InvokeAgent>} calls preceding state-changing
-decisions.
-Read-only tool calls earn no per-call reward to prevent over-invocation.
+The reward is a scalar outcome signal
+$\mathcal{R}(\tau) = R_{\mathrm{outcome}}$
+defined per task (Appendix~\ref{sec:app_reward}).
 
 \subsection{Chess Specialist: Lc0-BT4}
 \label{sec:app_lc0}
 
 With \texttt{ScoreType=WDL\_mu}, lc0 reports scores as $100\!\cdot\!Q$ where
 $Q\in[-1,+1]$ is the WDL-mean utility from the side to move's perspective---\emph{not}
-Stockfish-style centipawns. \somesh{support this from literature}
+Stockfish-style centipawns~\cite{monroe2024mastering}.
 
 \subsubsection{Engine Configuration}
 \label{sec:app_lc0_config}
@@ -173,70 +170,3 @@ GPU footprint: ${\sim}\,2.9$\,GB in fp16 on A100.
 \texttt{OutOfOrderEval}, etc.) are at upstream defaults so results match unmodified Leela.}
 \label{tab:lc0-flags}
 \end{table}
-
-\subsection{Inference Harness and Tool-Call Protocol}
-\label{sec:app_toolcall}
-
-The inference harness connects the LLM to lc0 via a six-tool stateful API.
-Read-only calls (\texttt{analyze}, \texttt{get\_policy}, \texttt{get\_position}) are
-dispatched in parallel; mutating calls (\texttt{make\_move}, \texttt{undo\_move},
-\texttt{reset\_position}) are dispatched sequentially to preserve board consistency.
-
-\subsubsection{Agent State}
-\label{sec:app_toolcall_state}
-\somesh{No keep Agent state still as a table}
-\begin{tcolorbox}[statebox, title={Agent State}]
-The agent maintains two fields across tool calls: the current \textbf{board position}
-(FEN, castling rights, en-passant square, 50-move clock) and a \textbf{move history}
-(SAN list from episode start).
-Derived on demand: ASCII board, turn, move number, in-check flag, and legal move list
-(truncated to 24 entries; full count reported via \texttt{total\_legal}).
-Move notation is accepted as UCI (\texttt{e2e4}) or SAN (\texttt{Nf3}, \texttt{O-O});
-illegal moves return \texttt{\{"error": \ldots\}} without raising, allowing the LLM to
-retry with a corrected move.
-State resets at episode start or on an explicit \texttt{reset\_position} call.
-\end{tcolorbox}
-
-\subsubsection{System Prompt}
-\label{sec:app_toolcall_prompt}
-
-\begin{tcolorbox}[promptbox, title={$\triangleright$\; System Prompt --- Chess Analyst}]
-\begin{quote}
-You are a chess expert with access to lc0, a top neural network engine.
-A board is already loaded---any FEN in the user's query has been applied for you.
-Do not call \texttt{reset\_position} unless you need a different position.
-
-\smallskip
-Tools (the board is stateful across calls):
-
-\{\{ \$TOOL DEFINITIONS\}\}
-\end{quote}
-\end{tcolorbox}\somesh{Take more meaningful prompts from previous set of prompts}
-
-\subsubsection{Tool Definitions}
-\label{sec:app_toolcall_tools}
-\label{sec:app_toolcall_example}
-
-\begin{tcolorbox}[toolbox, title={Tool API Summary}]
-\renewcommand{\arraystretch}{1.2}
-\begin{adjustbox}{max width=\linewidth}
-\begin{tabular}{@{}p{4.5cm}p{4.2cm}p{6cm}@{}}
-\toprule
-\textbf{Tool} & \textbf{Parameters} & \textbf{Returns} \\
-\midrule
-\texttt{get\_position()} & --- & FEN, ASCII board, turn, in-check, legal moves ($\leq$24), history \\
-\texttt{make\_move(move)} & \texttt{move}: UCI or SAN & move played, FEN, turn, in-check, checkmate \\
-\texttt{undo\_move()} & --- & FEN, turn \\
-\texttt{reset\_position(fen)} & \texttt{fen}: FEN string & FEN, status; locked if FEN was auto-loaded \\
-\texttt{analyze(nodes, multipv, moves)} & defaults: 800, 3, \texttt{[]} & best move, PV lines in SAN with $100\!\cdot\!Q$ scores \\
-\texttt{get\_policy(nodes)} & default: auto ($\#$legal$+2$) & per-move $P$ (prior), $V$ (value), $Q$ (action-value), $N$ (visits) \\
-\bottomrule
-\end{tabular}
-\end{adjustbox}
-\smallskip
-
-\noindent PVs from \texttt{analyze} are translated from UCI to SAN by the harness.
-\texttt{get\_policy} runs the minimum search for a single visit per root child and returns
-raw NN beliefs before MCTS modifies them.
-\end{tcolorbox}
-\somesh{Add in caption that tool json is a part of the LLM's prompt }
