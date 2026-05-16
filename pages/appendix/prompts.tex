@@ -2,18 +2,18 @@
 \label{sec:app_prompts}
 % =============================================================================
 
-Three prompt regimes govern the pipeline: Stage~1 projector alignment, Stage~2 GRPO
-rollouts, and the shared dynamic re-encoding (InvokeAgent) format.
+Three prompt regimes govern the pipeline: Stage~1 projector alignment, Stage~2 DAPO
+rollouts, and the shared \texttt{<invoke>} tool-call format.
 
 %------------------------------------------------------------------------------
-\subsection{Stage 1: Projector Alignment}
+\subsection{Stage~1: Projector Alignment}
 \label{sec:app_prompts_stage1}
 
 Stage~1 trains the LatentBridge projector ($H_\varphi$, the linear adapter mapping BT4
 residual activations into the LLM token space) via supervised learning on chess
 instruction data.
 Each episode presents several independent questions about the same board position; the
-\texttt{<state>} placeholder marks the $k{=}32$ latent tokens projected from the BT4
+\texttt{<state>} placeholder marks the $k{=}32$ state tokens projected from the BT4
 residual stream and inserted into the LLM's context at that point.
 Four question types are sampled per FEN: position evaluation, principal variation, legal
 moves, and brief verbal description.
@@ -21,7 +21,7 @@ Move notation alternates UCI and SAN with probability 70\,/\,30\,\%; evaluations
 pawn units.
 
 \begin{tcolorbox}[promptbox,
-  title={$\triangleright$\; Stage 1 System Prompt --- Projector Alignment}]
+  title={$\triangleright$\; Stage~1 System Prompt --- Projector Alignment}]
 \begin{quote}
 You are LLAMIA, a chess reasoning assistant.
 The board state is encoded in the \texttt{<state>} token sequence embedded in the
@@ -31,7 +31,7 @@ Do not narrate your reasoning; give the answer directly.
 \end{quote}
 \end{tcolorbox}
 
-\begin{tcolorbox}[notebox, title={Stage 1 Training Format (single episode over one FEN)}]
+\begin{tcolorbox}[notebox, title={Stage~1 Training Format (single episode over one FEN)}]
 \small
 \textbf{User:}~What is the evaluation of the following position?
 Describe the evaluation followed by the continuation in UCI format, e.g.\
@@ -57,18 +57,18 @@ appears as a complex endgame with White holding a slight advantage due to the ex
 \end{tcolorbox}
 
 %------------------------------------------------------------------------------
-\subsection{Stage 2: GRPO System Prompt}
+\subsection{Stage~2: DAPO System Prompt}
 \label{sec:app_prompts_stage2}
 
 \paragraph{Toy task (puzzle popularity / Elo).}
-The system prompt below is used verbatim during GRPO rollouts for the toy task
-(\S\ref{sec:app_toytask}).
+The system prompt below is used verbatim during DAPO rollouts for the toy task
+(\S\ref{sec:app_stage2}).
 The explicit refusal-suppression clause is required: without it, Qwen3-4B defaults to
 ``I cannot directly determine\ldots'' and never emits a tool call, collapsing the
 format-pass rate to 0\,\% (verified on 20 held-out puzzles at greedy decoding).
 
 \begin{tcolorbox}[promptbox,
-  title={$\triangleright$\; Stage 2 System Prompt --- Puzzle Popularity / Elo (GRPO Rollouts)}]
+  title={$\triangleright$\; Stage~2 System Prompt --- Puzzle Popularity / Elo (DAPO Rollouts)}]
 \begin{quote}
 You are a chess expert with access to lc0, a top neural network engine.
 A puzzle position has been loaded from the FEN in the user's message.
@@ -96,20 +96,19 @@ End your reply with exactly one line in the form:\\[2pt]
 
 \paragraph{Full LLAMIA-Bench.}
 All six task families (behaviour cloning, stylometry, puzzle understanding, move
-annotation, game commentary, instruction-conditioned planning) share the same tool
+annotation, game commentary, instruction-conditioned play) share the same tool
 catalogue as the toy task.
 Task-specific instructions replace the popularity/Elo mandate; the
 refusal-suppression clause is retained across all variants.
-Full per-task system prompts are \tbd{} pending experimental finalization.
 
 %------------------------------------------------------------------------------
-\subsection{InvokeAgent Trigger Format}
+\subsection{\texttt{<invoke>} Trigger Format}
 \label{sec:app_prompts_invoke}
 
-Dynamic re-encoding (\textsc{InvokeAgent}) fires after every board-mutating tool call
+Dynamic re-encoding (\texttt{<invoke>}) fires after every board-mutating tool call
 (\texttt{make\_move}, \texttt{undo\_move}, \texttt{reset\_position}).
 The harness re-runs the BT4 forward pass on the updated FEN, encodes a fresh set of
-$k{=}32$ latent tokens, and prepends them as a \texttt{<state>} prefix to the next user
+$k{=}32$ state tokens, and prepends them as a \texttt{<state>} prefix to the next user
 turn.
 Because mutating calls are dispatched sequentially (\S\ref{sec:app_toolcall}), the
 re-encoding always sees a fully settled board state.
@@ -117,7 +116,7 @@ Read-only calls (\texttt{analyze}, \texttt{get\_policy}, \texttt{get\_position})
 trigger re-encoding; the token budget is therefore capped at $k$ additional tokens per
 state transition, regardless of analysis depth.
 
-\begin{tcolorbox}[notebox, title={InvokeAgent Turn Structure (blunder-analysis episode)}]
+\begin{tcolorbox}[notebox, title={\texttt{<invoke>} Turn Structure (blunder-analysis episode)}]
 \small
 \textbf{Round~1 --- User:} \texttt{<state$_0$>} Why is \texttt{Nxd4} a blunder here?
 [FEN $s_0$]\\[3pt]
@@ -129,11 +128,11 @@ see \S\ref{sec:app_toolcall_example})}
 \textbf{Round~2 --- LLAMIA:} Final answer citing \texttt{Qa5+} / \texttt{Qxg5}.
 \end{tcolorbox}
 
-Since no board mutation occurs in blunder analysis, \textsc{InvokeAgent} does not fire.
+Since no board mutation occurs in blunder analysis, \texttt{<invoke>} does not fire.
 The re-encoding path is active in multi-step planning episodes, where the agent sequences
 \texttt{make\_move} calls to explore a variation before deciding on a recommendation.
 
-\begin{tcolorbox}[notebox, title={InvokeAgent Turn Structure (multi-step planning episode)}]
+\begin{tcolorbox}[notebox, title={\texttt{<invoke>} Turn Structure (multi-step planning episode)}]
 \small
 \textbf{Round~1 --- User:} \texttt{<state$_0$>} Find the best three-move combination.
 [FEN $s_0$]\\[3pt]
@@ -159,5 +158,76 @@ The re-encoding path is active in multi-step planning episodes, where the agent 
 \noindent The injected \texttt{<state>} prefix in Rounds~2 and~4 is invisible to the
 human user; the harness inserts it programmatically before forwarding the tool result to
 the next LLM call, keeping the re-encoding fully transparent to the model's reasoning loop.
+
+%------------------------------------------------------------------------------
+\subsection{Inference Harness and Tool-Call Protocol}
+\label{sec:app_toolcall}
+
+The inference harness connects the LLM to lc0 via a six-tool stateful API.
+Read-only calls (\texttt{analyze}, \texttt{get\_policy}, \texttt{get\_position}) are
+dispatched in parallel; mutating calls (\texttt{make\_move}, \texttt{undo\_move},
+\texttt{reset\_position}) are dispatched sequentially to preserve board consistency.
+
+\subsubsection{Agent State}
+\label{sec:app_toolcall_state}
+\begin{tcolorbox}[statebox, title={Agent State}]
+The agent maintains two fields across tool calls: the current \textbf{board position}
+(FEN, castling rights, en-passant square, 50-move clock) and a \textbf{move history}
+(SAN list from episode start).
+Derived on demand: ASCII board, turn, move number, in-check flag, and legal move list
+(truncated to 24 entries; full count reported via \texttt{total\_legal}).
+Move notation is accepted as UCI (\texttt{e2e4}) or SAN (\texttt{Nf3}, \texttt{O-O});
+illegal moves return \texttt{\{"error": \ldots\}} without raising, allowing the LLM to
+retry with a corrected move.
+State resets at episode start or on an explicit \texttt{reset\_position} call.
+\end{tcolorbox}
+
+\subsubsection{System Prompt}
+\label{sec:app_toolcall_prompt}
+
+\begin{tcolorbox}[promptbox, title={$\triangleright$\; System Prompt --- Chess Analyst}]
+\begin{quote}
+You are a chess expert with access to lc0, a top neural network engine.
+A board is already loaded---any FEN in the user's query has been applied for you.
+Do not call \texttt{reset\_position} unless you need a different position.
+
+\smallskip
+Tools (the board is stateful across calls):
+
+\{\{ \$TOOL DEFINITIONS\}\}
+\end{quote}
+\end{tcolorbox}
+
+\subsubsection{Tool Definitions}
+\label{sec:app_toolcall_tools}
+\label{sec:app_toolcall_example}
+
+\begin{tcolorbox}[toolbox, title={Tool API Summary}]
+\renewcommand{\arraystretch}{1.2}
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{@{}p{4.5cm}p{4.2cm}p{6cm}@{}}
+\toprule
+\textbf{Tool} & \textbf{Parameters} & \textbf{Returns} \\
+\midrule
+\texttt{get\_position()} & --- & FEN, ASCII board, turn, in-check, legal moves ($\leq$24), history \\
+\texttt{make\_move(move)} & \texttt{move}: UCI or SAN & move played, FEN, turn, in-check, checkmate \\
+\texttt{undo\_move()} & --- & FEN, turn \\
+\texttt{reset\_position(fen)} & \texttt{fen}: FEN string & FEN, status; locked if FEN was auto-loaded \\
+\texttt{analyze(nodes, multipv, moves)} & defaults: 800, 3, \texttt{[]} & best move, PV lines in SAN with $100\!\cdot\!Q$ scores \\
+\texttt{get\_policy(nodes)} & default: auto ($\#$legal$+2$) & per-move $P$ (prior), $V$ (value), $Q$ (action-value), $N$ (visits) \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\smallskip
+
+\noindent PVs from \texttt{analyze} are translated from UCI to SAN by the harness.
+\texttt{get\_policy} runs the minimum search for a single visit per root child and returns
+raw NN beliefs before MCTS modifies them.
+
+\smallskip
+\noindent\textbf{Note:} \texttt{get\_policy} is the \texttt{<invoke>} call.
+Invoking it causes the harness to run a fresh BT4 forward pass on the current position
+and inject $k{=}32$ latent state tokens (\texttt{<state>}) into the next LLM turn.
+\end{tcolorbox}
 
 % =============================================================================

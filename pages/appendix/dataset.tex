@@ -1,27 +1,7 @@
 \section{Dataset}
 \label{app:data_stats}
 \vspace{-2mm}
-
-\begin{figure}[!h]
-    \centering
-    \vspace{-8mm}
-    \includegraphics[width=0.98\linewidth]{data.pdf}
-    \vspace{-8mm}
-    \caption{The inner circle represents the distribution of training data, detailing the categories. The outer circle lists the types and data sources present in each category.}
-    \label{fig:data}
-\end{figure}
-
-\begin{figure}[!h]
-    \centering
-    \includegraphics[width=0.98\linewidth]{llamia-tasks3.pdf}
-    \caption{Tasks demonstrating LLAMIA capabilities across planning, reasoning, and acting: chess evaluations, best move predictions, behavior cloning, commentary prediction, state annotation, and puzzle understanding.}
-    \label{fig:LLAMIA-arch-tasks}
-\end{figure}
-
-
-
-
-In this section, we describe the datasets and on which we train LLAMIA. Extensive research from Flan, LLaVA, QLora \cite{longpre2023flan,dettmers2024qlora,liu2024improved,liu2023visual} demonstrate that joint training across diverse tasks, modalities, and instructions enhances model generalization and zero-shot reasoning. Motivated by this, we train LLAMIA on interleaved datasets that combine agent states, actions, and language instructions. Our approach integrates three objectives: (1) aligning pretrained agents with LLM representations, (2) cloning diverse decision making behaviors, and (3) predicting human explanations. Below we outline the datasets used.
+In this section, we describe the datasets and on which we train LLAMIA. Extensive research from Flan, LLaVA, QLora \cite{longpre2023flan,dettmers2024qlora,liu2024improved,liu2023visual} demonstrate that joint training across diverse tasks, modalities, and instructions enhances model generalization and zero-shot reasoning. Motivated by this, we train LLAMIA on interleaved datasets that combine agent states, actions, and language instructions. Our approach integrates three objectives: (1) aligning subagents with LLM representations, (2) cloning diverse decision making behaviors, and (3) predicting human explanations. Below we outline the datasets used.
 
 \subsection{Agent-Projector Pretraining}
 The pretraining phase aligns the agent’s latent state representations with the LLM’s embedding space. We extract the \textbf{top moves} and their \textbf{pawn evaluations} from the lichess evaluation database \footnote{\url{https://database.lichess.org/\#evals}}. We filter out weaker evaluations to obtain 50 million evaluations. Further, we augment these with positional features such as legal moves, tactical motifs (e.g., pins, forks), and strategic annotations (e.g., king safety, pawn structure) extracted from Chevy\footnote{\url{https://github.com/int8/chevy}}. Listing \ref{listing:pretraining_instruction_format} shows the exact conversation format.

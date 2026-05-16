@@ -59,20 +59,18 @@ geometry are described in the main paper.
 \subsection{Training Hyperparameters}
 \label{app:details:hparams}
 
-% TODO: fill in per-stage hyperparams (Stage 1 projector pretraining, Stage 2 GRPO fine-tuning)
-
 \begin{table}[h]
 \centering
 \small
 \begin{tabular}{lll}
 \toprule
-\textbf{Hyperparameter} & \textbf{Stage 1} & \textbf{Stage 2 (GRPO)} \\
+\textbf{Hyperparameter} & \textbf{Stage~1} & \textbf{Stage~2 (DAPO)} \\
 \midrule
 Learning rate & -- & -- \\
 Batch size & -- & -- \\
 Epochs & -- & -- \\
 KL coefficient & -- & -- \\
-$K$ (latent tokens) & 32 & 32 \\
+$K$ (state tokens) & 32 & 32 \\
 \bottomrule
 \end{tabular}
 \caption{Training hyperparameters.}
@@ -83,9 +81,7 @@ $K$ (latent tokens) & 32 & 32 \\
 \subsection{RL Configuration (VERL + vLLM)}
 \label{app:details:rl}
 
-Reinforcement learning uses GRPO as the advantage estimator, implemented via the VERL framework~\cite{} with an external vLLM rollout server.
-
-% TODO: rollout temperature, top-p, response length, reward shaping details
+Reinforcement learning uses DAPO as the advantage estimator, implemented via the VERL framework~\cite{} with an external vLLM rollout server.
 
 %------------------------------------------------------------------------------
 \subsection{Chess Specialist: lc0 + BT4}
@@ -784,7 +780,7 @@ Wall time per puzzle      & 1.9\,s \\
 \bottomrule
 \end{tabular}
 \caption{Rollout smoke-test stats. The non-zero reward variance is the
-quantity that matters for GRPO: groups of rollouts that share a single
+quantity that matters for DAPO: groups of rollouts that share a single
 prompt but yield different rewards generate non-zero advantages and
 therefore non-zero gradient. The greedy decoding bias toward a fixed
 answer (the model frequently outputs $75/2200$) does not collapse the
@@ -796,16 +792,16 @@ gradient because the ground truth varies across the group.}
 \subsection{Prompt Templates}
 \label{app:details:prompts}
 
-Three prompt regimes govern the pipeline: Stage~1 projector alignment, Stage~2 GRPO rollouts, and the shared dynamic re-encoding (InvokeAgent) format. Extended per-task LLAMIA-Bench listings appear in Appendix~\ref{sec:app_prompts}.
+Three prompt regimes govern the pipeline: Stage~1 projector alignment, Stage~2 DAPO rollouts, and the shared dynamic re-encoding (\texttt{<invoke>}) format. Extended per-task LLAMIA-Bench listings appear in Appendix~\ref{sec:app_prompts}.
 
 %------------------------------------------------------------------------------
-\subsubsection{Stage 1: Projector Alignment}
+\subsubsection{Stage~1: Projector Alignment}
 \label{app:details:prompts:stage1}
 
 Stage~1 trains the LatentBridge projector (the linear adapter that maps BT4 residual
 activations into the LLM token space) via supervised learning on chess instruction data.
 Each episode presents several independent questions about the same board position;
-the \texttt{<state>} placeholder marks the $K{=}32$ latent tokens projected from the
+the \texttt{<state>} placeholder marks the $K{=}32$ state tokens projected from the
 BT4 residual stream and inserted into the LLM's context at that point.
 Four question types are sampled for each FEN: position evaluation, principal
 variation, legal moves, and brief verbal description.
@@ -813,7 +809,7 @@ Move notation alternates UCI and SAN with probability 70\,/\,30\,\%; evaluations
 are in pawn units.
 
 \begin{tcolorbox}[promptbox,
-  title={$\triangleright$\; Stage 1 System Prompt --- Projector Alignment},
+  title={$\triangleright$\; Stage~1 System Prompt --- Projector Alignment},
   label={box:stage1sysprompt}]
 \begin{quote}
 You are LLAMIA, a chess reasoning assistant.
@@ -824,7 +820,7 @@ Do not narrate your reasoning; give the answer directly.
 \end{quote}
 \end{tcolorbox}
 
-\begin{tcolorbox}[notebox, title={Stage 1 Training Format (single episode over one FEN)}]
+\begin{tcolorbox}[notebox, title={Stage~1 Training Format (single episode over one FEN)}]
 \small
 \textbf{User:}~What is the evaluation of the following position? Describe the evaluation
 followed by the continuation in UCI format, e.g.\ \emph{``Evaluation is +1.5,
@@ -851,11 +847,11 @@ due to the extra pawn.
 \end{tcolorbox}
 
 %------------------------------------------------------------------------------
-\subsubsection{Stage 2: GRPO System Prompt}
+\subsubsection{Stage~2: DAPO System Prompt}
 \label{app:details:prompts:stage2}
 
 \paragraph{Toy task (puzzle popularity / ELO).}
-The system prompt below is used verbatim during GRPO rollouts for the puzzle
+The system prompt below is used verbatim during DAPO rollouts for the puzzle
 popularity / ELO toy task (\S\ref{app:details:toytask}).
 The explicit refusal-suppression clause is required: without it, Qwen3-4B
 defaults to ``I cannot directly determine\ldots'' and never emits a tool call,
@@ -863,7 +859,7 @@ collapsing the format-pass rate to 0\,\% (measured on 20 held-out puzzles;
 Table~\ref{tab:smoke-stats}).
 
 \begin{tcolorbox}[promptbox,
-  title={$\triangleright$\; Stage 2 System Prompt --- Puzzle Popularity / ELO (GRPO Rollouts)},
+  title={$\triangleright$\; Stage~2 System Prompt --- Puzzle Popularity / ELO (DAPO Rollouts)},
   label={box:stage2grpo}]
 \begin{quote}
 You are a chess expert with access to lc0, a top neural network engine.
@@ -892,20 +888,20 @@ End your reply with exactly one line in the form:\\[2pt]
 
 \paragraph{Full LLAMIA-Bench.}
 All six task families (behaviour cloning, stylometry, puzzle understanding,
-move annotation, game commentary, instruction-conditioned planning) share the same
+move annotation, game commentary, instruction-conditioned play) share the same
 tool catalogue as the toy task.
 Task-specific instructions replace the popularity/ELO mandate; the refusal-suppression
 clause is retained across all variants.
 Full per-task system prompts appear in Appendix~\ref{sec:app_prompts}.
 
 %------------------------------------------------------------------------------
-\subsubsection{InvokeAgent Trigger Format}
+\subsubsection{\texttt{<invoke>} Trigger Format}
 \label{app:details:prompts:invoke}
 
-Dynamic re-encoding (\textsc{InvokeAgent}) fires after every board-mutating tool
+Dynamic re-encoding (\texttt{<invoke>}) fires after every board-mutating tool
 call (\texttt{make\_move}, \texttt{undo\_move}, \texttt{reset\_position}).
 The harness re-runs the BT4 forward pass on the updated FEN, encodes a fresh
-set of $K{=}32$ latent tokens, and prepends them as a \texttt{<state>} prefix to
+set of $K{=}32$ state tokens, and prepends them as a \texttt{<state>} prefix to
 the next user turn.
 Because mutating calls are dispatched sequentially (\S\ref{app:details:agent:hparams}),
 the re-encoding always sees a fully settled board state.
@@ -913,7 +909,7 @@ Read-only calls (\texttt{analyze}, \texttt{get\_policy}, \texttt{get\_position})
 do not trigger re-encoding; the token budget is therefore capped at $K$ additional
 tokens per state transition, regardless of analysis depth.
 
-\begin{tcolorbox}[notebox, title={InvokeAgent Turn Structure (blunder-analysis episode)}]
+\begin{tcolorbox}[notebox, title={\texttt{<invoke>} Turn Structure (blunder-analysis episode)}]
 \small
 \textbf{Round~1 --- User:} \texttt{<state$_0$>} Why is \texttt{Nxd4} a blunder here?
 [FEN $s_0$]\\[3pt]
@@ -925,12 +921,12 @@ see \S\ref{app:details:agent:example})}
 \textbf{Round~2 --- LLAMIA:} Final answer citing \texttt{Qa5+} / \texttt{Qxg5}.
 \end{tcolorbox}
 
-Since no board mutation occurs in blunder analysis, \textsc{InvokeAgent} does not fire.
+Since no board mutation occurs in blunder analysis, \texttt{<invoke>} does not fire.
 The re-encoding path is active in multi-step planning episodes, where the agent
 sequences \texttt{make\_move} calls to explore a variation before deciding on a
 recommendation.
 
-\begin{tcolorbox}[notebox, title={InvokeAgent Turn Structure (multi-step planning episode)}]
+\begin{tcolorbox}[notebox, title={\texttt{<invoke>} Turn Structure (multi-step planning episode)}]
 \small
 \textbf{Round~1 --- User:} \texttt{<state$_0$>} Find the best three-move combination. [FEN $s_0$]\\[3pt]
 \textbf{Round~1 --- LLAMIA:} \texttt{make\_move(e2e4)}

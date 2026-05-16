@@ -6,6 +6,7 @@
 % For arXiv / preprint use:
 %\usepackage[preprint]{neurips_2026}
 % For double-blind submission, use the line below instead:
+\PassOptionsToPackage{numbers,compress}{natbib} 
 \usepackage{neurips_2026}
 % For accepted final version:
 % \usepackage[main, final]{neurips_2026}
@@ -113,7 +114,7 @@
 \usepackage{placeins}
 \usepackage{float}
 \usepackage{etoolbox}
-\patchcmd{\quote}{\rightmargin}{\leftmargin 0.2em \rightmargin}{}{}
+% \patchcmd{\quote}{\rightmargin}{\leftmargin 0.2em \rightmargin}{}{}
 
 % Math packages
 \usepackage{amsmath}
@@ -148,7 +149,7 @@
 \definecolor{themered}{HTML}{b43748}
 
 % Author comment macros
-\newcommand{\somesh}[1]{\textcolor{red}{[Somesh: #1]}}
+\newcommand{\somesh}[1]{}
 \definecolor{themeharini}{RGB}{50,128,128}
 \newcommand{\yaman}[1]{{\scriptsize\textcolor{red}{[Yaman: #1]}}}
 \newcommand{\harini}[1]{{\scriptsize\textcolor{blue}{[Harini: #1]}}}
@@ -187,7 +188,7 @@
 
 \renewcommand{\arraystretch}{0.95}
 
-\title{Internalizing Heterogeneous Agents in Language Model Reasoning}
+\title{Exploring Collaboration between a language and a non-language agent}
 
 % used to separate the names and addresses of multiple authors: \And and \AND.
 
@@ -195,16 +196,39 @@
 \begin{document}
 \maketitle
 
-\begin{abstract}
-  Multi-agent systems coordinate specialized agents to solve complex tasks requiring both general reasoning and domain-specific expertise. Because these systems communicate primarily through natural language, research has focused on language-based agents where LLMs collaborate with other LLMs through text. However, many domains like game playing and robotics rely on state-of-the-art pretrained non-language agents, whose capabilities are encoded in latent state representations rather than text. When integrated into LLM-based systems, these domain agents are accessed through \emph{verbalization} that compress their rich policy distributions, value estimates, and learned features into sparse symbolic summaries. The extent to which verbalization solves this multi-agent collaboration remains an open question.
-  Evaluating emergent behaviors and diverse collaboration strategies in multi-agent systems has been a persistent challenge, largely due to the lack of domains that combine verifiable metrics with meaningful collaborative tasks. Chess, with its long history of human-agent collaboration, naturally provides both: humans have collaborated with engines for decades on commentary, analysis, and planning, producing well-defined tasks with established evaluation protocols. We curate \textsc{LLAMIA-Bench}, spanning [XXX] collaborative tasks that stress different facets of LLM-agent interaction. We first show that verbalized agent collaboration, even with RL, yields underwhelming performance on tasks requiring deeper collaboration. To address this, we introduce \textit{latent state internalization}, a novel integration paradigm that projects the agent's continuous representations into $K{=}32$ tokens within the LLM's chain of thought, with dynamic re-encoding as the LLM's actions evolve the environment state. Through internalization, a single 13B model matches or exceeds task-specific specialists across all benchmark categories while outperforming [XXX]$\times$ larger LLMs.\somesh{FIX LATEX WIDTH}
-\end{abstract}
+ \begin{abstract}                                                                                          
+  Multi-agent systems coordinate specialists to solve tasks that require both general reasoning and
+  domain-specific expertise. Because such systems communicate in natural language, prior work has focused on
+   LLM-to-LLM collaboration. But in many important domains such as game playing, robotics, autonomous
+  driving, the strongest available agents are not language models; their expertise is encoded in latent    
+  representations of policy, value, and learned features. Integrating them into LLM systems today relies on
+  \emph{verbalization}: compressing rich continuous representations into sparse textual summaries. Whether
+  verbalization is adequate for deep collaboration remains an open question. Evaluating multi-agent collaboration also requires domains that combine verifiable metrics with meaningful
+   tasks. Chess uniquely provides both: humans have collaborated with engines for decades across commentary,
+   analysis, and planning, producing well-defined tasks with established protocols. We curate               
+  \textsc{LLAMIA-Bench}, a suite of collaborative chess tasks spanning behavior cloning, stylometry, puzzle
+  understanding, commentary, and instruction-conditioned planning, and show that verbalized RL baselines
+  fall short on tasks requiring deeper collaboration. To address this, we introduce \emph{latent state
+  internalization}, an integration paradigm that projects the subagent's continuous representation into the
+  LLM's chain of thought as latent tokens, with dynamic re-encoding as actions advance the environment. A
+  single 13B model trained under this paradigm, \textsc{LLAMIA}, matches or exceeds task-specific
+  specialists across every benchmark category.
+  \end{abstract}
 
 \input{pages/intro}
 % \input{pages/bg}  % Replaced by §3.1 Formulation inside methodology.tex
 \input{pages/methodology}
 \input{pages/experiment}
 \input{pages/related}
+\section{Conclusion}
+\label{sec:conclusion}
+
+We introduced latent state internalization, a method for LLM agent integration that replaces verbalized communication with direct projection of the agent's continuous representations into the LLM's embedding space. Through controlled experiments on \textsc{LLAMIA-Bench}---seven tasks spanning behavioral imitation, state assessment, explanation, and instruction-conditioned play---we established that verbalization acts as a structural bottleneck: the performance gap between internalized and verbalized integration widens with interaction depth and does not close by scaling the LLM or the RL budget within our evaluated range (up to 14B parameters).
+
+A single LLAMIA-14B model, trained via projector alignment followed by DAPO, matches or exceeds dedicated task finetunes in aggregate, with the exception of Allie-Adaptive-Search on its in-distribution Elo buckets. The verbalization debt---the performance gap between internalized and verbalized integration---widens on tasks requiring sustained multi-step collaboration and on tasks whose target signal resists text serialization (e.g., puzzle interest), confirming that learned invocation timing and latent-state reading are both essential for effective LLM--agent integration.
+
+\paragraph{Future work.}
+The framework requires three components: a subagent with extractable representations, a lightweight projector, and a differentiable reward signal for end-to-end RL. Robotics policies (RT-2, Octo), game-playing agents, and scientific simulation controllers satisfy these requirements and are natural next instantiations. Two open questions are whether internalization scales to multiple heterogeneous agents within a single reasoning trace, and whether the structured capability emergence observed in instruction-conditioned play (\cref{sec:results_skill_discovery}) replicates across domains.
 
 
 % \section*{Impact Statement}
@@ -212,6 +236,7 @@
 % This paper presents work whose goal is to advance the field of Machine Learning. There are many potential societal consequences of our work, none which we feel must be specifically highlighted here.
 
 \bibliography{sample}
+\bibliography{iclr2025_conference}
 \bibliographystyle{plainnat}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -226,5 +251,6 @@
 % (written after this point) are displayed.
 \addtocontents{toc}{\protect\appendixmark}
 \input{pages/appendix2}
-\input{pages/appendix}
+\input{checklist}
+
 \end{document}

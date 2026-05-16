@@ -15,12 +15,12 @@
 We formalize latent state internalization through a running example. An LLM plays chess with access to a pretrained engine. At each turn the LLM reasons in natural language, plays a move, and, when it chooses, queries the engine via a tool call for positional assessment. For a position $\mstate{s_0}$, a single exchange might look like:
 
 \smallskip
-\noindent``\texttt{\mlang{Evaluation after move} \maction{(Nf6)} \maction{is} \mlang{InvokeAgent()}} (\hspace{0.3em}\latenttokens\hspace{0.3em}\latenttokens\hspace{0.3em}\latenttokens\hspace{0.3em})\hspace{0.3em}\mlang{+0.3, best move: Nc2}"
+\noindent``\texttt{\mlang{Evaluation after move} \maction{(Nf6)} \maction{is} \mlang{Invoke()}} (\hspace{0.3em}\latenttokens\hspace{0.3em}\latenttokens\hspace{0.3em}\latenttokens\hspace{0.3em})\hspace{0.3em}\mlang{+0.3, best move: Nc2}"
 \smallskip
 
 \noindent Three token types interleave in this trace. \mlang{Language tokens} are the LLM's chain-of-thought. \maction{Action tokens} are moves that advance the game. \mstate{State tokens} (\hspace{0.3em}\latenttokens\hspace{0.3em}) are the engine's response, and their form is the variable this paper studies: should they be text (\emph{verbalization}) or continuous embeddings (\emph{internalization})?
 
-More formally: a policy $\pi_\theta$ (the LLM) interacts with an environment whose states $\mstate{s} \in \mathcal{\mstate{S}}$ evolve through actions $\maction{a} \in \mathcal{\maction{A}}$. A pretrained \textbf{subagent} with encoder $G_\psi\!: \mathcal{\mstate{S}} \to \mstate{\R^d}$ maps each state to a latent representation $\mstate{\vh_s} = G_\psi(\mstate{s})$. The LLM queries the subagent at self-chosen moments via a structured tool call \lang{\texttt{InvokeAgent}} (schema in \Cref{sec:app_toolcall_tools}), specifying either the current board $\mstate{s_t}$ or a hypothetical position reached by a candidate move. Over a $T$-step interaction the policy produces a trace $\tau$:
+More formally: a policy $\pi_\theta$ (the LLM) interacts with an environment whose states $\mstate{s} \in \mathcal{\mstate{S}}$ evolve through actions $\maction{a} \in \mathcal{\maction{A}}$. A pretrained \textbf{subagent} with encoder $G_\psi\!: \mathcal{\mstate{S}} \to \mstate{\R^d}$ maps each state to a latent representation $\mstate{\vh_s} = G_\psi(\mstate{s})$. The LLM queries the subagent at self-chosen moments via a structured tool call \lang{\texttt{Invoke}} (schema in \Cref{sec:app_toolcall_tools}), specifying either the current board $\mstate{s_t}$ or a hypothetical position reached by a candidate move. Over a $T$-step interaction the policy produces a trace $\tau$:
 %
 \begin{equation}
 \tau = \bigl(\,
@@ -68,7 +68,7 @@ Each verbalization step loses information: $\mathrm{Verb}(G_\psi(s_t))$ encodes 
 We instantiate $G_\psi$ with Lc0-BT4~\cite{monroe2024mastering}, a 15-layer Transformer encoder (240\,M parameters) whose representations encode positional features, piece-value geometry, and lookahead-related structure~\cite{jenner2024evidence}, producing $\vh_s \in \R^{1024}$.
 
 \textbf{Large Language Model.}
-We use Qwen3~\cite{XXXqwen3} as the backbone $\pi_\theta$. The subagent's tool schema is provided in the system prompt via Hermes-format function calling; Qwen3 emits structured \texttt{<invoke>} calls without additional training for the invocation format. To accept \mstate{state tokens}, $k$ contiguous positions in the input sequence serve as placeholders whose embeddings are replaced by the projected state $\vz_s$.
+We use Qwen3~\cite{yang2025qwen3} as the backbone $\pi_\theta$. The subagent's tool schema is provided in the system prompt via Hermes-format function calling; Qwen3 emits structured \texttt{<invoke>} calls without additional training for the invocation format. To accept \mstate{state tokens}, $k$ contiguous positions in the input sequence serve as placeholders whose embeddings are replaced by the projected state $\vz_s$.
 
 \textbf{LatentBridge.}
 The projection $H_\varphi\!: \R^{d} \to \R^{k \times e}$ (Eq.~\ref{eq:latent_channel}) is a three-layer MLP with GeLU activations, mapping Lc0's $1024$-dimensional latent state into $k{=}32$ embeddings of dimension $e$ matching Qwen3's hidden size. The resulting input to the LLM is a mixed sequence $[\mlang{w_1}, \mstate{\vz_s^{1:k}}, \maction{a_1}, \mlang{w_2}]$ (Figure~\ref{fig:LLAMIA}).
@@ -76,11 +76,11 @@ The projection $H_\varphi\!: \R^{d} \to \R^{k \times e}$ (Eq.~\ref{eq:latent_cha
 \subsection{Training}
 \label{sec:training}
 Training proceeds in two stages. Stage~1 aligns the subagent's representations with the LLM's embedding space while keeping the LLM frozen. Stage~2 trains both the LLM and LatentBridge jointly via reinforcement learning. The subagent remains frozen throughout.
-The subagent's weights remain frozen throughout; only the LLM and the projection interface are trained.
-\subsubsection{Stage 1: Projector Alignment}
+
+\subsubsection{Stage~1: Projector Alignment}
 \label{sec:stage1}
 
-We train only $H_\varphi$ while keeping $\pi_\theta$ frozen, on a dataset $\mathcal{D}_{\text{pre}} = \{(s, \pi(s))\}$ of state--policy pairs from the subagent's self-play. Each example pairs the projected state tokens $\vz_s$ with a language prompt (e.g., ``Analyze position: top move?''; format in Listing~\ref{listing:pretraining_instruction_format}), and the model learns to generate the correct action token via cross-entropy:
+We train only $H_\varphi$ while keeping $\pi_\theta$ frozen, on a dataset $\mathcal{D}_{\text{pre}} = \{(s, \pi(s))\}$ of state--policy pairs from the subagent's self-play. Each example pairs the projected state tokens $\vz_s$ with a language prompt (e.g., ``Analyze position: top move?''; format in \cref{sec:app_prompts_stage1}), and the model learns to generate the correct action token via cross-entropy:
 %
 \[
 \mathcal{L}_{\text{Stage\,1}} = -\mathbb{E}_{(s, \pi(s)) \sim \mathcal{D}_{\text{pre}}} \log \pi_\theta\!\left( \pi(s) \mid \vz_s, \text{prompt} \right)
@@ -88,10 +88,23 @@ We train only $H_\varphi$ while keeping $\pi_\theta$ frozen, on a dataset $\math
 %
 Because the LLM is frozen, the projector trains on abundant agent-generated data without risking catastrophic forgetting of language capabilities.
 
-\subsubsection{Stage 2: Reinforcement Learning}
+\subsubsection{Stage~2: Reinforcement Learning}
 \label{sec:stage2}
 
-Stage~2 unfreezes both $\pi_\theta$ and $H_\varphi$ and optimizes them jointly via DAPO~\cite{XXXdapo}, a proximal policy optimization variant with asymmetric clipping. Rollouts produce complete traces $\tau$ (Eq.~\ref{eq:trace}). The policy gradient is computed over positions where the LLM generates: \mlang{language tokens} (index set $\mathcal{I}_L$) and \maction{action tokens} (index set $\mathcal{I}_A$), collectively $\mathcal{I}_{\mathrm{gen}} = \mathcal{I}_L \cup \mathcal{I}_A$. \mstate{State token} positions are agent-injected and excluded via gradient masking. The DAPO objective maximizes:
+Stage~2 unfreezes both $\pi_\theta$ and $H_\varphi$ and optimizes them jointly via DAPO~\cite{yu2025dapo}, a proximal policy optimization variant with asymmetric clipping. Rollouts produce complete traces $\tau$ (Eq.~\ref{eq:trace}). The policy gradient is computed over positions where the LLM generates: \mlang{language tokens} (index set $\mathcal{I}_L$) and \maction{action tokens} (index set $\mathcal{I}_A$), collectively $\mathcal{I}_{\mathrm{gen}} = \mathcal{I}_L \cup \mathcal{I}_A$. \mstate{State token} positions are agent-injected and excluded via gradient masking. Writing $y_t$ for the token at position $t$, the importance-sampling ratio depends on the integration channel:
+%
+\begin{align}
+r_t^{\,\mathrm{verb}} &=
+  \frac{\pi_\theta\bigl(y_t \mid y_{<t},\; \mstate{\hat{w}_{<t}}\bigr)}
+       {\pi_{\theta_{\mathrm{old}}}\bigl(y_t \mid y_{<t},\; \mstate{\hat{w}_{<t}}\bigr)},
+  \label{eq:ratio_verb} \\[4pt]
+r_t^{\,\mathrm{latent}} &=
+  \frac{\pi_\theta\bigl(y_t \mid y_{<t},\; \mstate{\vz_{<t}}\bigr)}
+       {\pi_{\theta_{\mathrm{old}}}\bigl(y_t \mid y_{<t},\; \mstate{\vz_{<t}}\bigr)}.
+  \label{eq:ratio_latent}
+\end{align}
+%
+\noindent The DAPO objective maximizes:
 %
 \begin{equation}
 J(\theta, \varphi) \!=\! \mathbb{E}_{\tau \sim \pi_{\theta_{\mathrm{old}}}} \!\Bigg[\!
@@ -105,6 +118,6 @@ J(\theta, \varphi) \!=\! \mathbb{E}_{\tau \sim \pi_{\theta_{\mathrm{old}}}} \!\B
 \label{eq:dapo}
 \end{equation}
 %
-where $r_t$ is the importance ratio (Eq.~\ref{eq:ratio_latent}), $\hat{A}_t$ is the group-normalized advantage, and the asymmetric clip bounds $\varepsilon_l \leq \varepsilon_h$ encourage exploration~\cite{XXXdapo}. Each \textsc{LLAMIA-Bench} task defines a scalar outcome reward $\mathcal{R}(\tau)$ based on its evaluation metric (Appendix~\ref{sec:app_reward}).
+where $r_t$ is the importance ratio (Eq.~\ref{eq:ratio_latent}), $\hat{A}_t$ is the group-normalized advantage, and the asymmetric clip bounds $\varepsilon_l \leq \varepsilon_h$ encourage exploration~\cite{yu2025dapo}. Each \textsc{LLAMIA-Bench} task defines a scalar outcome reward $\mathcal{R}(\tau)$ based on its evaluation metric (Appendix~\ref{sec:app_bench}).
 
 Because $H_\varphi$ is jointly optimized, the RL objective shapes the integration interface end-to-end: the projector learns what representation to present, while the LLM learns how to reason over it. The tool call itself is part of the policy's action space, so RL also learns \emph{when} and \emph{whether} to query the subagent.
