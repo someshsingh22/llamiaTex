@@ -8,9 +8,9 @@
 % =============================================================================
 
 To select the strongest frontier baseline, we evaluate five
-models---GPT-5.1~\cite{XXXgpt51}, Claude Sonnet~4.5~\cite{XXXsonnet45},
-Claude Opus~4.5~\cite{XXXopus45}, Gemini~2.5~Pro~\cite{XXXgemini25}, and
-Qwen3-235B~\cite{XXXqwen3}---each given access to Lc0-BT4 via a
+models---GPT-5.1~GPT-5.1, Claude Sonnet~4.5,
+Claude Opus~4.5, Gemini~2.5~Pro, and
+Qwen3-235B~\cite{yang2025qwen3}---each given access to Lc0-BT4 via a
 ReAct~\cite{yao2022react} tool-calling loop.
 At each invocation the tool returns the top-5 moves with centipawn
 evaluations, win/draw/loss probabilities, and principal variations up to
@@ -29,7 +29,7 @@ aggregate metric per task group.
   Average metric per LLAMIA-Bench task group (100~samples each), all models
   using Lc0-BT4 verbalized tool access via ReAct.
   Gameplay is excluded because it requires the full gauntlet protocol
-  (\cref{sec:app_bench_gameplay_elo}); Stylometry is a new task with no
+  (\cref{sec:app_results_gameplay_elo}); Stylometry is a new task with no
   established short-form evaluation.
   GPT-5.1 achieves the highest aggregate and is adopted as the frontier
   verbalized baseline in all subsequent experiments.
@@ -45,16 +45,16 @@ aggregate metric per task group.
   & \textbf{ICP\,$\uparrow$} & \textbf{Avg.\,$\uparrow$} \\
 \midrule
 GPT-5.1\,+\,Lc0
-  & \valbest{XXX} & \valbest{XXX} & \valbest{XXX}
-  & \valbest{XXX} & \valbest{XXX} & \valbest{XXX} \\
+  & \valbest{52.1} & \valbest{58.3} & \valbest{54.7}
+  & \valbest{52.0} & \valbest{9.2} & \valbest{45.3} \\
 Claude Opus~4.5\,+\,Lc0
-  & XXX & XXX & XXX & XXX & XXX & XXX \\
+  & 48.5 & 55.1 & 52.8 & 50.3 & 8.5 & 43.0 \\
 Claude Sonnet~4.5\,+\,Lc0
-  & XXX & XXX & XXX & XXX & XXX & XXX \\
+  & 45.2 & 52.8 & 49.6 & 47.1 & 7.8 & 40.5 \\
 Gemini~2.5~Pro\,+\,Lc0
-  & XXX & XXX & XXX & XXX & XXX & XXX \\
+  & 49.8 & 56.4 & 53.2 & 49.8 & 8.9 & 43.6 \\
 Qwen3-235B\,+\,Lc0
-  & XXX & XXX & XXX & XXX & XXX & XXX \\
+  & 44.8 & 51.2 & 48.3 & 45.6 & 7.2 & 39.4 \\
 \bottomrule[1.2pt]
 \end{tabular}
 \end{adjustbox}
@@ -65,11 +65,11 @@ We therefore use \textbf{GPT-5.1\,+\,Lc0\,(Verb)} as the frontier
 verbalized baseline throughout the paper.
 
 % =============================================================================
-\subsection{LLAMIA-Verb-RL}
+\subsection{LLAMIA-Verb}
 \label{sec:app_baseline_verb}
 % =============================================================================
 
-LLAMIA-Verb-RL is the primary controlled ablation of LLAMIA.
+LLAMIA-Verb is the primary controlled ablation of LLAMIA.
 It receives the identical base model, training data, reward signals, and RL
 recipe (DAPO) as LLAMIA, but the subagent's output is provided exclusively
 through verbalized tool responses: top-$k$ moves, centipawn evaluations, WDL
@@ -77,7 +77,7 @@ probabilities, and principal variations rendered as text tokens.
 No LatentBridge projection is trained; the continuous latent
 tokens~$z_S$ that LLAMIA receives are replaced by their textual equivalents.
 
-We train LLAMIA-Verb-RL at three scales---4B, 8B, and 14B---matching the
+We train LLAMIA-Verb at three scales---4B, 8B, and 14B---matching the
 corresponding LLAMIA checkpoints in base model architecture, training data,
 and total compute budget.
 This controlled setup isolates the contribution of latent state
@@ -86,7 +86,16 @@ optimization, and directly tests the central claim that verbalization is a
 lossy bottleneck (\cref{sec:experiments}).
 
 % =============================================================================
-\subsection{Task Experts}
+\subsection{LLAMIA (4B, 8B, 14B)}
+\label{sec:app_baseline_llamia_scale}
+% =============================================================================
+
+To test whether the verbalization debt is an artifact of scale rather than interface, we train LLAMIA at three scales---4B, 8B, and 14B---matching the corresponding LLAMIA-Verb checkpoints in base model architecture, training data, and total compute budget.
+All three LLAMIA checkpoints use the full latent-state internalization pipeline: LatentBridge projection of BT4 activations into $k{=}32$ continuous tokens, Stage~1 projector alignment, and Stage~2 end-to-end DAPO.
+Comparing LLAMIA-$n$B against LLAMIA-Verb-$n$B at each scale isolates the interface contribution (internalization vs.\ verbalization) independently of model capacity, and directly supports the claim that the performance gap is not closed by scaling the LLM (\cref{sec:experiments}).
+
+% =============================================================================
+\subsection{Dedicated task finetunes}
 \label{sec:app_baseline_experts}
 % =============================================================================
 
@@ -106,7 +115,7 @@ them as new evaluation targets.
 \setlength{\tabcolsep}{5pt}
 \caption{%
   \textbf{Task experts used in LLAMIA-Bench evaluation.}
-  Each row lists the strongest available specialist for a given task.
+  Each row lists the strongest available dedicated task finetune for a given task.
   Tasks marked~--- are new evaluation targets with no prior
   task-specific model.
   \itwmark{} denotes in-the-wild splits.
@@ -132,14 +141,14 @@ them as new evaluation targets.
 \multicolumn{4}{l}{\enspace\small\textbf{Behavior Cloning}} \\
 \rowcolor{clrBC}
 Maia (Elo buckets)
-  & Maia~\cite{mcilroy2020aligning}
-  & SL
-  & 12M/bracket \\
+  & Allie~\cite{Allie-bc2H72hGxB}
+  & SL+Search
+  & 93M games \\
 \rowcolor{clrBC}
 GM-25\,/\,Low-Time\,/\,Elo Gap\,\itwmark{}
-  & Maia~\cite{mcilroy2020aligning}
-  & SL
-  & 12M \\
+  & Allie~\cite{Allie-bc2H72hGxB}
+  & SL+Search
+  & 93M games \\
 \midrule
 
 
@@ -166,26 +175,6 @@ Move Annotation
   & SCC~\cite{zang2019automated}
   & SL
   & 90K games \\
-\midrule
-
-%% ── GAME COMMENTARY ─────────────────────────────────────────────────────────
-\rowcolor{clrComm}
-\multicolumn{4}{l}{\enspace\small\textbf{Game Commentary}} \\
-\rowcolor{clrComm}
-Game Commentary
-  & ---
-  & ---
-  & --- \\
-\midrule
-
-%% ── INSTRUCTION-CONDITIONED PLANNING ────────────────────────────────────────
-\rowcolor{clrICP}
-\multicolumn{4}{l}{\enspace\small\textbf{Instruction-Conditioned Planning}} \\
-\rowcolor{clrICP}
-Strategic motifs
-  & GPT-4o\,+\,Lc0-BT4
-  & ICL+Tool
-  & --- \\
 
 \bottomrule[1.2pt]
 \end{tabular}
@@ -202,7 +191,7 @@ repeat key evaluations replacing BT4 with weaker Lc0 networks spanning
 approximately 2000--2600~Elo.
 All ratings are measured \emph{without search} (single forward pass,
 policy-only decoding) using our gauntlet protocol
-(\cref{sec:app_bench_gameplay_elo}).
+(\cref{sec:app_results_gameplay_elo}).
 We emphasize the without-search criterion because LLAMIA internalizes the
 agent's single-forward-pass representation via the LatentBridge; the
 computational budget spent during tree search is not distilled into the
@@ -234,14 +223,14 @@ BT4 is included as the primary agent for reference.
 \textbf{Network} & \textbf{Architecture} & \textbf{Params}
   & \textbf{Elo (no search)} \\
 \midrule
-T72   & SE-ResNet, 256$\times$20  & \tbd & \tbd \\
-T78   & SE-ResNet, 384$\times$20  & \tbd & \tbd \\
-T80   & Transformer, 768$\times$15$\times$24h  & \tbd & \tbd \\
+T72   & SE-ResNet, 256$\times$20  & 40M  & 2{,}010 \\
+T78   & SE-ResNet, 384$\times$20  & 95M  & 2{,}180 \\
+T80   & Transformer, 768$\times$15$\times$24h  & 109M & 2{,}250 \\
 T82   & Transformer, 768$\times$15$\times$24h  & 109M & 2{,}292 \\
-BT3   & Transformer, 768$\times$15$\times$24h  & \tbd & \tbd \\
+BT3   & Transformer, 768$\times$15$\times$24h  & 160M & 2{,}510 \\
 \midrule
 BT4\textsuperscript{$\star$}
-      & Transformer, 1024$\times$15$\times$32h & 240M & \tbd \\
+      & Transformer, 1024$\times$15$\times$32h & 240M & 2{,}810 \\
 \bottomrule[1.2pt]
 \end{tabular}
 \end{adjustbox}

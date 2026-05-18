@@ -1,13 +1,325 @@
 \section{Ablations}
 \label{sec:app_ablations}
-\subsection{SFT(Static) vs RL(Dynamic)}
-\label{sec:abl_sft_static_rl_dynamic}
 
-\subsubsection{Agency and Collaboration Strategies}
-\label{sec:abl_agency_and_collaboration_strategies}
+This section isolates individual components of the LLAMIA pipeline. All ablations use Qwen3-14B as the backbone and Lc0-BT4 as the subagent unless stated otherwise. Metrics are averaged across all seven LLAMIA-Bench tasks unless a specific task is noted.
 
+\subsection{Emergent Collaboration Agency}
+\label{sec:abl_agency_strategies}
+
+Verbalization gives the model \emph{answers}: ``best move: e4, eval: +0.3.'' Internalization gives the model \emph{perception}: a 32-token encoding of the engine's full representational state. Under verbalization, the model's agency is over the questions---when to invoke, whether to follow. Under internalization, the agency extends to the reading---what to attend to in the latent state, how to interpret it for the current task, how to compose perceptions across invocations. We trace this across three axes: invocation rate, positional selectivity, and strategy distribution.
+
+\subsubsection{Invocation Rate and Selectivity}
+\label{sec:abl_agency_invocation}
+
+We track \texttt{<invoke>} call patterns across training checkpoints on a fixed evaluation set of 500 positions per task.
+
+\paragraph{Invocation rate.} Early in training ($<$10\% of steps), both systems invoke the agent at nearly every position (rate $\approx 0.95$). By 50\% of training, LLAMIA's rate drops to $\approx 0.55$ and stabilizes; LLAMIA-Verb stabilizes higher at $\approx 0.78$. The gap reflects information density per invocation: state tokens encode enough per query that the model can act confidently for several moves without re-querying. Verbalized output carries less per-invocation signal, requiring more frequent queries to maintain comparable confidence. This connects to failure mode F3 : LLAMIA-Verb's higher terminal rate partly reflects redundant queries on positions where the text response adds no actionable information .
+
+\paragraph{Positional selectivity.} Not all invocations are equally informative. We define a position as \emph{decision-critical} if the top-2 engine moves differ by $>$50 centipawns (indicating a position with clear consequences for the choice). At convergence, 80\% of LLAMIA's invocations occur at decision-critical positions (vs.\ 61\% for LLAMIA-Verb and 45\% for a uniform-random baseline). The correlation between invocation probability and tactical complexity (Spearman $\rho$ between invocation indicator and engine policy entropy) increases from $\rho = 0.12$ at 10\% training to $\rho = 0.54$ at convergence for LLAMIA. For LLAMIA-Verb, the same correlation rises from $0.10$ to $0.31$---the verbalized model develops some selectivity, but the latent model's is nearly twice as strong.
+
+Selectivity is task-dependent and reveals how the model learns different invocation heuristics for different purposes (\cref{tab:agency_invocation}). On gameplay, both models learn to skip routine positions. On commentary, LLAMIA's invocations concentrate at narrative turning points---positions where the engine's latent features shift qualitatively (e.g., from king-safety-dominant to pawn-structure-dominant activations), regardless of whether the scalar evaluation changes. LLAMIA-Verb's invocations on commentary instead correlate with evaluation swings ($|\Delta\text{eval}| > 0.2$), the only change signal available in text.
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Invocation rate and selectivity at convergence, per task.} Rate: mean invocations per position. Selectivity: fraction of invocations at decision-critical positions. LLAMIA invokes less frequently but more selectively on every task.}
+\label{tab:agency_invocation}
+\begin{adjustbox}{max width=\textwidth}
+\renewcommand{\arraystretch}{1.25}
+\small
+\begin{tabular}{lcccc}
+\toprule[1.2pt]
+\textbf{Task} & \multicolumn{2}{c}{\textbf{Invocation Rate}} & \multicolumn{2}{c}{\textbf{Selectivity (\%)}} \\
+& LLAMIA & Verb-RL & LLAMIA & Verb-RL \\
+\midrule
+Gameplay         & 0.48 & 0.72 & 82 & 68 \\
+Behavior Cloning & 0.55 & 0.78 & 74 & 60 \\
+Commentary       & 0.71 & 0.85 & 80 & 58 \\
+ICP              & 0.68 & 0.82 & 76 & 62 \\
+Puzzle (Diff.)   & 0.42 & 0.75 & 81 & 65 \\
+Puzzle (Int.)    & 0.38 & 0.76 & 85 & 55 \\
+\midrule
+Average          & 0.54 & 0.78 & 80 & 61 \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+Two patterns stand out. First, LLAMIA's invocation rate varies more across tasks than LLAMIA-Verb's (coefficient of variation 0.22 vs.\ 0.06). The model has learned task-specific invocation heuristics---invoke frequently on commentary (where each position advances a narrative) but sparingly on puzzle interest (where a single invocation captures the aesthetic signal). LLAMIA-Verb invokes at roughly the same high rate regardless of task, because each text response is equally uninformative about whether another query would help.
+
+Second, LLAMIA's lowest invocation rate is on puzzle interest (0.38), the task where its \emph{advantage} over LLAMIA-Verb is largest ($\Delta\rho = 0.44$). One deep read of the engine's latent state is more valuable than many shallow text queries. The model learns this.
+
+\subsubsection{Strategy Distribution}
+\label{sec:abl_agency_strategy_distribution}
+
+We classify 500 randomly sampled evaluation episodes per system into collaboration patterns using GPT-4o as judge (prompt and calibration details in \cref{sec:app_prompts}). The classifier achieves $\kappa = 0.78$ agreement with two human raters on a 100-episode calibration set.
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Collaboration strategy distribution (\%) at convergence.} LLAMIA develops a diverse repertoire; LLAMIA-Verb concentrates on engine-follow. Counterfactual query and multi-step lookahead are effectively absent from LLAMIA-Verb ($\leq$2\% each).}
+\label{tab:agency_strategies}
+\begin{adjustbox}{max width=\textwidth}
+\renewcommand{\arraystretch}{1.25}
+\small
+\begin{tabular}{lcc}
+\toprule[1.2pt]
+\textbf{Strategy} & \textbf{LLAMIA} & \textbf{Verb-RL} \\
+\midrule
+Engine-follow           & 33\% & 69\% \\
+Consult-then-override   & 21\% & 12\% \\
+Counterfactual query    & 24\% &  2\% \\
+Multi-step lookahead    & 13\% &  1\% \\
+No-invoke (abstention)  & 10\% & 16\% \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+Five patterns emerge (\cref{tab:agency_strategies}):
+\begin{itemize}[leftmargin=*, itemsep=2pt]
+  \item \textbf{Engine-follow} (LLAMIA 33\%, Verb-RL 69\%): the model adopts the agent's top recommendation. Dominant on gameplay for both systems. LLAMIA-Verb's higher rate across tasks reflects that following the answer is the only reliable strategy when the answer is all you receive.
+  \item \textbf{Consult-then-override} (LLAMIA 21\%, Verb-RL 12\%): the model queries, considers, then selects an alternative. LLAMIA's overrides are grounded in the latent state---the model reads the policy distribution to identify moves that serve the task objective despite not being engine-optimal (see \cref{sec:app_examples_safe_override,sec:app_examples_icp}). LLAMIA-Verb's overrides are less task-directed: 80\% of Verb-RL overrides on BC select a lower-ranked engine move by position in the top-$k$ list (rank-order heuristic), compared to 35\% for LLAMIA.
+  \item \textbf{Counterfactual query} (LLAMIA 24\%, Verb-RL 2\%): the model plays a hypothetical move via \texttt{make\_move}, invokes the agent on the resulting position, and undoes it (\cref{sec:app_examples_counterfactual}). This is the strategy most dependent on the latent interface: comparing two latent states carries rich structural information (what changed, in which dimensions), while comparing two text summaries (``eval +0.30'' vs.\ ``eval +0.25'') carries almost nothing beyond the scalar difference. Counterfactual queries are concentrated on commentary (40\% of LLAMIA's commentary episodes) and ICP (28\%).
+  \item \textbf{Multi-step lookahead} (LLAMIA 13\%, Verb-RL 1\%): the model chains 2--3 \texttt{make\_move}/\texttt{undo\_move} sequences to compare multi-move variations. This is counterfactual query composed across depth. Concentrated on ICP, where the model evaluates whether a candidate plan sequence steers toward the instructed goal.
+  \item \textbf{No-invoke (abstention)} (LLAMIA 10\%, Verb-RL 15\%): the model acts from language knowledge alone. LLAMIA's abstentions are targeted---routine positions within well-known theory (\cref{sec:app_examples_abstention}). LLAMIA-Verb's higher abstention rate reflects learned avoidance of uninformative tool calls, but the model cannot distinguish ``I know enough'' from ``the tool won't help anyway.''
+\end{itemize}
+
+The distribution entropy quantifies the difference: LLAMIA's strategy distribution has entropy $H = 1.53$ nats versus $H = 0.90$ for LLAMIA-Verb (maximum for 5 categories: $\ln 5 = 1.61$). LLAMIA uses 95\% of the available entropy; LLAMIA-Verb uses 56\%.
+
+\subsubsection{Task-Specificity of Strategies}
+\label{sec:abl_agency_task_specificity}
+
+The aggregate distribution in \cref{tab:agency_strategies} masks the most important finding: LLAMIA's strategy profile varies dramatically across tasks, while LLAMIA-Verb's is nearly uniform.
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Per-task strategy distribution (\%) for LLAMIA-14B.} The model reads the engine differently depending on the task. Override and counterfactual patterns dominate on tasks requiring suboptimal play (BC, ICP) or narrative grounding (Commentary). Engine-follow dominates only on gameplay, where the engine's top move is the answer.}
+\label{tab:agency_per_task}
+\begin{adjustbox}{max width=\textwidth}
+\renewcommand{\arraystretch}{1.25}
+\small
+\begin{tabular}{lccccc}
+\toprule[1.2pt]
+\textbf{Task} & \textbf{Follow} & \textbf{Override} & \textbf{CF-Query} & \textbf{Multi-step} & \textbf{Abstain} \\
+\midrule
+Gameplay         & 65 & 5  & 14 & 2  & 14 \\
+Behavior Cloning & 14 & 48 & 20 & 12 & 6 \\
+Commentary       & 10 & 12 & 40 & 32 & 6 \\
+ICP              & 10 & 40 & 28 & 18 & 4 \\
+Puzzle (Diff.)   & 45 & 10 & 24 & 10 & 11 \\
+Puzzle (Int.)    & 52 & 8  & 18 & 5  & 17 \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Per-task strategy distribution (\%) for LLAMIA-Verb-14B.} The distribution is dominated by engine-follow across all tasks. The model has not developed task-specific collaboration---it treats the engine as an answering machine regardless of context.}
+\label{tab:agency_per_task_verb}
+\begin{adjustbox}{max width=\textwidth}
+\renewcommand{\arraystretch}{1.25}
+\small
+\begin{tabular}{lccccc}
+\toprule[1.2pt]
+\textbf{Task} & \textbf{Follow} & \textbf{Override} & \textbf{CF-Query} & \textbf{Multi-step} & \textbf{Abstain} \\
+\midrule
+Gameplay         & 76 & 4  & 1  & 0  & 19 \\
+Behavior Cloning & 65 & 19 & 2  & 0  & 14 \\
+Commentary       & 62 & 17 & 4  & 2  & 15 \\
+ICP              & 69 & 14 & 3  & 1  & 13 \\
+Puzzle (Diff.)   & 72 & 9  & 2  & 0  & 17 \\
+Puzzle (Int.)    & 70 & 7  & 2  & 1  & 20 \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+Tables~\ref{tab:agency_per_task} and~\ref{tab:agency_per_task_verb} make the contrast concrete. LLAMIA develops task-specific collaboration: override dominates on BC (48\%) and ICP (40\%)---the tasks that reward suboptimal play relative to the engine---while counterfactual query and multi-step lookahead dominate on commentary (72\% combined)---the task that rewards comparative reasoning about candidate continuations. LLAMIA-Verb's strategy distribution is dominated by engine-follow on every task (62--76\%), with no meaningful task differentiation.
+
+We quantify this with \textbf{task-specificity}: the average pairwise Jensen-Shannon divergence between per-task strategy distributions. LLAMIA's task-specificity is $\overline{\mathrm{JSD}} = 0.12$ nats; LLAMIA-Verb's is $\overline{\mathrm{JSD}} = 0.012$ nats---an order of magnitude lower. The verbalized model has not learned to read the engine differently for different purposes because there is nothing different to read.
+
+\subsubsection{Training Dynamics of Agency}
+\label{sec:abl_agency_dynamics}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{pages/figures/agency_diversity_training.pdf}
+    \caption{\textbf{The integration interface determines what kind of collaborator the model becomes.}
+    Both panels plot a metric of collaboration behavior against DAPO training progress (\%).
+    Solid blue: LLAMIA (latent internalization). Dashed orange: LLAMIA-Verb (verbalized tool use, same backbone and recipe). Shaded bands: running standard deviation. Gray regions mark three training phases (I, II, III; see text).
+    \emph{Left:} Strategy entropy $H$ (nats), computed over five collaboration patterns classified by GPT-4o ($\kappa = 0.78$ with human raters; \cref{sec:abl_agency_strategy_distribution}). Maximum entropy for five categories is $\ln 5 = 1.61$ (dotted line). Until ${\sim}$25\% training (Phase~II), both systems develop similar diversity ($H \approx 0.75$): the model learns \emph{when} to invoke and \emph{whether} to follow---agency over the questions, available to both interfaces. After 40\% (Phase~III), the curves diverge. LLAMIA's entropy continues rising to $H = 1.53$ (95\% of maximum) as counterfactual-query and multi-step-lookahead patterns emerge---agency over the reading, available only through the latent channel. LLAMIA-Verb plateaus at $H = 0.90$ (56\% of maximum); no new patterns appear because the text response carries the same compressed summary regardless of how the model queries.
+    \emph{Right:} Task-specificity, measured as the mean pairwise Jensen-Shannon divergence ($\overline{\mathrm{JSD}}$, nats) between per-task strategy distributions (\cref{tab:agency_per_task,tab:agency_per_task_verb}). LLAMIA's strategies diverge across tasks: override dominates behavior cloning (48\%), counterfactual query dominates commentary (40\%), and both concentrate in ICP. LLAMIA-Verb's distribution is engine-follow on every task (62--76\%), yielding $\overline{\mathrm{JSD}} = 0.012$---an order of magnitude below LLAMIA's $0.12$. The verbalized model has learned one way to use the engine; the internalized model has learned six.
+    }
+    \label{fig:agency_task_specificity}
+\end{figure}
+
+Figure~\ref{fig:agency_task_specificity} is the central result of the agency analysis. Two quantities---strategy entropy and task-specificity---capture a single observation: \emph{the latent interface makes a richer repertoire of collaboration behaviors learnable, and RL discovers them.}
+
+The training dynamics divide into three phases, annotated on the figure.
+
+\paragraph{Phase~I: universal querying (0--15\%).}
+Both systems invoke the agent on nearly every position (rate $\approx 0.95$), and engine-follow accounts for $>$80\% of episodes. The curves overlap: neither system has yet learned what the engine's response contains. Entropy is low ($H < 0.5$) because the distribution is concentrated on a single strategy.
+
+\paragraph{Phase~II: selective querying (15--40\%).}
+Invocation rate drops; selectivity rises. Override emerges as a second strategy---the model learns that blindly following the engine's top move is suboptimal on tasks like behavior cloning and ICP, where the training reward penalizes engine-optimal play. Both systems develop this. At 25\% training, their entropies are nearly equal ($H \approx 0.75$; Table~\ref{tab:agency_entropy_checkpoints}). Phase~II represents agency over the \emph{questions}: when to ask, whether to follow. Text carries enough signal for this---the model can learn that ``eval: +0.3, best: e4'' should sometimes be overridden, even without knowing \emph{why} or \emph{how}.
+
+\paragraph{Phase~III: perceptual reading (40--100\%).}
+This phase has no counterpart in LLAMIA-Verb. Two patterns emerge that depend on reading the \emph{content} of the engine's response, not just reacting to it:
+\begin{itemize}[leftmargin=*, itemsep=2pt]
+\item \textbf{Counterfactual query} (${\sim}$40\% training): the model plays a candidate move, invokes the agent on the resulting state, and compares the two latent representations to assess what changed. This requires the response to carry structural information about the position---not just a scalar evaluation---so that two responses can be meaningfully contrasted. Text responses (``eval: +0.30'' vs.\ ``eval: +0.25'') differ by a single number; latent states differ across 32 tokens $\times$ $e$ dimensions, encoding which features shifted and by how much (\cref{sec:app_examples_counterfactual}).
+\item \textbf{Multi-step lookahead} (${\sim}$55\%): the model chains 2--3 counterfactual queries to evaluate candidate plans. This compounds the advantage: each step in the chain reads a latent state, so the model builds a trajectory through representation space rather than collecting a sequence of disconnected numbers.
+\end{itemize}
+
+As these patterns grow, entropy rises and---critically---\emph{task-specificity rises with it}. The model does not develop one new general strategy; it develops different strategies for different tasks. Commentary episodes shift toward counterfactual query (40\% at convergence) because the task rewards comparative reasoning about candidate continuations. BC episodes shift toward override (48\%) because the task rewards human-like deviations from engine-optimal play. ICP concentrates both override (40\%) and counterfactual query (28\%) because the task requires both: override to deviate from the engine's objective preference, and counterfactual query to verify that the deviation steers toward the instructed goal (\cref{sec:app_examples_safe_override}).
+
+LLAMIA-Verb, by contrast, shows no Phase~III. Its entropy plateaus at $H \approx 0.85$ by 30\% of training. Its task-specificity remains $\overline{\mathrm{JSD}} \approx 0.012$ throughout---the engine-follow rate is 62--76\% on every task (Table~\ref{tab:agency_per_task_verb}). The model has learned \emph{one way} to use the engine (ask, then follow or occasionally override). It has not learned to read the engine's response differently for commentary than for behavior cloning, because the response is the same text in both cases.
+
+Table~\ref{tab:agency_entropy_checkpoints} reports the numerical values at five checkpoints.
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Agency metrics at training checkpoints.} Strategy entropy $H$ and task-specificity $\overline{\mathrm{JSD}}$ (both in nats) for LLAMIA and LLAMIA-Verb. The two systems are indistinguishable in Phase~I ($H \approx 0.35$) and similar through Phase~II ($H \approx 0.75$ at 25\%). They diverge sharply in Phase~III: by convergence, LLAMIA's entropy is 1.7$\times$ higher and its task-specificity 10$\times$ higher.}
+\label{tab:agency_entropy_checkpoints}
+\begin{adjustbox}{max width=\textwidth}
+\renewcommand{\arraystretch}{1.25}
+\small
+\begin{tabular}{lcccccc}
+\toprule[1.2pt]
+& & \multicolumn{2}{c}{\textbf{Entropy} $H$} & & \multicolumn{2}{c}{\textbf{Task-spec.} $\overline{\mathrm{JSD}}$} \\
+\cmidrule{3-4} \cmidrule{6-7}
+\textbf{Checkpoint} & \textbf{Phase} & LLAMIA & Verb-RL & & LLAMIA & Verb-RL \\
+\midrule
+10\%  & I & 0.38 & 0.35 & & 0.006 & 0.005 \\
+25\%  & II & 0.78 & 0.72 & & 0.015 & 0.009 \\
+50\%  & II$\to$III & 1.18 & 0.87 & & 0.048 & 0.011 \\
+75\%  & III & 1.42 & 0.89 & & 0.092 & 0.012 \\
+100\% & III & 1.53 & 0.90 & & 0.120 & 0.012 \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+\paragraph{Why this matters beyond chess.}
+The three-phase pattern suggests a general prediction for latent-internalization systems in other domains: Phase~II (selective invocation) should emerge under any interface, but Phase~III (task-conditioned perceptual reading) requires a high-bandwidth, continuous channel. If this prediction holds, strategy entropy measured at convergence could serve as a diagnostic for whether an integration interface is leaving collaboration capacity on the table.
+
+Qualitative examples of each pattern---counterfactual query, selective abstention, task-conditioned reading, and safe-override navigation.
+
+% =============================================================================
 \subsection{Agent Size and Playing Strength}
 \label{sec:app_abl_agent_size_playing_strength}
 
+We replace BT4 (240M params, $\sim$2800 Elo with search) with progressively weaker Lc0 networks from the cross-check set (Table~\ref{tab:lc0_crosscheck}). The projector is retrained from scratch for each agent; the RL recipe is identical.
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Agent-size ablation.} LLAMIA-14B performance with different Lc0 backends. Stronger agents yield monotonically better scores, but the latent-internalization advantage over verbalization (VG) persists across the range.}
+\label{tab:abl_agent_size}
+\begin{adjustbox}{max width=\textwidth}
+\renewcommand{\arraystretch}{1.25}
+\small
+\begin{tabular}{lcccccc}
+\toprule[1.2pt]
+\textbf{Agent} & \textbf{Elo (no search)} & \textbf{BC} & \textbf{Comm.} & \textbf{ICP} & \textbf{Avg.} & \textbf{VG} \\
+\midrule
+T72   & $\sim$2000 & 44 & 52 & 28 & 42.0 & +8.5 \\
+T80   & $\sim$2200 & 49 & 62 & 37 & 49.6 & +9.2 \\
+T82   & 2292       & 51 & 66 & 40 & 52.2 & +9.8 \\
+BT3   & $\sim$2500 & 53 & 71 & 44 & 55.0 & +10.1 \\
+BT4   & $\sim$2800 & \textbf{56} & \textbf{75} & \textbf{47} & \textbf{60.2} & \textbf{+10.4} \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+Two patterns emerge. First, stronger agents monotonically improve LLAMIA, confirming that the projector successfully extracts information proportional to the agent's capability. Second, the verbalization debt is stable ($\mathrm{VD} \in [8.5, 10.4]$) across the agent-strength range, indicating that the information lost through verbalization scales proportionally with the information present in the agent's latent state. The gap does not vanish for weaker agents---even relatively simple representations carry structure that text cannot convey.
+
+\subsubsection{LLM Backbone $\times$ Agent Strength}
+\label{sec:app_abl_scaling_both_axes}
+
+Figure~\ref{fig:scaling_bars} extends the agent-size ablation to two LLM backbones (4B and 14B) across the same five agents, now spanning both SE-ResNet and Transformer architectures (Table~\ref{tab:lc0_crosscheck}). Performance increases monotonically with both LLM capacity and agent strength on all four representative tasks.
+
+The 4B-to-14B improvement is 2.4--3.1$\times$ larger for Transformer-architecture agents (T80, BT3, BT4) than for SE-ResNet agents (T72, T78). The ratio is largest on Interest ($3.1\times$) and Commentary ($2.7\times$), the two tasks most dependent on reading the agent's internal representation, and smallest on Behavior Cloning ($2.4\times$). On Interest, the 4B scores for the strongest SE-ResNet agent (T78, 40) and the weakest Transformer agent (T80, 41) are nearly identical, yet their 14B scores diverge sharply (46 vs.\ 55). The Transformer representation carries signal that a 4B backbone cannot exploit but a 14B can. Three confounds prevent a causal claim: (i)~architecture (attention-based representations may align with LLM attention more naturally), (ii)~scale (Transformer agents in our set are also larger), and (iii)~projector compatibility (the MLP LatentBridge may be better suited to projecting transformer features). Controlled experiments that vary architecture at matched parameter count are future work, but the pattern raises a practical question: does subagent architecture matter for internalization beyond raw agent strength?
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{pages/figures/scaling_bars_2x2.pdf}
+    \caption{\textbf{LLM backbone $\times$ agent architecture and strength.}
+    Each panel shows one representative LLAMIA-Bench task (Behavior Cloning, Puzzle Interest, Game Commentary, Instruction Planning).
+    $x$-axis: Lc0 agents ordered by architecture family (SE-ResNet \emph{left}, Transformer \emph{right}) and by playing strength (Elo without search, in parentheses).
+    Bars: LLAMIA-4B (light blue) and LLAMIA-14B (dark blue).
+    Green/brown annotations: the 4B$\to$14B improvement $\Delta$.
+    Performance increases with both LLM capacity and agent strength.
+    The $\Delta$ is consistently larger for Transformer agents than for SE-ResNet agents, with the effect strongest on representation-intensive tasks (Interest $3.1\times$, Commentary $2.7\times$).
+    Architecture, scale, and projector compatibility are confounded; see text.}
+    \label{fig:scaling_bars}
+\end{figure}
+
+% =============================================================================
 \subsection{Projection Token Count}
 \label{sec:app_abl_projection_token_count}
+\label{sec:token_ablation}
+
+We vary the number of state tokens $k \in \{4, 8, 16, 32, 64\}$ injected per \texttt{<invoke>} call. Each configuration retrains both the projector and the RL policy from scratch. Increasing $k$ provides more bandwidth for the projector to encode the agent's state but adds proportionally to the LLM's context length per invocation.
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Projection token count ablation.} LLAMIA-14B with varying $k$. Performance saturates at $k{=}32$, which is used throughout.}
+\label{tab:abl_tokens}
+\begin{adjustbox}{max width=0.8\textwidth}
+\renewcommand{\arraystretch}{1.25}
+\small
+\begin{tabular}{cccccc}
+\toprule[1.2pt]
+$k$ & \textbf{BC} & \textbf{Comm.} & \textbf{ICP} & \textbf{Avg.} & \textbf{Tokens/episode} \\
+\midrule
+4   & 48 & 58 & 30 & 48.4 & 680 \\
+8   & 51 & 65 & 37 & 53.0 & 720 \\
+16  & 54 & 73 & 44 & 58.2 & 790 \\
+32  & \textbf{56} & \textbf{75} & \textbf{47} & \textbf{60.2} & 920 \\
+64  & 56 & 75 & 47 & 60.0 & 1180 \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+Performance increases monotonically from $k{=}4$ to $k{=}32$ and saturates thereafter. The largest gains occur between $k{=}4$ and $k{=}16$, suggesting that the first tokens capture the most task-relevant features (policy distribution shape, value estimate, key positional features) while additional tokens encode progressively finer-grained details. At $k{=}64$, scores are marginally lower than $k{=}32$ (within noise), consistent with the projector distributing the same information across more tokens without benefit. We use $k{=}32$ throughout the paper, as it achieves peak performance with acceptable context overhead.
+
+\paragraph{Comparison with verbalized token budget.}
+At $k{=}4$, LLAMIA uses fewer tokens per invocation than even Verb-Sparse (top-1 move $\approx$~5 tokens), yet still substantially outperforms Verb-Sparse on Interest prediction and ICP.
+This rules out context-length as an explanation for LLAMIA's advantage: the latent channel transmits information that is structurally absent from text regardless of budget.
+
+% =============================================================================
+\subsection{Adapter Type: LoRA vs.\ Full Fine-tuning}
+\label{sec:abl_lora}
+
+\textit{Claim (\S\ref{sec:results_ablations}):} LoRA adaptation (rank~32) captures ${\sim}80\%$ of full fine-tuning performance on single-step tasks but only ${\sim}60\%$ on multi-step tasks.
+
+\paragraph{Setup.}
+We run Stage~2 DAPO with LoRA applied to all attention projections (query, key, value, output; rank~32, $\alpha{=}64$, no dropout), matching training steps and rollout budget to the full fine-tuning run. The projector $H_\varphi$ is fully trainable in both configurations; only the LLM parameters differ.
+
+\begin{table}[h]
+\centering
+\caption{\textbf{LoRA vs.\ full fine-tuning (14B backbone, Stage~2 matched).}
+\emph{Relative} is the LoRA score as a percentage of the full fine-tuning score.
+LoRA is competitive on single-step tasks (BC, Puzzle Understanding) but substantially weaker on multi-step tasks (Commentary, ICP), indicating that sustained collaboration requires distributed parameter updates that low-rank adaptation cannot represent.}
+\label{tab:abl_lora}
+\begin{adjustbox}{max width=\textwidth}
+\renewcommand{\arraystretch}{1.25}
+\small
+\begin{tabular}{lcccccc}
+\toprule[1.2pt]
+\textbf{Adapter} & \textbf{BC} & \textbf{Puzzle} & \textbf{Annot.} & \textbf{Comm.} & \textbf{ICP} & \textbf{Avg.} \\
+\midrule
+Full fine-tune        & 56 & 71 & 72 & 75 & 47 & 60.2 \\
+LoRA (rank~32)        & 46 & 58 & 56 & 43 & 16 & 43.8 \\
+\midrule
+\emph{Relative (\%)}  & 82\% & 82\% & 78\% & 57\% & 34\% & 73\% \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+Three patterns emerge from Table~\ref{tab:abl_lora}. First, LoRA is sufficient for single-step tasks: BC and Puzzle Understanding reach 80--82\% of full fine-tuning, and the LoRA run converges faster. Single-step tasks primarily require the model to learn \emph{what} to attend to in the state tokens---a low-rank update to the attention weights achieves this. Second, the degradation is concentrated on multi-step tasks: Commentary drops to 57\% and ICP to 35\% of full fine-tuning performance. These tasks require the LLM to develop and maintain a planning strategy across a growing trace, which appears to require updates distributed across many layers simultaneously. Third, the asymmetry between single-step and multi-step tasks mirrors the pattern from the \texttt{<invoke>} ablation (Table~\ref{tab:abl_sft_rl}): the multi-step capability is the load-bearing component of the system, and it is also the component most sensitive to parameter efficiency constraints.
+
+\paragraph{Practical implication.}
+LoRA is viable for deploying LLAMIA in single-step applications (move annotation, puzzle analysis) where compute at fine-tuning time is constrained. For multi-step applications (commentary, instruction-conditioned play), full fine-tuning is necessary to realize the system's capability.

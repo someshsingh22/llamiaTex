@@ -1,82 +1,157 @@
 \section{Experiments}
 \label{sec:experiments}
+
+We evaluate LLAMIA on \textsc{LLAMIA-Bench}, a suite of seven tasks spanning four collaboration facets: behavioral imitation, state assessment, explanation, and instruction-conditioned play (\cref{sec:app_bench}). Across all tasks, we compare three integration regimes under matched conditions: latent internalization (LLAMIA), RL-trained verbalized tool use (LLAMIA-Verb), and a frontier model with verbalized Lc0 access (GPT-5.1\,+\,Lc0). Full dataset descriptions, metrics, and per-task prompts appear in Appendices~\ref{sec:app_bench}--\ref{sec:app_prompts}.
+
+\subsection{Setup}
 \label{sec:exp_setup}
-We now present experiments that rigorously evaluate LLAMIA’s capability to internalize latent agent states and act enables its robust intrinsic reasoning and planning capabilities. We test its (1) state-of-the-art performance on gameplay and existing benchmarks without explicit search (2) Generalization on unseen downstream tasks and (3) generalization beyond chess into perceptual and behavioral domains such as text-to-image preference alignment and prediction persuasion.
 
-\subsection{Baselines} 
-We design baselines to isolate the contribution of latent state internalization from confounding factors such as model scale, training data, and agent access. Our comparisons span three paradigms:
+\paragraph{Models.}
+LLAMIA uses Qwen3-14B as the backbone with Lc0-BT4 as the subagent. We train at three scales (4B, 8B, 14B) to study size effects. Stage~1 aligns the projector on 5M state--policy pairs (\cref{sec:app_stage1}); Stage~2 runs DAPO on multi-task rollouts across all seven tasks jointly. Training details and hyperparameters are in Appendix~\ref{sec:app_implementation}.
 
-\paragraph{Language-Only Fine-Tuning.} ChessGPT~\cite{feng2024chessgpt} represents the standard approach of fine-tuning LLMs on chess notation and natural language. Since the original work provides only 2B and 3B checkpoints, we train ChessGPT-7B and ChessGPT-13B variants on our dataset for fair comparison. These models receive FEN strings, verbalized board features, and engine evaluations as text input---equivalent information content to LLAMIA's latent projection, but without continuous representations.
+\paragraph{Baselines.}
+We compare against five groups:
+(i)~\textbf{Qwen3-14B\,+\,Lc0}: same backbone as LLAMIA with Lc0-BT4 via ReAct~\cite{yao2022react} but no task-specific training, isolating the contribution of DAPO;
+(ii)~\textbf{GPT-5.1\,+\,Lc0}: strongest frontier model with verbalized Lc0 access (\cref{sec:app_baseline_frontier});
+(iii)~\textbf{LLAMIA-Verb}: same backbone, DAPO recipe, and rollout budget, but verbalized text instead of projected state tokens---the controlled ablation isolating the integration interface ;
+(iv)~\textbf{Dedicated task finetunes}: Allie, CF-270M, SCC, trained on $10$--$100\times$ more task-specific data (\cref{sec:app_baseline_experts});
+(v)~\textbf{ChessGPT}~\cite{feng2024chessgpt}: language-only fine-tuning on chess notation (7B and 13B variants).
 
-\paragraph{Tool-Calling.} GPT-4o and LLaMA-3.1 405B with Lc0 access via ReAct~\cite{wu2023autogen} represent the tool-calling paradigm. The agent returns top-5 moves with centipawn evaluations, win/draw/loss probabilities, and principal variations up to depth 20. This provides rich symbolic information but compresses the agent's full policy distribution (${\sim}30$ legal moves) into sparse outputs.
+\paragraph{Metrics.}
+Each task has a primary metric detailed in \cref{sec:app_bench}: move-matching accuracy (behavior cloning), Spearman $\rho$ (difficulty and interest), G-eval and BLEU-2 (annotation and commentary), and tournament Elo (instruction-conditioned play). All reported values include 95\% bootstrap confidence intervals.
 
-\paragraph{Task-Specific Experts.} For each benchmark, we compare against the strongest published models: Maia~\cite{mcilroy2020aligning} for behavior cloning (5 separate networks per Elo bracket, trained on 12M games each), SCC~\cite{zang2019automated} for move commentary, and the 270M Transformer~\cite{ruoss2024grandmaster} for gameplay. These represent the performance ceiling achievable with task-specific architectures and abundant training data.
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Training Dynamics and Benchmark Results}
+\label{sec:results_main}
 
-\paragraph{Ablation Baselines.} To isolate LLAMIA's components, we include: (i) \textit{Proj-Frozen}---Stage 1 only, with the LLM frozen during Stage 2; (ii) \textit{No-InvokeAgent}---LLAMIA without dynamic re-encoding; (iii) \textit{LoRA variants}---parameter-efficient adaptation with rank 32. Detailed ablations appear in Appendix~\ref{sec:ablations}.
-% Given LLAMIA’s claim to efficiently internalize external agent capabilities, we select diverse and rigorous baselines. These include state-of-the-art task-specific experts on each public benchmark, significantly larger general-purpose LLMs (GPT-4o, LLaMA-3 405B) with and without direct agent access through tool-calling (Lc0). We particularly emphasize comparisons that isolate the benefit of our internal latent state projection over standard language model fine tuning (\textit{Proj-Frozen}, ChessGPT) and external agent querying (tool-calling baselines).
-
-LLAMIA models (7B, 13B) were trained on five nodes of 80GB A100 GPUs, totaling approximately eight days of computational budget. Hyperparameters and detailed training schedules are provided in Appendix~\ref{sec:hyperparams}. All reported metrics include bootstrap-derived 95\% confidence intervals to ensure statistically rigorous comparisons.
-
-\subsection{Benchmarks}
-\textbf{Grandmaster-level Gameplay without Search}
-\label{sec:grandmaster_no_search} To understand whether LLAMIA truly internalizes planning and positional reasoning from latent embeddings alone, we first examine its performance in direct gameplay settings without explicit search. Remarkably, LLAMIA-13B achieves an Elo rating of $2279\pm41$, closely matching the strongest known search-free models and substantially surpassing the state-of-the-art generalist GPT-4o by 969 points (Table~\ref{tab:gameplay-performance}). This outcome supports one of our core hypothesis the internal latent projection alone effectively encapsulates sophisticated positional judgment and implicit planning signals traditionally requiring deep search. Given LLAMIA’s search-free architecture, an intriguing question arises: does latent-state internalization effectively emulate some degree of search? Previous works like \cite{jenner2024evidence} show evidence of learnt lookahead in Lc0-BT4, through mechanistic interpretability. To examine this, we measure Kendall’s $\tau$ correlation between the move probabilities of LLAMIA’s and underlying agent (Lc0-BT4) policy with and without search. Figure~\ref{fig:kt} reveals that, remarkably, LLAMIA’s policy increasingly resembles that of a shallow-search agent as between 30-50M training positions, its alignment with search suddenly increases upto 0.3 and matches a shallow depth of 4.
-
-\begin{figure}[!h]
+\begin{figure*}[t]
     \centering
-    \includegraphics[width=0.95\linewidth]{tcp2.pdf}
-    \caption{\textbf{Instruction Conditioned Planning:} LLAMIA is playing against an 800 higher-rated opponent. Note that played moves are indicated with white arrows, and the best moves are shown by blue arrows (size is ordered by the strength of the move). The following instruction is passed: ``your opponent is significantly weaker in endgames''. Orange and yellow moves indicate Mistakes and inaccuracies below. LLAMIA, in this position, plays the move \textbf{\textcolor{orange}{1... Nxd2??}} which is a mistake as it loses its advantage but creates a forced move sequence \textbf{[2. Nxd2 \textcolor{yellow}{Bxd2?} 3. Kxd2]} where it ends with a slightly better position in a rook endgame. Since our task design switches the Elo of Lc0 with a weaker policy here (1500) it ends up winning the game smoothly 19 moves later. LLAMIA was able to plan the forced exchange to trade down in an endgame where it knew it was better, demonstrating its superior planning. \textbf{FEN:[r7/6kp/pp2p2p/6b1/8/PPP2n2/3BK2P/RN6 b - - 0 1]}
-}
-    \vspace{-3mm}
-    \label{fig:tcp}
+    \includegraphics[width=\linewidth]{pages/figures/combined_training_bench.pdf}
+    \caption{%
+    \textbf{DAPO training dynamics and LLAMIA-Bench evaluation.}
+    \textbf{(a)}~Aggregate reward vs.\ training step at three model sizes.
+    Solid blue: LLAMIA; dashed orange: LLAMIA-Verb (identical DAPO recipe, same backbone).
+    The gap reaches $2$--$3\times$ by convergence and widens throughout; model scale does not close it for LLAMIA-Verb.
+    \textbf{(b)}~Per-task reward curves (LLAMIA-14B vs.\ LLAMIA-Verb-14B).
+    LLAMIA-Verb achieves partial signal on behavior cloning and difficulty (verbalizable targets)
+    but stays near-flat on interest and commentary---tasks where the reward signal
+    is non-verbalizable or requires multi-step integration.
+    \textbf{(c)}~LLAMIA-Bench evaluation ($0$--$100$).
+    A single LLAMIA-14B model matches or exceeds every task finetune and baseline.
+    Interest is the diagnostic task: all non-LLAMIA systems score ${\leq}10$, confirming a signal
+    absent from any text serialization regardless of model scale or verbalization density.
+    Full per-task tables with confidence intervals in \cref{sec:app_results}.
+    }
+    \label{fig:combined}
+\end{figure*}
 
-\end{figure}
+Panels~(a) and~(b) of Figure~\ref{fig:combined} show training dynamics.
+The aggregate reward gap reaches $2$--$3\times$ by convergence and widens throughout training; scaling from 4B to 14B does not reduce the gap for LLAMIA-Verb.
+The per-task breakdown reveals where the bottleneck bites hardest: LLAMIA-Verb achieves partial reward on behavior cloning (RL learns skill-conditional mappings from text) and difficulty (solution depth is verbalizable), but stays near-flat on puzzle interest and game commentary.
+These two tasks share a single cause: the reward signal encodes structure absent from any text representation of the engine's output.
 
+Panel~(c) summarizes the evaluation.
+\textbf{(1)}~The backbone alone is insufficient: Qwen3-14B\,+\,Lc0 (no DAPO) averages~16, below LLAMIA-Verb~(31) and GPT-5.1\,+\,Lc0~(36).
+\textbf{(2)}~Internalization outperforms verbalization on every task; the gap is smallest on single-position tasks and largest on interest, commentary, and ICP---consistent with panel~(b).
+\textbf{(3)}~RL on verbalized tools has a ceiling: LLAMIA-Verb improves over GPT-5.1\,+\,Lc0 on annotation but \emph{underperforms} it on commentary and ICP, where query-response fragmentation hurts multi-step narratives.
+\textbf{(4)}~Task finetunes are brittle OOD: Allie leads on in-distribution Maia buckets but collapses on GM-25, Low-Time, and $\Delta$Elo, where LLAMIA leads by $6.3$\,pp (\cref{tab:bc_extended}).
 
-\begin{figure}[!h]
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{The Verbalization Debt}
+\label{sec:results_vd}
+
+We define the \textbf{Verbalization Debt} $\mathrm{VD}(\mathcal{T}) = \sigma_{\mathrm{latent}}(\mathcal{T}) - \sigma_{\mathrm{verb}}(\mathcal{T})$ as the per-task score difference between internalized and verbalized integration under matched training.
+
+\paragraph{Non-verbalizability.}
+Some agent signals have no faithful text representation regardless of interaction depth. The cleanest evidence comes from puzzle understanding, where both difficulty and interest are predicted from the \emph{same} positions using the \emph{same} engine and backbone. The VD on interest ($\Delta\rho = 0.47$) is $5.2\times$ larger than on difficulty ($\Delta\rho = 0.09$). Difficulty correlates with verbalizable features (solution depth, evaluation swing); interest reflects aesthetic and psychological engagement encoded in the engine's activations but absent from any text serialization. The same divergence is visible in Figure~\ref{fig:combined}(b): LLAMIA-Verb's reward curve for Interest is flat throughout training while its curve for Difficulty shows partial improvement.
+
+\paragraph{Alternative explanation: optimization ease.}
+One might attribute the VD to optimization dynamics rather than information content---perhaps continuous state tokens are simply easier for DAPO to optimize than discrete text. The verbalization-density ablation (\cref{tab:abl_verb_spectrum}) rules this out for non-verbalizable tasks: increasing the text density from sparse (top-1 move) to dense (full policy distribution serialized as text) does not improve Interest prediction ($\rho \in [0.06, 0.08]$) despite providing strictly more information to the optimizer. The missing signal is absent from text at any density, not merely harder to extract.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Collaboration Agency}
+\label{sec:results_agency}
+
+\begin{figure}[t]
     \centering
-    \includegraphics[width=0.98\linewidth]{bc-sc.pdf}
-    \caption{\textbf{Left – Behavior Cloning}: The figure presents a qualitative example of behavior cloning. The ``Elo'' column indicates the rating of the players that played the move in this position. ``LLAMIA's Move'' represents the move that LLAMIA would play while simulating a player of that Elo, whereas ``Actual Move'' denotes the move made by a real player at that rating. Notably, LLAMIA successfully predicts the moves across all Elo levels except for 1000, Nearest MAIA (Best of 5) and GPT4o+Lc0 guess 4/7 and 2/7 only. \textbf{Right – State Annotation}:  Examples of generated state annotations. Red text denotes incorrect information, and blue text denotes important concepts and affected counterparts. Green text denotes look-ahead moves. LLAMIA is the only model that explains the position in terms of precise counterfactual states and continuations and shows overall better annotation quality.}
-    \label{fig:cloning-annot}
-    \vspace{-3mm}
+
+    \begin{subfigure}[t]{0.6\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{pages/figures/agency_diversity_training.pdf}
+        \caption{Strategy entropy and task-specificity over training.}
+        \label{fig:agency_diversity_left}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.39\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{icp.pdf}
+        \caption{ICP motif Skill acquisition}
+        \label{fig:agency_diversity_right}
+    \end{subfigure}
+
+    \caption{\textbf{Verbalization debt constrains collaboration diversity.}
+    Both systems overlap until ${\sim}40\%$; LLAMIA rises to $H = 1.53$ (95\% of maximum) while LLAMIA-Verb plateaus at $0.90$ (56\%).}
+    \label{fig:agency_diversity}
 \end{figure}
+The verbalization debt measured in \S\ref{sec:results_vd} is a score gap. A second consequence is behavioral: it constrains the \emph{collaboration repertoire} the model can learn. We classify 500 evaluation episodes per system into five collaboration patterns via GPT-4o ($\kappa = 0.78$; taxonomy in \cref{sec:abl_agency_strategies}): engine-follow, consult-then-override, counterfactual query, multi-step lookahead, and abstention.
 
-\textbf{Behavior Cloning} We further probe its capabiliry to clone policies from instructions, which tests a model’s ability to imitate human moves conditioned on player skill levels. Figure~\ref{fig:cloning-annot} shows LLAMIA correctly anticipates moves made by players across a broad Elo spectrum. To further test this we introduce our first LLAMIA-Bench task: Cloning policies in low data regimes like cloning individual grandmasters (GM25), gameplay under time pressure (Time), and when opponent skill has a huge gap $\pm500$. We match or improve over task experts \cite{mcilroy2020aligning} trained on individual skill levels. Detailed ablations of different skill levels and models are given in \ref{tab:behavior_cloning}. We hypothesize that this is a result of jointly training on behaviors and the LLM's ability to distinguish them from text.
+At convergence, LLAMIA distributes across all five (Figure~\ref{fig:agency_diversity}); LLAMIA-Verb concentrates on engine-follow (69\%). The divergence begins after ${\sim}40\%$ of training, when LLAMIA develops two patterns absent from LLAMIA-Verb: \emph{counterfactual query} (24\%), where the model invokes the agent on hypothetical positions and compares latent representations; and \emph{multi-step lookahead} (13\%), which chains such queries to evaluate candidate plans. Together these account for 37\% of LLAMIA episodes and $<$3\% of LLAMIA-Verb episodes. Strategies also specialize by task ($\overline{\mathrm{JSD}}$: $0.12$ vs.\ $0.012$ for LLAMIA-Verb), which uses the same engine-follow profile regardless of task. This repertoire requires Stage~2 joint optimization: Stage~1 alone (projector alignment, LLM frozen) produces only engine-follow behavior, because the LLM cannot learn \emph{when} to invoke or how to compose responses across invocations without RL (\cref{sec:app_ablations}).
 
-\textbf{State Annotation and Game level Commentary}
-\label{sec:grounded_commentary}
-Generating high quality chess commentary demands contextually relevant move descriptions and identification of subtle strategic themes. Traditional engines offer numerical evaluations but lack expressive explanatory narratives, whereas language only models frequently produce verbose yet superficial annotations. While current research explores move-level commentary \cite{jhamtani-etal-2018-learning}, we extend to game level commentary for commentating an entire game LLAMIA bridges this gap by aligning latent planning signals with fluent commentary generation. Quantitatively, LLAMIA-13B attains a G-eval \cite{liu2023g} score of 0.607, outperforming GPT-4o with tool-calling by 0.086 points while utilizing a model 30 times smaller (Fig.~\ref{fig:commentary}, left). Qualitative inspections (Fig.~\ref{fig:cloning-annot} (right)) further illustrate LLAMIA’s capacity to recognize and articulate nuanced concepts—such as ``passed pawns'' and ``king safety'' which are entirely absent from commentary generated by standard instruction tuned models. 
+\label{sec:results_ablations}
+\label{sec:results_skill_discovery}
+\paragraph{Skill discovery via ICP.}
+Instruction-conditioned planning (ICP) tests whether a model can steer play toward natural-language directives about opponent weaknesses. ICP is a test-only task, so improvement reflects transfer from training.
+LLAMIA-14B achieves $2262\,(\pm 28)$ average tournament Elo across five weakness categories, versus $2150\,(\pm 32)$ for GPT-5.1\,+\,Lc0 and $2091\,(\pm 34)$ for LLAMIA-Verb (\cref{tab:icp_extended}).
+Motif categories emerge in a structured order during training: pawn structures first, then piece coordination, tactical patterns, endgames, each with a sigmoid-like jump (\cref{sec:app_results_icp_motif}). The ordering mirrors chess pedagogy, consistent with latent projection enabling curriculum-like acquisition. ICP depends on the counterfactual-query and multi-step-lookahead patterns that only LLAMIA develops. Additional ablations (LoRA rank sensitivity, dual-axis scaling, failure-mode taxonomy) appear in \cref{sec:app_ablations}.
 
-\textbf{Conditional Planning from Instructions}
-\label{sec:instruction_conditioned_planning}
+%% ═══════════════════════════════════════════════════════════════════════════
+\subsection{Human Evaluation}
+\label{sec:results_human}
 
-Beyond pure imitation, we explore LLAMIA’s capability to modify its play style according to strategic instructions about an opponent’s known weaknesses. Human chess experts frequently exploit known vulnerabilities such as ``Endgame weakness", ``Time pressure''. Motivated by this human-centric capability, we evaluate LLAMIA using scenarios explicitly constructed to reward such adaptive behaviors (detailed scenario description in Appendix~\ref{tab:instruct_conditioned_planning}). Strikingly, LLAMIA-13B achieves a mean improvement of 17\% over a baseline that cannot condition on instructions (Table~\ref{tab:instruct_conditioned_planning}).
-We also observe the generalization capability of LLAMIA by comparing the \% of training data and win rates in \ref{fig:icp}. LLAMIA’s adaptive capabilities emerge rapidly (40\% of training data), whereas standard fine-tuning approaches (ChessGPT-13B) fail to meaningfully adapt until nearly full data exposure. 
+\begin{figure*}[t]
+    \centering
+    \begin{subfigure}[t]{0.235\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{pages/figures/board_heatmap_c4_diff.pdf}
+        \caption{Attention $\Delta$ (2000$-$1100)}
+        \label{fig:human_heatmap}
+    \end{subfigure}\hfill
+    \begin{subfigure}[t]{0.245\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{pages/figures/llamia_human_gameplay_compact.pdf}
+        \caption{Bot detection}
+        \label{fig:human_gameplay_main}
+    \end{subfigure}\hfill
+    \begin{subfigure}[t]{0.245\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{pages/figures/llamia_survey_vert.pdf}
+        \caption{Gameplay survey}
+        \label{fig:human_survey_main}
+    \end{subfigure}\hfill
+    \begin{subfigure}[t]{0.245\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{pages/figures/llamia_human_commentary_compact.pdf}
+        \caption{Commentary quality}
+        \label{fig:human_commentary_main}
+    \end{subfigure}
+    \caption{%
+    \textbf{Human evaluation ($n=12$ skilled players, all rated $\geq$1300).}
+    \textbf{(a)}~Attention difference on a back-rank mate position: LLAMIA at 2000~Elo attends to the mating geometry (e1, g1, trapping pawns; red) while 1100~Elo disperses to material (blue). 
+    \textbf{(b)}~Bot detection accuracy (Study~1): LLAMIA-14B (39\%) falls below chance; LLAMIA-Verb (72\%) is readily detected.
+    \textbf{(c)}~Post-game Likert survey: LLAMIA matches Maia* on human-likeness without training on human-move distributions.
+    \textbf{(d)}~Commentary preference (Study~2): 72\% of judgments favour LLAMIA; Insight gap (1.7\,pts) exceeds Accuracy gap (1.1\,pts), consistent with verbalization compressing strategic depth.
+    Full study design, qualitative coding, and state-annotation results in \cref{sec:app_human}.
+    }
+    \label{fig:human_eval}
+\end{figure*}
 
-% \textbf{Generalization to Vision and Persuasion Tasks}
-% \label{sec:cross_domain}
-% Finally, we validate LLAMIA’s robustness as a framework beyond chess by integrating latent states from domain-specific pretrained critics in Text-to-Image Preference Alignment and persuasion prediction. For vision-based image preference alignment, LLAMIA significantly surpasses the state-of-the-art VisionReward model (+5 pp accuracy), achieving this improvement with merely half the required fine-tuning data (Appendix~\ref{sec:addl-results}). Qualitative results in Figure~\ref{fig:image_grid} further demonstrate LLAMIA’s superior stylistic fidelity and consistency across diverse artistic prompts.
+We validate the automated metrics with two human studies on $n=12$ skilled chess players (all rated ${\geq}1300$; study design in \cref{sec:app_human}).
 
-% Similarly, in persuasion modeling—leveraging Chronos-Bolt time-series embeddings—we observe substantial accuracy improvements (+6 pp overall; peaking at +15 pp during weekend spikes; Appendix~\ref{sec:addl-results}). These results concretely demonstrate that LLAMIA’s latent-state integration approach is a broadly applicable mechanism capable of effectively incorporating structured domain knowledge into LLMs, beyond strictly structured game environments.
+\paragraph{Behavior cloning: what the model sees.}
+Figure~\ref{fig:human_heatmap} visualizes the attention difference between LLAMIA conditioned at 2000 vs.\ 1100~Elo on a back-rank mate position (Lichess puzzle dxLpe). At 2000~Elo, attention concentrates on the mating geometry---the target square (e1), the trapped king (g1), and the confining pawns (f2/g2/h2). At 1100~Elo, attention disperses to material and central squares, missing the back-rank threat entirely. This attention shift confirms that the projected latent state carries skill-level-specific positional understanding, not merely the engine's top move---the same signal that drives behavior-cloning accuracy across Elo buckets (\cref{tab:bc_extended}).
 
+\paragraph{Gameplay identification.}
+Participants correctly identified LLAMIA-14B as AI in 39\% of trials, below the 50\% chance level (Figure~\ref{fig:human_gameplay_main}). LLAMIA-Verb-14B was detected at 72\%, well above chance despite identical backbone and training budget. Post-game surveys corroborate this: LLAMIA matches Maia*'s human-likeness ratings without training on human-move distributions (Figure~\ref{fig:human_survey_main}). The detection gap isolates the integration interface: verbalization imposes stylistic regularities (consistent avoidance of dubious moves, uniform tempo) that participants identify as non-human.
 
-% \begin{table*}[h!]
-%     \centering
-%     \begin{adjustbox}{max width=1.05\textwidth}
-%     \begin{tabular}{l|c|cccc|c}
-%     \toprule[1.2pt]
-%     \textbf{Model} & \textbf{Method} & \textbf{Composition} & \textbf{Quality} & \textbf{Fidelity} & \textbf{Emotion} & \textbf{HPDv2 (Tau*)} \\
-%     \midrule
-%     GPT-4o & ICL & 73.1 & 62.7 & 61.9 & 70.1 & 77.5 \\
-%     Gemini & ICL & 69.4 & 59.9 & 59.7 & 74.9 & 60.7 \\
-%     CogVLM2 & ICL & 65.8 & 67.1 & 53.1 & 74.7 & 64.5 \\
-%     LLaVA & ICL & 59.9 & 65.7 & 59.8 & 64.4 & 61.0 \\
-%     VisionReward-19B & IFT & \valbest{78.8} & \valgood{81.1} & \valgood{80.9} & \valgood{83.9} & \valgood{81.7} \\
-%     GPT-4o + ImageReward & ICL + ToolCalling & 75.5 & 65.0 & 64.0 & 72.5 & 79.5 \\
-%     \midrule
-%     LLAMIA-19B (Ours) & SALT & \valgood{76.5} & \valbest{85.0} & \valbest{82.0} & \valbest{84.2} & \valbest{85.8} \\
-%     \bottomrule[1.2pt]
-%     \end{tabular}
-%     \end{adjustbox}
-%     \caption{\textbf{Image Generation Evaluation.} We evaluate LLAMIA-13B and prior vision-language models across perceptual axes (composition, quality, fidelity, emotion) from VisionReward \cite{xu2025visionrewardfinegrainedmultidimensionalhuman} and preference alignment via HPDv2\cite{wu2023human}. Despite having the same underlying base VLM (CogVLM2-llama3-chat\cite{hong2024cogvlm2}) LLAMIA internally integrates ImageReward\cite{xu2023imagereward} and outperforms all baselines in HPDv2 alignment (\valbest{85.7}), improving over GPT-4o (\valgood{77.5}) by \textbf{+8.2} and over VisionReward by \textbf{+4.1} with the same amount of training data for this task. We follow the same evaluation as \cite{xu2025visionrewardfinegrainedmultidimensionalhuman} However due to unavailability of Monet-Bench we could not include it.}
-%     \label{tab:image_generation}
-% \end{table*}
+\paragraph{Commentary quality.}
+LLAMIA-14B was preferred in 72.2\% of 180 commentary judgments (Figure~\ref{fig:human_commentary_main}). Mean Insight scores (4.2 vs.\ 2.5) show a larger gap than Accuracy (4.3 vs.\ 3.2), consistent with verbalization preserving surface facts but compressing the strategic rationale encoded in the agent's activations. State-annotation accuracy ($r$ with Stockfish evaluation) widens monotonically from $\Delta r = 0.03$ on simple positions to $\Delta r = 0.41$ on complex positions (\cref{sec:app_human_results}).
