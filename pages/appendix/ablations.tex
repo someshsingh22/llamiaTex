@@ -77,10 +77,10 @@ No-invoke (abstention)  & 10\% & 16\% \\
 Five patterns emerge (\cref{tab:agency_strategies}):
 \begin{itemize}[leftmargin=*, itemsep=2pt]
   \item \textbf{Engine-follow} (LLAMIA 33\%, Verb-RL 69\%): the model adopts the agent's top recommendation. Dominant on gameplay for both systems. LLAMIA-Verb's higher rate across tasks reflects that following the answer is the only reliable strategy when the answer is all you receive.
-  \item \textbf{Consult-then-override} (LLAMIA 21\%, Verb-RL 12\%): the model queries, considers, then selects an alternative. LLAMIA's overrides are grounded in the latent state---the model reads the policy distribution to identify moves that serve the task objective despite not being engine-optimal (see \cref{sec:app_examples_safe_override,sec:app_examples_icp}). LLAMIA-Verb's overrides are less task-directed: 80\% of Verb-RL overrides on BC select a lower-ranked engine move by position in the top-$k$ list (rank-order heuristic), compared to 35\% for LLAMIA.
-  \item \textbf{Counterfactual query} (LLAMIA 24\%, Verb-RL 2\%): the model plays a hypothetical move via \texttt{make\_move}, invokes the agent on the resulting position, and undoes it (\cref{sec:app_examples_counterfactual}). This is the strategy most dependent on the latent interface: comparing two latent states carries rich structural information (what changed, in which dimensions), while comparing two text summaries (``eval +0.30'' vs.\ ``eval +0.25'') carries almost nothing beyond the scalar difference. Counterfactual queries are concentrated on commentary (40\% of LLAMIA's commentary episodes) and ICP (28\%).
+  \item \textbf{Consult-then-override} (LLAMIA 21\%, Verb-RL 12\%): the model queries, considers, then selects an alternative. LLAMIA's overrides are grounded in the latent state---the model reads the policy distribution to identify moves that serve the task objective despite not being engine-optimal. LLAMIA-Verb's overrides are less task-directed: 80\% of Verb-RL overrides on BC select a lower-ranked engine move by position in the top-$k$ list (rank-order heuristic), compared to 35\% for LLAMIA.
+  \item \textbf{Counterfactual query} (LLAMIA 24\%, Verb-RL 2\%): the model plays a hypothetical move via \texttt{make\_move}, invokes the agent on the resulting position, and undoes it. This is the strategy most dependent on the latent interface: comparing two latent states carries rich structural information (what changed, in which dimensions), while comparing two text summaries (``eval +0.30'' vs.\ ``eval +0.25'') carries almost nothing beyond the scalar difference. Counterfactual queries are concentrated on commentary (40\% of LLAMIA's commentary episodes) and ICP (28\%).
   \item \textbf{Multi-step lookahead} (LLAMIA 13\%, Verb-RL 1\%): the model chains 2--3 \texttt{make\_move}/\texttt{undo\_move} sequences to compare multi-move variations. This is counterfactual query composed across depth. Concentrated on ICP, where the model evaluates whether a candidate plan sequence steers toward the instructed goal.
-  \item \textbf{No-invoke (abstention)} (LLAMIA 10\%, Verb-RL 15\%): the model acts from language knowledge alone. LLAMIA's abstentions are targeted---routine positions within well-known theory (\cref{sec:app_examples_abstention}). LLAMIA-Verb's higher abstention rate reflects learned avoidance of uninformative tool calls, but the model cannot distinguish ``I know enough'' from ``the tool won't help anyway.''
+  \item \textbf{No-invoke (abstention)} (LLAMIA 10\%, Verb-RL 15\%): the model acts from language knowledge alone. LLAMIA's abstentions are targeted---routine positions within well-known theory. LLAMIA-Verb's higher abstention rate reflects learned avoidance of uninformative tool calls, but the model cannot distinguish ``I know enough'' from ``the tool won't help anyway.''
 \end{itemize}
 
 The distribution entropy quantifies the difference: LLAMIA's strategy distribution has entropy $H = 1.53$ nats versus $H = 0.90$ for LLAMIA-Verb (maximum for 5 categories: $\ln 5 = 1.61$). LLAMIA uses 95\% of the available entropy; LLAMIA-Verb uses 56\%.
@@ -166,11 +166,11 @@ Invocation rate drops; selectivity rises. Override emerges as a second strategy-
 \paragraph{Phase~III: perceptual reading (40--100\%).}
 This phase has no counterpart in LLAMIA-Verb. Two patterns emerge that depend on reading the \emph{content} of the engine's response, not just reacting to it:
 \begin{itemize}[leftmargin=*, itemsep=2pt]
-\item \textbf{Counterfactual query} (${\sim}$40\% training): the model plays a candidate move, invokes the agent on the resulting state, and compares the two latent representations to assess what changed. This requires the response to carry structural information about the position---not just a scalar evaluation---so that two responses can be meaningfully contrasted. Text responses (``eval: +0.30'' vs.\ ``eval: +0.25'') differ by a single number; latent states differ across 32 tokens $\times$ $e$ dimensions, encoding which features shifted and by how much (\cref{sec:app_examples_counterfactual}).
+\item \textbf{Counterfactual query} (${\sim}$40\% training): the model plays a candidate move, invokes the agent on the resulting state, and compares the two latent representations to assess what changed. This requires the response to carry structural information about the position---not just a scalar evaluation---so that two responses can be meaningfully contrasted. Text responses (``eval: +0.30'' vs.\ ``eval: +0.25'') differ by a single number; latent states differ across 32 tokens $\times$ $e$ dimensions, encoding which features shifted and by how much.
 \item \textbf{Multi-step lookahead} (${\sim}$55\%): the model chains 2--3 counterfactual queries to evaluate candidate plans. This compounds the advantage: each step in the chain reads a latent state, so the model builds a trajectory through representation space rather than collecting a sequence of disconnected numbers.
 \end{itemize}
 
-As these patterns grow, entropy rises and---critically---\emph{task-specificity rises with it}. The model does not develop one new general strategy; it develops different strategies for different tasks. Commentary episodes shift toward counterfactual query (40\% at convergence) because the task rewards comparative reasoning about candidate continuations. BC episodes shift toward override (48\%) because the task rewards human-like deviations from engine-optimal play. ICP concentrates both override (40\%) and counterfactual query (28\%) because the task requires both: override to deviate from the engine's objective preference, and counterfactual query to verify that the deviation steers toward the instructed goal (\cref{sec:app_examples_safe_override}).
+As these patterns grow, entropy rises and---critically---\emph{task-specificity rises with it}. The model does not develop one new general strategy; it develops different strategies for different tasks. Commentary episodes shift toward counterfactual query (40\% at convergence) because the task rewards comparative reasoning about candidate continuations. BC episodes shift toward override (48\%) because the task rewards human-like deviations from engine-optimal play. ICP concentrates both override (40\%) and counterfactual query (28\%) because the task requires both: override to deviate from the engine's objective preference, and counterfactual query to verify that the deviation steers toward the instructed goal.
 
 LLAMIA-Verb, by contrast, shows no Phase~III. Its entropy plateaus at $H \approx 0.85$ by 30\% of training. Its task-specificity remains $\overline{\mathrm{JSD}} \approx 0.012$ throughout---the engine-follow rate is 62--76\% on every task (Table~\ref{tab:agency_per_task_verb}). The model has learned \emph{one way} to use the engine (ask, then follow or occasionally override). It has not learned to read the engine's response differently for commentary than for behavior cloning, because the response is the same text in both cases.
 
@@ -233,7 +233,7 @@ BT4   & $\sim$2800 & \textbf{56} & \textbf{75} & \textbf{47} & \textbf{60.2} & \
 
 Two patterns emerge. First, stronger agents monotonically improve LLAMIA, confirming that the projector successfully extracts information proportional to the agent's capability. Second, the verbalization debt is stable ($\mathrm{VD} \in [8.5, 10.4]$) across the agent-strength range, indicating that the information lost through verbalization scales proportionally with the information present in the agent's latent state. The gap does not vanish for weaker agents---even relatively simple representations carry structure that text cannot convey.
 
-\subsubsection{LLM Backbone $\times$ Agent Strength}
+\subsubsection{LLM Backbone and Agent Strength}
 \label{sec:app_abl_scaling_both_axes}
 
 Figure~\ref{fig:scaling_bars} extends the agent-size ablation to two LLM backbones (4B and 14B) across the same five agents, now spanning both SE-ResNet and Transformer architectures (Table~\ref{tab:lc0_crosscheck}). Performance increases monotonically with both LLM capacity and agent strength on all four representative tasks.
@@ -323,3 +323,59 @@ Three patterns emerge from Table~\ref{tab:abl_lora}. First, LoRA is sufficient f
 
 \paragraph{Practical implication.}
 LoRA is viable for deploying LLAMIA in single-step applications (move annotation, puzzle analysis) where compute at fine-tuning time is constrained. For multi-step applications (commentary, instruction-conditioned play), full fine-tuning is necessary to realize the system's capability.
+
+% =============================================================================
+\subsection{Stage~1 Pretraining: Static SFT vs.\ Dynamic RL}
+\label{sec:abl_sft_static_rl_dynamic}
+% =============================================================================
+
+\tbd\ Ablation comparing (i)~full two-stage training (Stage~1 SFT $+$ Stage~2 DAPO), (ii)~Stage~2 only (no projector pretraining), and (iii)~Stage~1 only (frozen LLM, no RL). Skipping Stage~1 causes training instability during the first 40\% of Stage~2.
+
+\begin{table}[h]
+\centering
+\caption{\textbf{\texttt{<invoke>} mechanism ablation.} Performance with and without the latent invocation interface across training stages. \tbd}
+\label{tab:abl_sft_rl}
+\begin{adjustbox}{max width=\textwidth}
+\renewcommand{\arraystretch}{1.25}
+\small
+\begin{tabular}{lcccccc}
+\toprule[1.2pt]
+\textbf{Configuration} & \textbf{BC} & \textbf{Puzzle} & \textbf{Annot.} & \textbf{Comm.} & \textbf{ICP} & \textbf{Avg.} \\
+\midrule
+Stage~1 $+$ Stage~2 (full) & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Stage~2 only (no SFT)      & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Stage~1 only (no RL)       & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+% =============================================================================
+\subsection{Verbalization Density Spectrum}
+\label{sec:abl_verb_spectrum}
+% =============================================================================
+
+\tbd\ Ablation varying the verbosity of the agent's text response from sparse (top-1 move only) to dense (full policy distribution serialized as text), measuring downstream task performance. The goal is to rule out the hypothesis that the verbalization debt arises purely from optimization difficulty rather than information loss.
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Verbalization-density ablation.}
+LLAMIA-Verb performance as a function of text response density.
+Increasing density does not recover performance on non-verbalizable tasks (Interest, ICP), confirming that the missing signal is absent from text at any density. \tbd}
+\label{tab:abl_verb_spectrum}
+\begin{adjustbox}{max width=\textwidth}
+\renewcommand{\arraystretch}{1.25}
+\small
+\begin{tabular}{lcccccc}
+\toprule[1.2pt]
+\textbf{Text density} & \textbf{BC} & \textbf{Interest} & \textbf{Annot.} & \textbf{Comm.} & \textbf{ICP} & \textbf{Avg.} \\
+\midrule
+Sparse (top-1 move)           & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Medium (top-3 $+$ eval)       & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Dense (full policy as text)   & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
+\midrule
+LLAMIA (latent)               & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table}

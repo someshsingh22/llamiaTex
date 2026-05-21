@@ -73,7 +73,7 @@ For each position (estimated 3--4 minutes), participants complete four items:
 (i)~Preference rate for LLAMIA: fraction of judged pairs (excluding ``no clear preference'') choosing the LLAMIA output, reported as a mean across 12 raters. Human preferences serve as convergent evidence alongside automated metrics, not as the primary result. (ii)~Mean Accuracy and Insight Likert scores per system. (iii)~Pearson $r$ with Stockfish per system per complexity bin.
 
 \paragraph{Rater--judge agreement.}
-All 180 position pairs are independently scored with GPT-4o G-eval \citep{XXX} using matched Accuracy and Insight prompts. Cohen's $\kappa$ is computed between human preference rankings and G-eval rankings, with a length-adjusted $\kappa$ computed after partialling out the Spearman correlation between G-eval score and commentary word count ($\rho_{\text{length}}$).
+All 180 position pairs are independently scored with GPT-4o G-eval \citep{liu2023gevalnlgevaluationusing} using matched Accuracy and Insight prompts. Cohen's $\kappa$ is computed between human preference rankings and G-eval rankings, with a length-adjusted $\kappa$ computed after partialling out the Spearman correlation between G-eval score and commentary word count ($\rho_{\text{length}}$).
 
 % =============================================================================
 \subsection{Results}
@@ -106,7 +106,7 @@ Qualitative coding ($\kappa_{\text{code}} = 0.72$) confirms this interpretation.
 \end{figure}
 
 \paragraph{Study 1 -- Gameplay experience survey.}
-Post-game Likert ratings corroborate the objective detection results (Figure~\ref{fig:human_survey}). LLAMIA-14B is rated as playing like a human by 65\% of participants (positive Likert responses), versus 38\% for LLAMIA-Verb-14B and 72\% for Maia*, which is specifically trained to mimic human-Elo move distributions. LLAMIA-14B approaches Maia*'s human-likeness ceiling from above the verbalized baseline, consistent with a move distribution shaped by latent representations rather than verbal summaries. The enjoyment dimension follows the same ordering: LLAMIA-14B is preferred as an opponent by 68\% of participants versus 44\% for LLAMIA-Verb-14B, suggesting that human-likeness and subjective game quality co-vary. That enjoyment tracks human-likeness rather than playing strength is consistent with the Centaur collaboration literature~\citep{XXX}.
+Post-game Likert ratings corroborate the objective detection results (Figure~\ref{fig:human_survey}). LLAMIA-14B is rated as playing like a human by 65\% of participants (positive Likert responses), versus 38\% for LLAMIA-Verb-14B and 72\% for Maia*, which is specifically trained to mimic human-Elo move distributions. LLAMIA-14B approaches Maia*'s human-likeness ceiling from above the verbalized baseline, consistent with a move distribution shaped by latent representations rather than verbal summaries. The enjoyment dimension follows the same ordering: LLAMIA-14B is preferred as an opponent by 68\% of participants versus 44\% for LLAMIA-Verb-14B, suggesting that human-likeness and subjective game quality co-vary. That enjoyment tracks human-likeness rather than playing strength is consistent with the Centaur collaboration literature~\citep{saghafian2024effective}.
 
 \begin{figure}[h]
   \centering

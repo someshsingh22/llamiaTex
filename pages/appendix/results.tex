@@ -30,7 +30,7 @@ Per-task summary scores. BC columns: average move-match accuracy $\times 100$. P
 \textbf{Planning} \\
 \midrule
 % ── Dedicated task finetunes ──────────────────────────────────────────────
-Allie-Adaptive-Search~\cite{Allie-bc2H72hGxB} & \underline{59} & 45 & -- & -- & -- & -- & -- \\
+Allie-Adaptive-Search~\cite{zhang2024humanalignedchessbitsearch} & \underline{59} & 45 & -- & -- & -- & -- & -- \\
 SCC                          & -- & -- & -- & -- & \underline{62} & -- & -- \\
 CF-270M                      & -- & -- & \underline{46} & 35 & -- & -- & -- \\
 \midrule
@@ -61,7 +61,7 @@ LLAMIA-14B                   & \textbf{56} & \textbf{51} & \textbf{71} & \textbf
 % Gameplay is a parity metric: all engine-access systems cluster.
 % Reported for completeness.
 
-\subsubsection{Action Ranking (Kendall's $\tau$)}
+\subsubsection{Action Ranking (Kendall's Tau)}
 \label{sec:app_results_gameplay_kt}
 
 LLAMIA's policy alignment with the search-augmented agent (Lc0-BT4 with 800-node search) is measured via Kendall's $\tau$ over the top-10 move ranking. Alignment increases during training and stabilizes around 30--50M training positions; see the training dynamics figure for the full curve.
@@ -91,7 +91,7 @@ mapping the engine's top-$k$th move to an Elo bucket, missing the style dimensio
 & & \textbf{1100} & \textbf{1300} & \textbf{1500} & \textbf{1700} & \textbf{1900} &
 \textbf{GM-25} & \textbf{Low-Time} & \textbf{$\Delta$Elo} \\
 \midrule
-Allie-Adaptive-Search~\cite{Allie-bc2H72hGxB} & SL+Search
+Allie-Adaptive-Search~\cite{zhang2024humanalignedchessbitsearch} & SL+Search
   & \underline{0.54} & \underline{0.57} & \underline{0.59} & \underline{0.61} & \underline{0.63}
   & 0.44 & 0.45 & 0.45 \\
 \midrule
@@ -110,17 +110,17 @@ LLAMIA-14B         & DAPO       & \textbf{0.53} & \textbf{0.55} & \textbf{0.56} 
 \end{table*}
 
 \paragraph{Why Allie wins on buckets but loses on wild splits.}
-Allie-Adaptive-Search achieves state-of-the-art move-matching accuracy on the Maia benchmark buckets (1100--1900) by training on 93M blitz games with continuous Elo conditioning and time-adaptive MCTS~\cite{Allie-bc2H72hGxB}.
+Allie-Adaptive-Search achieves state-of-the-art move-matching accuracy on the Maia benchmark buckets (1100--1900) by training on 93M blitz games with continuous Elo conditioning and time-adaptive MCTS~\cite{zhang2024humanalignedchessbitsearch}.
 The gains over Maia are real and consistent across the entire skill spectrum.
 However, the same paper reports a characteristic cluster of failure modes in online play that map precisely to our wild splits.
 First, \emph{late-game blunders}: players at 1998--2038 Elo independently noted sudden piece drops with no tactical justification, and remarked that Allie ``doesn't know what to do in the endgame.''
 Second, \emph{no strategic plan in the middlegame}: players at 1940 Elo observed ``non-obvious moves with no clear plan.''
 Third, \emph{incorrect piece-trade decisions when losing}: players at 2004 Elo noted Allie's ``willingness to trade when down a full piece''---a failure to complicate and create counter-chances that strong human players rely on.
-Fourth, \emph{blitz-data bias}: training on one year of blitz games makes Allie poorly calibrated for slow-game reasoning and GM-style positional play~\cite{Allie-bc2H72hGxB}.
+Fourth, \emph{blitz-data bias}: training on one year of blitz games makes Allie poorly calibrated for slow-game reasoning and GM-style positional play~\cite{zhang2024humanalignedchessbitsearch}.
 
 These four failure modes explain the wild-split pattern in Table~\ref{tab:bc_extended}.
 GM-25 exposes the planning and endgame gaps: top grandmasters play strategically complex slow-game maneuvers that Allie's blitz-trained policy cannot imitate.
-Low-Time exposes the forcing-line failure: under clock pressure, humans commit instantly to forcing sequences; Allie's think-time predictor sometimes assigns long ponder times to positions with only one reasonable move~\cite{Allie-bc2H72hGxB}.
+Low-Time exposes the forcing-line failure: under clock pressure, humans commit instantly to forcing sequences; Allie's think-time predictor sometimes assigns long ponder times to positions with only one reasonable move~\cite{zhang2024humanalignedchessbitsearch}.
 $\Delta$Elo exposes the piece-trade and complication failure: large rating-gap positions frequently involve defensive resourcefulness (stalemate traps, perpetual-check sacrifices) that requires reading the \emph{shape} of the opponent's policy distribution, not just their nominal Elo.
 
 LLAMIA's advantage on wild splits is not a data artifact.
@@ -134,7 +134,7 @@ Per-Elo accuracy curves with binomial confidence intervals confirm that LLAMIA's
 
 \subsubsection{Per-Move Strength Curves}
 \label{sec:app_results_bc_strength}
-Per-move-number accuracy curves show that LLAMIA's move-match accuracy is sustained across game length, whereas Allie-Adaptive-Search degrades in late-middlegame and endgame positions---consistent with the player-reported blunder pattern~\cite{Allie-bc2H72hGxB}.
+Per-move-number accuracy curves show that LLAMIA's move-match accuracy is sustained across game length, whereas Allie-Adaptive-Search degrades in late-middlegame and endgame positions---consistent with the player-reported blunder pattern~\cite{zhang2024humanalignedchessbitsearch}.
 
 \subsection{Rationale Prediction}
 \label{sec:app_results_rationale}

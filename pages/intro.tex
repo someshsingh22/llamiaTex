@@ -67,9 +67,8 @@ Moreover, this error compounds across interactions, in multi-step settings, each
 \vspace{-2mm}
 \begin{figure}[!h]
     \centering
-    \includegraphics[width=0.98\linewidth]{llamia-fig (9).pdf}
-    \caption{\textbf{Latent State Internalization.} Given a state $S_0$ and a language instruction, the agent's encoder representation $h_{S_0}$ is projected into the LLM's embedding space via $H_\phi$ (indicated by \textcolor[HTML]{8C25FF}{\(\rightarrow\)}) as $k{=}32$ continuous tokens $z_{S_0}$, interleaved with language and \texttt{<action>} tokens. Stage~1 trains only the projector $H_\phi$ on state-policy pairs; Stage~2 trains both LLM and projector jointly via reinforcement learning (DAPO). At inference, a structured tool call transitions the environment state, and the agent produces fresh state tokens for the updated position, enabling iterative reasoning over evolving states.
-}\somesh{@Harini update figure}
+    \includegraphics[width=0.98\linewidth]{llamia-fig (5).png}
+    \caption{\textbf{Latent State Internalization.} \textit{Left:} The LLM reasons over an interleaved trace of \textcolor{orange}{language}, \textcolor{teal}{action}, and \textcolor{magenta}{latent state} tokens. At state $S_0$, the subagent's encoding is projected into $k{=}32$ latent tokens $z_0$ that prefix the LLM's reasoning, which unfolds in natural language and culminates in an action (e.g., Nc2). Executing the action transitions the environment to $S_1$, where the subagent is re-invoked to produce fresh latent tokens $z_1$ that condition the next round of reasoning and the subsequent action (e.g., Bc4). This dynamic re-encoding ensures the LLM always reasons over the current state. \textit{Right:} Architectural detail of a single encoding step. The board state is passed through the frozen subagent (Lc0-BT4); its penultimate-layer activations $h_s \in \mathbb{R}^{1024}$ are mapped through the trainable \textbf{LatentBridge} projector $H_\phi$ into $k{=}32$ continuous tokens of dimension $e$ matching the LLM's embedding space. Stage~1 trains only $H_\phi$ on state--policy pairs with the LLM frozen; Stage~2 trains both the LLM and $H_\phi$ jointly via DAPO. The subagent remains frozen throughout.}
     \vspace{-3mm}
     \label{fig:LLAMIA}
 
