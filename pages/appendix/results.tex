@@ -134,12 +134,12 @@ This is why LLAMIA generalizes to endgame and complication positions where Allie
 \subsection{Move Annotation (Rationale Prediction)}
 \label{sec:app_results_rationale}
 
-\begin{table*}[h!]
+\begin{table}[h!]
 \centering
 \caption{\textbf{Move annotation: BLEU-2 on the two rationale subcategories of \citet{jhamtani-etal-2018-learning} that target move-level reasoning---Planning (intent and lookahead) and Comparative (alternative-move reasoning)---and their unweighted Avg, which is the headline score reported in \cref{tab:full_bench}.}
 The remaining subcategories of \citet{jhamtani-etal-2018-learning} (Description, Quality, Context) capture surface or non-rationale content and are omitted from the headline.}
 \label{tab:rationale_extended}
-\begin{adjustbox}{max width=0.75\textwidth}
+\begin{adjustbox}{max width=\columnwidth}
 \begin{tabular}{l|c|cc|c}
 \toprule[1.2pt]
 \textbf{Model} & \textbf{Method} &
@@ -160,12 +160,12 @@ LLAMIA-14B         & DAPO       & \valbest{40.04} & \valbest{51.59} & \valbest{4
 \bottomrule[1.2pt]
 \end{tabular}
 \end{adjustbox}
-\end{table*}
+\end{table}
 
 \subsection{Game-Level Commentary}
 \label{sec:app_results_gamecomm}
 
-\begin{table*}[h!]
+\begin{table}[h!]
 \centering
 \caption{\textbf{Game-Level Commentary: G-eval and BLEU-2.}
 Frontier+Tool is GPT-5.1\,+\,Lc0 (\cref{tab:frontier_selection}).
@@ -173,7 +173,7 @@ G-eval is the primary metric (also the RL reward, \cref{sec:app_bench_commentary
 The Commentary column of \cref{tab:full_bench} is $\textnormal{G-eval}\times 100$.
 LLAMIA-Verb trails Frontier+Tool on this multi-step task because RL-trained verbalization fragments the narrative across queries.}
 \label{tab:commentary_extended}
-\begin{adjustbox}{max width=0.7\textwidth}
+\begin{adjustbox}{max width=\columnwidth}
 \begin{tabular}{l|c|cc}
 \toprule[1.2pt]
 \textbf{Model} & \textbf{Method} &
@@ -192,12 +192,12 @@ LLAMIA-14B         & DAPO       & \valbest{0.75} & \valbest{57.94} \\
 \bottomrule[1.2pt]
 \end{tabular}
 \end{adjustbox}
-\end{table*}
+\end{table}
 
 \subsection{Puzzle Understanding}
 \label{sec:app_results_puzzle}
 
-\begin{table*}[h!]
+\begin{table}[h!]
 \centering
 \caption{\textbf{Puzzle Understanding: Difficulty and Interest prediction.}
 Puzzle solving accuracy is a parity metric (not highlighted). The
@@ -207,7 +207,7 @@ target signal differs. LLAMIA-Verb's small Interest improvement
 ($\rho \leq 0.10$) is consistent with reward hacking (learning the
 statistical prior that minimizes MAE).}
 \label{tab:puzzle_extended}
-\begin{adjustbox}{max width=0.85\textwidth}
+\begin{adjustbox}{max width=\columnwidth}
 \begin{tabular}{l|c|c|cc}
 \toprule[1.2pt]
 \textbf{Model} & \textbf{Method} &
@@ -229,7 +229,7 @@ LLAMIA-14B           & DAPO       & \valgood{91.5} & \valbest{0.71} & \valbest{0
 \bottomrule[1.2pt]
 \end{tabular}
 \end{adjustbox}
-\end{table*}
+\end{table}
 
 \subsection{Instruction-Conditioned Play}
 \label{sec:app_results_icp}

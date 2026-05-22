@@ -7,6 +7,7 @@
 \begin{table}[h]
 \centering
 \small
+\begin{adjustbox}{max width=\columnwidth}
 \begin{tabular}{lll}
 \toprule
 \textbf{Package} & \textbf{Version} & \textbf{Role} \\
@@ -20,6 +21,7 @@ Transformers      & 4.56.2          & Model loading \& tokenization \\
 lc0               & 0.32.1          & Chess specialist engine (UCI) \\
 \bottomrule
 \end{tabular}
+\end{adjustbox}
 \vspace{2mm}\caption{Key software dependencies.}
 \label{tab:libraries}
 \end{table}
@@ -33,7 +35,8 @@ lc0               & 0.32.1          & Chess specialist engine (UCI) \\
 \begin{table}[h]
 \centering
 \small
-\begin{tabular}{lllllll}
+\begin{adjustbox}{max width=\columnwidth}
+\begin{tabular}{llllll}
 \toprule
 \textbf{Model} & \textbf{Params} & \textbf{Hidden} & \textbf{Layers} & \textbf{Heads (KV)} & \textbf{Context} \\
 \midrule
@@ -42,6 +45,7 @@ Qwen3-8B  & 8B  & 4{,}096 & 36 & 32 (8) & 32{,}768 \\
 Qwen3-14B & 14B & 5{,}120 & 40 & 40 (8) & 32{,}768 \\
 \bottomrule
 \end{tabular}
+\end{adjustbox}
 \vspace{2mm}\caption{Backbone LLM architectures. All variants use GQA with 8 KV heads. Chain-of-thought reasoning is disabled (\texttt{enable\_thinking=False}) following~\cite{yang2025qwen3}.
 \texttt{max\_model\_len} is set to 32{,}768 tokens shared across system prompt, history, tool I/O, and response; \texttt{MAX\_ROUNDS=20} caps LLM calls per query.}
 \label{tab:backbone}
@@ -157,11 +161,11 @@ $Q\in[-1,+1]$ is the WDL-mean utility from the side to move's perspective~\cite{
 \label{sec:app_lc0_latent}
 
 \paragraph{Network.}
-\href{https://storage.lczero.org/files/networks-contrib/BT4-1024x15x32h-swa-6147500-policytune-332.pb.gz}{\texttt{BT4-1024x15x32h-swa-6147500-policytune-332}}:
+\texttt{BT4-1024x15x32h-swa-6147500}\footnote{\url{https://storage.lczero.org/files/networks-contrib/BT4-1024x15x32h-swa-6147500-policytune-332.pb.gz}}:
 a 1024-dim, 15-layer, 32-head BT4 transformer saved at step 6{,}147{,}500 after SWA and policy-tuning.
 GPU footprint: ${\sim}\,2.9$\,GB in fp16 on A100.
 
-\begin{table}[h]
+\begin{table*}[h]
 \centering
 \small
 \begin{adjustbox}{max width=\textwidth}
@@ -183,4 +187,4 @@ GPU footprint: ${\sim}\,2.9$\,GB in fp16 on A100.
 \vspace{2mm}\caption{lc0 configuration. All search-behaviour flags (\texttt{CPuct}, \texttt{FpuValue},
 \texttt{OutOfOrderEval}, etc.) are at upstream defaults so results match unmodified Leela.}
 \label{tab:lc0-flags}
-\end{table}
+\end{table*}
