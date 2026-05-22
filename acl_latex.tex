@@ -2,6 +2,7 @@
 
 % Change "review" to "final" to generate the final (sometimes called camera-ready) version.
 % Change to "preprint" to generate a non-anonymous version with page numbers.
+\PassOptionsToPackage{numbers,compress}{natbib}
 \usepackage[review]{acl}
 
 % Standard package includes
@@ -10,26 +11,138 @@
 
 % For proper rendering and hyphenation of words containing Latin characters (including in bib files)
 \usepackage[T1]{fontenc}
-% For Vietnamese characters
-% \usepackage[T5]{fontenc}
-% See https://www.latex-project.org/help/documentation/encguide.pdf for other character sets
-
-% This assumes your files are encoded as UTF8
 \usepackage[utf8]{inputenc}
-
-% This is not strictly necessary, and may be commented out,
-% but it will improve the layout of the manuscript,
-% and will typically save some space.
 \usepackage{microtype}
-
-% This is also not strictly necessary, and may be commented out.
-% However, it will improve the aesthetics of text in
-% the typewriter font.
 \usepackage{inconsolata}
-
-%Including images in your LaTeX document requires adding
-%additional package(s)
 \usepackage{graphicx}
+
+% -------------------------
+% MATH
+% -------------------------
+\usepackage{amsmath,amssymb,amsfonts,mathtools}
+\usepackage{amsthm}
+\usepackage{nicefrac}
+\usepackage{xfrac}
+
+% -------------------------
+% FIGURES & TABLES
+% -------------------------
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{xltabular}
+\usepackage{array}
+\usepackage{colortbl}
+\usepackage{tablefootnote}
+\usepackage{adjustbox}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage{placeins}
+\usepackage{mdframed}
+\usepackage[leftmargin=1em, rightmargin=1em, indentfirst=false]{quoting}
+
+% -------------------------
+% TEXT & FORMATTING
+% -------------------------
+\usepackage{enumitem}
+\usepackage{soul}
+\usepackage{verbatim}
+\usepackage{tabto}
+\usepackage{fancyvrb}
+\usepackage{etoolbox}
+
+% -------------------------
+% COLORS & BOXES
+% -------------------------
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\tcbuselibrary{listings,breakable,skins}
+\usetikzlibrary{shadows}
+
+% -------------------------
+% SYMBOLS
+% -------------------------
+\usepackage{fontawesome5}
+\usepackage{tikzsymbols}
+
+% -------------------------
+% CROSS-REFERENCES (load after hyperref which acl loads)
+% -------------------------
+\usepackage[capitalize,noabbrev]{cleveref}
+\usepackage{etoc}
+\usepackage{url}
+
+% -------------------------
+% THEOREMS
+% -------------------------
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% -------------------------
+% MATH COMMANDS
+% -------------------------
+\input{math_commands.tex}
+
+% -------------------------
+% COLOR DEFINITIONS
+% -------------------------
+\newcommand{\best}[1]{\colorbox{black!10}{#1}}
+\definecolor{valbest}{HTML}{d9ead3}
+\newcommand{\valbest}[1]{\colorbox{valbest}{#1}}
+\definecolor{valgood}{HTML}{cfe6ec}
+\newcommand{\valgood}[1]{\colorbox{valgood}{#1}}
+\definecolor{valmid}{HTML}{fce5cd}
+\newcommand{\valmid}[1]{\colorbox{valmid}{#1}}
+\definecolor{valbad}{HTML}{ead1dc}
+\newcommand{\valbad}[1]{\colorbox{valbad}{#1}}
+\definecolor{llamiabench}{HTML}{D8D4F2}
+\newcommand{\llamiabench}[1]{\colorbox{llamiabench}{#1}}
+
+\definecolor{themegreen}{HTML}{365956}
+\definecolor{themepurple}{HTML}{3c1b48}
+\definecolor{themered}{HTML}{b43748}
+
+% -------------------------
+% AUTHOR COMMENT MACROS
+% -------------------------
+\newcommand{\somesh}[1]{}
+\definecolor{themeharini}{RGB}{50,128,128}
+\newcommand{\yaman}[1]{{\scriptsize\textcolor{red}{[Yaman: #1]}}}
+\newcommand{\harini}[1]{{\scriptsize\textcolor{blue}{[Harini: #1]}}}
+
+% -------------------------
+% STATE / LANGUAGE / ACTION MACROS
+% -------------------------
+\definecolor{StateColor}{HTML}{F94892}
+\definecolor{LanguageColor}{HTML}{FF7F3F}
+\definecolor{ActionColor}{HTML}{02B9F1}
+
+\newcommand{\state}[1]{\textcolor{StateColor}{\textbf{#1}}}
+\newcommand{\lang}[1]{\textcolor{LanguageColor}{\textbf{#1}}}
+\newcommand{\action}[1]{\textcolor{ActionColor}{\textbf{#1}}}
+\newcommand{\mstate}[1]{{\color{StateColor}#1}}
+\newcommand{\mlang}[1]{{\color{LanguageColor}#1}}
+\newcommand{\maction}[1]{{\color{ActionColor}#1}}
+\newcommand*\circled[1]{\tikz[baseline=(char.base)]{
+            \node[shape=circle,draw,inner sep=0.8pt] (char) {#1};}}
+
+% -------------------------
+% CMARK / XMARK
+% -------------------------
+\usepackage{pifont}
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
 
 % If the title and author information does not fit in the area allocated, uncomment the following
 %
