@@ -95,7 +95,7 @@ End your reply with exactly one line in the form:\\[2pt]
 \end{tcolorbox}
 
 \paragraph{Full LLAMIA-Bench.}
-All six task families (behaviour cloning, stylometry, puzzle understanding, move
+All five task families (behaviour cloning, puzzle understanding, move
 annotation, game commentary, instruction-conditioned play) share the same tool
 catalogue as the toy task.
 Task-specific instructions replace the popularity/Elo mandate; the
@@ -105,7 +105,7 @@ refusal-suppression clause is retained across all variants.
 \subsection{\texttt{<invoke>} Trigger Format}
 \label{sec:app_prompts_invoke}
 
-Dynamic re-encoding (\texttt{<invoke>}) fires after every board-mutating tool call
+Latent invocation (\texttt{<invoke>}) fires after every board-mutating tool call
 (\texttt{make\_move}, \texttt{undo\_move}, \texttt{reset\_position}).
 The harness re-runs the BT4 forward pass on the updated FEN, encodes a fresh set of
 $k{=}32$ state tokens, and prepends them as a \texttt{<state>} prefix to the next user
@@ -225,9 +225,9 @@ Tools (the board is stateful across calls):
 raw NN beliefs before MCTS modifies them.
 
 \smallskip
-\noindent\textbf{Note:} \texttt{get\_policy} is the \texttt{<invoke>} call.
-Invoking it causes the harness to run a fresh BT4 forward pass on the current position
-and inject $k{=}32$ latent state tokens (\texttt{<state>}) into the next LLM turn.
+\noindent\textbf{Note (LLAMIA only):} Calling \texttt{get\_policy} causes the harness to run a fresh BT4 forward pass on the current position
+and inject $k{=}32$ latent state tokens into the next LLM turn, in addition to the text return.
+In LLAMIA-Verb, only the text is returned.
 \end{tcolorbox}
 
 % =============================================================================

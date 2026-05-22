@@ -8,8 +8,6 @@ Here we describe the quantitative results, baselines and evaluation setups compr
 Here we use ReACT \cite{wu2023autogen} and Autogen \cite{wu2023autogen} to implement tool calling and ICL.
 \paragraph{IFT: ChessGPT}
 Here we use \cite{feng2024chessgpt} for the 3B models to test the improvement compared to only IFT with text tokens as described in \cref{sec:formulation}. However, the complete dataset was not made public, and they only provide checkpoints for 2b and 3b model, so for a fair comparison we finetune 7B and 13B models with our dataset. To replace the agent, we add the FEN, the complete verbalization as shown in \cref{listing:pretraining_instruction_format}, and next best moves and evaluations alongside while finetuning and doing inference.
-\paragraph{LoRA: LLAMIA LoRA models} We use LoRA with Rank 32 for our experiments.
-
 
 \label{sec:addl-results}
 \FloatBarrier
@@ -35,8 +33,7 @@ We evaluate the playing strength (measured as an Elo rating) of the policies by 
     \textbf{Agent} & \textbf{Train} & \textbf{Search} & \textbf{\#FEN} & \textbf{\#Params} & \textbf{Tournament Elo} & \textbf{Puzzle(\%)} \\
     \midrule
     LLAMIA-7B [Ours] & SALT & & 30M & 7B & 2171~($\pm31$) & 90.1 \\
-    LLAMIA-13B [Ours] & SALT(LoRA) & & 30M & 8M & 2058~($\pm41$) & 88.9 \\
-    LLAMIA-13B [Ours] & SALT & & 30M & 13B & \valgood{2279~($\pm45$)} & 92.9 \\
+    LLAMIA-14B [Ours] & SALT & & 30M & 14B & \valgood{2279~($\pm45$)} & 92.9 \\
     \midrule[1pt]
     Transformer-9M  & SL & & 15B & 9M & 2025~($\pm18$) & 88.9 \\
     Transformer-136M & SL & & 15B & 136M & 2259~($\pm16$) & \valgood{94.5} \\
@@ -93,7 +90,7 @@ We follow the standard NLG BLEU-2 evaluation between each commentary segment.
     LLaMA-3.1 + Lc0 & 405B & 1-shot + Tool & 0.44 & - & 14.47 & 25.07 \\
     \midrule
     LLAMIA-7B & 7B & SALT & 0.49 & \valgood{1.83} & \valgood{8.13} & \valgood{44.93} \\
-    LLAMIA-13B & 13B & SALT & \valbest{0.61} & \valbest{0.91} & \valbest{5.09} & \valbest{57.03} \\
+    LLAMIA-14B & 14B & SALT & \valbest{0.61} & \valbest{0.91} & \valbest{5.09} & \valbest{57.03} \\
     \bottomrule[1.2pt]
     \end{tabular}
     \end{adjustbox}
@@ -102,7 +99,7 @@ We follow the standard NLG BLEU-2 evaluation between each commentary segment.
     We introduce a new benchmark task for game-level commentary generation, which includes over \(\sim\)500 hours of annotated chess gameplay. This task evaluates not only the coherence and fluency (BLEU-2, G-eval\cite{liu2023g}) but also its measure of correctness and audience impact. We employ G-eval similar to \cite{kim2024bridging}
     \textbf{Quality (Eval RMSE)} assesses how accurately the commentary communicates the game’s progression to a novice listener—estimated by prompting GPT-4o to infer final game evaluation given the commentary segment.  
     \textbf{Highlight (Replay RMSE)} reflects human interest by predicting YouTube replay graph averages from the commentary (0–100 scale) and computing RMSE versus ground-truth.  
-    LLAMIA-13B significantly outperforms all baselines, achieving 0.61 G-eval and 57.03 BLEU, while reducing highlight RMSE to 5.09 suggesting it generates not only fluent but strategically informative and attention-worthy narratives. 
+    LLAMIA-14B significantly outperforms all baselines, achieving 0.61 G-eval and 57.03 BLEU, while reducing highlight RMSE to 5.09 suggesting it generates not only fluent but strategically informative and attention-worthy narratives. 
     }
     \label{tab:game_commentary_annotation}
 \end{table*}
@@ -147,15 +144,14 @@ Players also adapt their strategies based on their opponents’ skill levels, es
         & SALT, 0-shot & 1 & 1M & 0.35 & 0.39  & 0.40 & 0.43 & 0.42 & 0.41 & 0.40 & 0.41 \\
          & SALT, 1-shot & 1 & 1M & 0.45 & 0.46  & 0.47 & 0.52 & 0.51 & 0.44 & 0.42 & 0.43 \\
         & SALT, 2-shot & 1 & 1M & \valgood{0.51} & \valgood{0.53}  & \valgood{0.54} & \valgood{0.55} & 0.53 & 0.46 & \valgood{0.44} & \valgood{0.50} \\\midrule
-        \multirow{5}{*}{\textbf{ LLAMIA-13B}} & PT, 2-shot & 1 & - & 0.16 & 0.18 & 0.21 & 0.20 & 0.29 & 0.43 & 0.39 & 0.36\\
-         & LoRA SALT, 2-shot & 1 & - & 0.38 & 0.37 & 0.39 & 0.46 & 0.43 & 0.39 & 0.40 & 0.37\\
+        \multirow{5}{*}{\textbf{ LLAMIA-14B}} & PT, 2-shot & 1 & - & 0.16 & 0.18 & 0.21 & 0.20 & 0.29 & 0.43 & 0.39 & 0.36\\
         & SALT, 0-shot & 1 & 1M & 0.40 & 0.40  & 0.41 & 0.42 & 0.43 & 0.44 & 0.41 & 0.44 \\
          & SALT, 1-shot & 1 & 1M & 0.47 & 0.48  & 0.52 & 0.52 & 0.53 & \valgood{0.48} & 0.43 & 0.49 \\
         & SALT, 2-shot & 1 & 1M & \valbest{0.52} & \valbest{0.54}  & \valbest{0.55} & \valbest{0.57} & \valbest{0.55} & \valbest{0.51} & \valbest{0.46} & \valbest{0.53} \\
     \bottomrule[1.2pt]
     \end{tabular}
         \end{adjustbox}
-        \caption{\textbf{Behavior Cloning:} Move-matching accuracy of different methods on behavior cloning on the MAIA~\cite{mcilroy2020aligning} benchmark and our LLAMIA benchmark. \textbf{Method} refers to the training or fine-tuning method as K-shot (ICL), IFT (Instruction Fine-tuning), SL (Supervised Learning), or SALT (Action Fine-tuning). \textbf{Tool (Tool Calling)} indicates that LLMs can call the Lc0 engines for evaluations, best moves, and principal variation with different hyperparameters including depth, maximum time, pruning, and contempt factors. The number of in context examples for each LLM was decided based on best empirical evaluation. \textbf{N} refers to the best-of-N models used for nearest behavior cloning following~\cite{mcilroy2020aligning,jacob2022modeling}. \textbf{\#Train} refers to the total training dataset size for the Behavior Cloning task. LLAMIA-13B beats or shows equivalent performance compared to state-of-the-art task-specific fine-tuned models in 2-shot settings, and fine-tuning on $<$10\% samples on the MAIA Benchmark, with an average improvement of 14.6\% and 6.9\% over MAIA(best-of-5) and MAIA+MCTS(best-of-3), respectively, with a single model. To further highlight the importance of foundation models, we introduce LLAMIA-Bench, which covers diverse tasks where very limited games are available. }\label{tab:behavior_cloning}
+        \caption{\textbf{Behavior Cloning:} Move-matching accuracy of different methods on behavior cloning on the MAIA~\cite{mcilroy2020aligning} benchmark and our LLAMIA benchmark. \textbf{Method} refers to the training or fine-tuning method as K-shot (ICL), IFT (Instruction Fine-tuning), SL (Supervised Learning), or SALT (Action Fine-tuning). \textbf{Tool (Tool Calling)} indicates that LLMs can call the Lc0 engines for evaluations, best moves, and principal variation with different hyperparameters including depth, maximum time, pruning, and contempt factors. The number of in context examples for each LLM was decided based on best empirical evaluation. \textbf{N} refers to the best-of-N models used for nearest behavior cloning following~\cite{mcilroy2020aligning,jacob2022modeling}. \textbf{\#Train} refers to the total training dataset size for the Behavior Cloning task. LLAMIA-14B beats or shows equivalent performance compared to state-of-the-art task-specific fine-tuned models in 2-shot settings, and fine-tuning on $<$10\% samples on the MAIA Benchmark, with an average improvement of 14.6\% and 6.9\% over MAIA(best-of-5) and MAIA+MCTS(best-of-3), respectively, with a single model. To further highlight the importance of foundation models, we introduce LLAMIA-Bench, which covers diverse tasks where very limited games are available. }\label{tab:behavior_cloning}
         \end{table*}
 
 
@@ -184,8 +180,7 @@ We follow the same evaluation setup and BLEU-2/ Perplexity metrics as given by \
     LLaMA-3.1 + Lc0 & 405B & 5-shot + Tool & 28.97 & 61.34 & 29.10 & 41.23 & 40.12 & 8.53 \\
     \midrule
     LLAMIA-7B & 7B & SALT, 0-shot & 28.93 & 66.23 & 30.05 & 39.31 & 40.99 & 7.13 \\
-    LLAMIA-13B (LoRA) & 13B & SALT, 0-shot & 31.51 & 65.31 & 28.22 & 39.21 & 42.11 & 6.44 \\
-    LLAMIA-13B & 13B & SALT, 0-shot & \valbest{32.05} & \valbest{67.11} & \valbest{38.13} & \valbest{45.12} & \valbest{49.13} & \valbest{5.66} \\
+    LLAMIA-14B & 14B & SALT, 0-shot & \valbest{32.05} & \valbest{67.11} & \valbest{38.13} & \valbest{45.12} & \valbest{49.13} & \valbest{5.66} \\
     \bottomrule[1.2pt]
     \end{tabular}
     \end{adjustbox}
@@ -213,13 +208,12 @@ Here we aim to measure the puzzle understanding ablities of LLAMIA, Accuracy is 
         ChessGPT-7B+Lc0 & ICL,Tool & 10 & - & 0.52 & 0.44 & 0.64 \\
         LLaMA-405B+Lc0 & ICL, Tool & 1M & - & 0.50 & 0.39 & 0.59 \\\midrule
         LLAMIA-7b & SALT&1M &89.2\% & \valgood{0.61} & 0.42 & \valgood{0.73}\\
-        LLAMIA-13b & LoRA SALT &1M &87.2\%  & 0.57 & \valgood{0.44} & 0.71\\
-        LLAMIA-13b & SALT &1M &91.2\%  & \valbest{0.70} & \valbest{0.50} & \valbest{0.75}\\
+        LLAMIA-14b & SALT &1M &91.2\%  & \valbest{0.70} & \valbest{0.50} & \valbest{0.75}\\
     \bottomrule[1.2pt]
     \end{tabular}
     \end{adjustbox}
     \caption{
-\textbf{LLAMIA-Bench Puzzle Understanding.}  This benchmark assesses whether models trained to solve tactical chess puzzles can generalize to higher-level behavioral judgments such as \emph{how difficult} or \emph{interesting} a puzzle is to humans. LLAMIA is trained on 1M puzzle–solution pairs using the SALT framework and evaluated in zero-shot on both difficulty and interest prediction. We report \textbf{Solved (Accuracy)} on unseen puzzles, and measure human alignment via:  (1)~\textbf{Difficulty} ($\rho$): the Spearman correlation between the model’s predicted difficulty and Glicko-2 ratings inferred from aggregated player attempts (viewed as matches);  (2)~\textbf{Interest} ($\rho$): correlation with user upvote/downvote signals from Lichess;   (3)~\textbf{Themes (F1)}: classification accuracy on latent puzzle types (e.g., forks, skewers). LLAMIA-13B achieves strong alignment with human judgment (\(\rho = 0.70\) difficulty, \(\rho = 0.50\) interest) and solves puzzles nearly on par with supervised experts, despite being trained on 4× fewer samples. It also achieves the best thematic F1 score (0.75), suggesting its internalized agent state supports both tactical accuracy and abstract reasoning over latent puzzle structure.
+\textbf{LLAMIA-Bench Puzzle Understanding.}  This benchmark assesses whether models trained to solve tactical chess puzzles can generalize to higher-level behavioral judgments such as \emph{how difficult} or \emph{interesting} a puzzle is to humans. LLAMIA is trained on 1M puzzle–solution pairs using the SALT framework and evaluated in zero-shot on both difficulty and interest prediction. We report \textbf{Solved (Accuracy)} on unseen puzzles, and measure human alignment via:  (1)~\textbf{Difficulty} ($\rho$): the Spearman correlation between the model’s predicted difficulty and Glicko-2 ratings inferred from aggregated player attempts (viewed as matches);  (2)~\textbf{Interest} ($\rho$): correlation with user upvote/downvote signals from Lichess;   (3)~\textbf{Themes (F1)}: classification accuracy on latent puzzle types (e.g., forks, skewers). LLAMIA-14B achieves strong alignment with human judgment (\(\rho = 0.70\) difficulty, \(\rho = 0.50\) interest) and solves puzzles nearly on par with supervised experts, despite being trained on 4× fewer samples. It also achieves the best thematic F1 score (0.75), suggesting its internalized agent state supports both tactical accuracy and abstract reasoning over latent puzzle structure.
 }
 
     \label{tab:puzzle_understanding}
@@ -286,7 +280,7 @@ We curate a set of 25 strategic motifs, selected based on: (a) their presence ac
 Each game in the benchmark starts with an instruction (e.g. "Your opponent is signifcantly stronger than you, but has the following weakness ..., plan the moves to reach such positions to win even if it leads to a temporary disadvantage") and is played against a strong engine. If the model succeeds in steering the position toward the instructed motif, the engine is dynamically downgraded to a weaker engine. The win-rate differential serves as a proxy for strategic alignment and planning competence. The initial engine is Lc0-BT4 with search (>2500 ELO), if the weakness is reached we replace it with MAIA-1900 (emulates a 1900 Elo), note that LLAMIA's playing strength is $>2200$, essentially even at a significant disadvantage it can win over an engine rated more than 300 Elo lesser than it.
 
 \paragraph{Statistical Details.}
-We play 50 games per motif category, totaling 250 games per model across the 5 weakness categories. Games use randomized openings from the ECO database to ensure diversity. We report win-rate improvement (percentage points above uninstructed baseline) with 95\% bootstrap confidence intervals computed over 1000 resamples. All reported differences of $>$5\% are statistically significant at $p < 0.05$ via paired permutation test.
+Each model plays 50 games per motif category (250 total across 5 categories) with randomized openings from the ECO database. All Elo estimates include 95\% bootstrap confidence intervals over 1,000 resamples.
 
 \paragraph{Motif Detection.}
 Each motif category has automated detection criteria:
@@ -317,7 +311,7 @@ We test generalization by evaluating on 5 instructions not present in training d
     \item ``Target the opponent's weak f7 square'' (OOD)
     \item ``Sacrifice material for initiative'' (OOD)
 \end{itemize}
-LLAMIA-13B achieves 11\% average win-rate improvement on OOD instructions (vs. 17\% on in-distribution), indicating partial but meaningful generalization to novel strategic directives.
+LLAMIA-14B achieves 11\% average win-rate improvement on OOD instructions (vs. 17\% on in-distribution), indicating partial but meaningful generalization to novel strategic directives.
 
 
 \begin{table*}[h]
@@ -356,16 +350,10 @@ LLAMIA-13B achieves 11\% average win-rate improvement on OOD instructions (vs. 1
         & \valgood{11.5\%} & 11.5\% & \valgood{11\%} & 7\% & \valgood{13\%} 
         & 10\% \\
     \midrule
-        \textbf{LLAMIA-7B LoRA} 
-        & 7\% & 8\% & 6\% & 5\% & 9\% 
-        & 7.0\% \\
-        \textbf{LLAMIA-7B} 
-        & 11\% & \valgood{12\%} & 10\% & \valgood{8\%} & \valgood{13\%} 
+        \textbf{LLAMIA-7B}
+        & 11\% & \valgood{12\%} & 10\% & \valgood{8\%} & \valgood{13\%}
         & \valgood{14\%} \\
-        \textbf{LLAMIA-13B LoRA} 
-        & 8\% & 9\% & 7\% & 6\% & 10\% 
-        & 8.0\% \\
-        \textbf{LLAMIA-13B} 
+        \textbf{LLAMIA-14B} 
         & \valbest{17\%} & \valbest{19\%} & \valbest{14\%} & \valbest{11\%} & \valbest{20\%} 
         & \valbest{17\%} \\
     \bottomrule[1.2pt]
@@ -373,7 +361,7 @@ LLAMIA-13B achieves 11\% average win-rate improvement on OOD instructions (vs. 1
     \end{adjustbox}
     \caption{
 \textbf{LLAMIA-Bench Instruct-Conditioned Planning.}  
-We evaluate whether models can adapt their strategy in response to explicit instructions about opponent weaknesses an ability crucial for flexible, human-aligned planning. This benchmark measures win-rate improvement when the model is informed that its opponent is vulnerable in specific areas, such as \emph{endgames}, \emph{pawn structure}, or \emph{tactical oversight}. Models play against a stronger engine; if they steer the game into the designated weakness domain, the engine is swapped with a weaker version, allowing the model to capitalize on its plan. While traditional engines (e.g., Stockfish, Lc0) remain invariant and show no improvement (0\%), and large tool-augmented models like GPT-4o + Lc0 achieve moderate gains (9–11\%), LLAMIA-13B delivers the strongest adaptation with a 16.2\% average win-rate gain across five weakness categories. Notably, smaller LoRA-adapted LLAMIA variants outperform much larger LLMs, demonstrating that internalizing structured planning signals via latent-state projection leads to more efficient and interpretable adaptation than external tool-calling or scale alone. Detailed evaluation setup is describe in \cref{app:conditional_planning_eval} \textbf{Overall Improvement} is the weighted average win rate over the subtasks. 
+We evaluate whether models can adapt their strategy in response to explicit instructions about opponent weaknesses an ability crucial for flexible, human-aligned planning. This benchmark measures win-rate improvement when the model is informed that its opponent is vulnerable in specific areas, such as \emph{endgames}, \emph{pawn structure}, or \emph{tactical oversight}. Models play against a stronger engine; if they steer the game into the designated weakness domain, the engine is swapped with a weaker version, allowing the model to capitalize on its plan. While traditional engines (e.g., Stockfish, Lc0) remain invariant and show no improvement (0\%), and large tool-augmented models like GPT-4o + Lc0 achieve moderate gains (9–11\%), LLAMIA-14B delivers the strongest adaptation with a 16.2\% average win-rate gain across five weakness categories. Internalizing structured planning signals via latent-state projection leads to more efficient and interpretable adaptation than external tool-calling or scale alone. Detailed evaluation setup is describe in \cref{app:conditional_planning_eval} \textbf{Overall Improvement} is the weighted average win rate over the subtasks. 
 }
 
     \label{tab:instruct_conditioned_planning}
@@ -397,65 +385,10 @@ We evaluate whether models can adapt their strategy in response to explicit inst
 \input{pages/appendix/prompts}
 \section{Hyperparamaters}
 \label{sec:hyperparams}
-LLAMIA models (7B, 13B) were trained on five nodes of 80GB A100 GPUs, totaling
+LLAMIA models (7B, 14B) were trained on five nodes of 80GB A100 GPUs, totaling
 approximately eight days of computational budget.
-
-
-\begin{enumerate}
-  \item \textbf{Model Architecture}
-  \begin{itemize}
-    \item Backbone LLM: \texttt{lmsys/vicuna-13b-v1.5}
-    \item Agent Model: \texttt{Lc0-BT4}
-    \item Hidden size (LLM): 5120
-    \item Agent encoder dimension: 1024
-    \item Number of agent encoders: 15
-    \item Number of LLM state tokens: 16
-    \item Number of agent state tokens: 64
-    \item Projector type: \texttt{SimpleMLP}
-    \item Projector hidden dimension: 2048
-    \item Projector hidden depth: 3
-    \item Projector dropout: 0.1
-    \item Projection layer: \texttt{encoder[\textbackslash d]+/ln2}
-    \item Use state patch token: \texttt{true}
-    \item Freeze LLM backbone: \texttt{true}
-  \end{itemize}
-
-  \item \textbf{Training Configuration}
-  \begin{itemize}
-    \item Number of epochs: 1
-    \item Per-device train batch size: 70
-    \item Per-device eval batch size: 32
-    \item Learning rate: 6e-5
-    \item Optimizer: AdamW (\(\beta_1 = 0.9, \beta_2 = 0.999, \epsilon = 10^{-8}\))
-    \item Max gradient norm: 1
-    \item Scheduler: Cosine
-    \item Warmup ratio: 0.05
-    \item Gradient accumulation steps: 1
-    \item Gradient checkpointing: \texttt{true}
-    \item Mixed precision: bfloat16 
-    \item Quantization: \texttt{nf4}
-    \item Double quantization: \texttt{true}
-    \item Deepspeed config: Deepspeed Zero2 with Offload
-  \end{itemize}
-
-\end{enumerate}
-
 \section{SALT Training Efficiency}
 \label{sec:fsdp_impl}
 
 
-Training LLAMIA requires co-locating the LLM backbone (7B/13B parameters) and Lc0 agent encoder (240M parameters). We implement custom FSDP (Fully Sharded Data Parallel) following LLaVA-NEXT\footnote{\url{https://github.com/LLaVA-VL/LLaVA-NeXT}} with separate shards for the Transformer-based Lc0 encoder. The LLM uses ZeRO Stage 2 optimization across 8 GPUs per node; the agent encoder uses a dedicated communication group; the projector (12M parameters) is replicated. LLAMIA achieves 42\% MFU compared to 44.5\% for ChessGPT-13B (same LLM, no agent)---only 6\% relative overhead. Memory increases by 3.2GB per GPU (71.2GB to 74.4GB), and throughput drops 5.6\% (2,850 vs 3,020 tokens/s/GPU). The key insight is that Transformer-based agents integrate naturally into existing distributed training infrastructure, making LLAMIA-style architectures practical at scale and opening research directions for complex multi-agent LLM systems.
-
-
-\section{Chess as a Testbed for LLM-Agent Integration}
-\label{sec:chess_testbed}
-
-
-We motivate chess as the primary evaluation domain, arguing it provides unique advantages for studying LLM-agent integration. Chess uniquely combines: (1) \textbf{Deterministic, fully observable dynamics} enabling precise evaluation without environment noise; (2) \textbf{Rich language grounding} from centuries of books, commentaries, and forums (90k annotated games on Lichess alone), enabling GDU evaluation alongside GDM; (3) \textbf{Diverse behavioral data} across skill levels (800--2800+ Elo) with ground-truth labels unavailable in other domains; (4) \textbf{Established benchmarks} with 60+ years of Elo calibration; (5) \textbf{Superhuman pretrained agents} (Lc0, Stockfish) with interpretable outputs; and (6) \textbf{Practical applications} in tutoring, commentary, and adaptive training for 10M+ online players.
-
-The capabilities demonstrated in chess generalize to other sequential decision domains. Behavior cloning across skill levels maps to personalized robot assistance, adaptive game AI, and driver behavior modeling. Instruction-conditioned policy modification maps to natural language robot control and goal-conditioned planning. Latent-grounded explanation generation maps to explainable AI for medical diagnosis and autonomous driving. Our extensions to text-to-image preference alignment and persuasion prediction (Section~\ref{sec:cross_domain}) provide initial evidence that SALT transfers beyond chess. The methodology is general; chess provides a controlled testbed where ground-truth evaluation is tractable.
-
-
-
-\somesh{TODO: Add link to released code repository}
-\input{pages/appendix/todo}
+Training LLAMIA requires co-locating the LLM backbone (7B/14B parameters) and Lc0 agent encoder (240M parameters). We implement custom FSDP (Fully Sharded Data Parallel) following LLaVA-NEXT\footnote{\url{https://github.com/LLaVA-VL/LLaVA-NeXT}} with separate shards for the Transformer-based Lc0 encoder. The LLM uses ZeRO Stage 2 optimization across 8 GPUs per node; the agent encoder uses a dedicated communication group; the projector (12M parameters) is replicated. LLAMIA achieves 42\% MFU compared to 44.5\% for ChessGPT (same-scale LLM, no agent)---only 6\% relative overhead. Memory increases by 3.2GB per GPU (71.2GB to 74.4GB), and throughput drops 5.6\% (2,850 vs 3,020 tokens/s/GPU). The key insight is that Transformer-based agents integrate naturally into existing distributed training infrastructure, making LLAMIA-style architectures practical at scale and opening research directions for complex multi-agent LLM systems.

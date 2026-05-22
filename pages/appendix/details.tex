@@ -93,7 +93,7 @@ The chess specialist agent is Leela Chess Zero (\texttt{lc0}) v0.32.1 running th
 Built from upstream source (commit \texttt{v0.32.1}) with \texttt{gcc 11.4}, \texttt{meson} + \texttt{ninja}, CUDA toolkit 12.4. Build invocation: \texttt{./build.sh release -Dgtest=false -Ddnnl=false}. Both \texttt{cuda} (fp32) and \texttt{cuda-fp16} backends are produced; we run \texttt{cuda-fp16} on A100 (SM 8.0). The binary is dynamically linked, lives at \texttt{/dev/shm/somesh/lc0\_src/build/release/lc0}, and exposes a UCI interface on stdin/stdout. lc0's CUDA backend uses cuBLAS only — no cuDNN dependency.
 
 \paragraph{Network.}
-\texttt{BT4-1024x15x32h-swa-6147500-policytune-332.pb.gz} from the lczero ``contrib networks'' bucket: a 1024-dim, 15-block, 32-head BT4 transformer, multihead format (policy / value / WDL / moves-left), saved at training step 6{,}147{,}500 after a SWA pass and a policy-tuning fine-tune (\texttt{policytune-332}). On disk: 365\,MB compressed; resident GPU footprint at our settings: $\sim$\,2.9\,GB (weights in fp16 plus cuBLAS workspace).
+\texttt{BT4-1024x15x32h-swa-6147500-policytune-332.pb.gz} from the lczero ``contrib networks'' bucket: a 1024-dim, 15-layer, 32-head BT4 transformer, multihead format (policy / value / WDL / moves-left), saved at training step 6{,}147{,}500 after a SWA pass and a policy-tuning fine-tune (\texttt{policytune-332}). On disk: 365\,MB compressed; resident GPU footprint at our settings: $\sim$\,2.9\,GB (weights in fp16 plus cuBLAS workspace).
 
 \paragraph{Tool interface.}
 The engine is exposed via FastAPI on a pool of eight servers, one per A100 GPU, bound to \texttt{http://localhost:7100}--\texttt{7107}. The \texttt{LcOClient} in the inference harness round-robins requests across the pool via \texttt{itertools.cycle}, providing 8$\times$ parallel throughput for batch evaluation. Three endpoints are shared across all instances (Table~\ref{tab:lc0-api}). The LLM never speaks UCI directly; it issues JSON over HTTP, mediated by the wrapper. The same FEN-based interface generalises to any UCI engine, so swapping in Stockfish or Leela contempt nets later requires no LLM-side change.
@@ -792,7 +792,7 @@ gradient because the ground truth varies across the group.}
 \subsection{Prompt Templates}
 \label{app:details:prompts}
 
-Three prompt regimes govern the pipeline: Stage~1 projector alignment, Stage~2 DAPO rollouts, and the shared dynamic re-encoding (\texttt{<invoke>}) format. Extended per-task LLAMIA-Bench listings appear in Appendix~\ref{sec:app_prompts}.
+Three prompt regimes govern the pipeline: Stage~1 projector alignment, Stage~2 DAPO rollouts, and the shared latent invocation (\texttt{<invoke>}) format. Extended per-task LLAMIA-Bench listings appear in Appendix~\ref{sec:app_prompts}.
 
 %------------------------------------------------------------------------------
 \subsubsection{Stage~1: Projector Alignment}
@@ -887,9 +887,9 @@ End your reply with exactly one line in the form:\\[2pt]
 \end{tcolorbox}
 
 \paragraph{Full LLAMIA-Bench.}
-All six task families (behaviour cloning, stylometry, puzzle understanding,
-move annotation, game commentary, instruction-conditioned play) share the same
-tool catalogue as the toy task.
+All five task families (behaviour cloning, puzzle understanding, move
+annotation, game commentary, instruction-conditioned play) share the same tool
+catalogue as the toy task.
 Task-specific instructions replace the popularity/ELO mandate; the refusal-suppression
 clause is retained across all variants.
 Full per-task system prompts appear in Appendix~\ref{sec:app_prompts}.
@@ -898,7 +898,7 @@ Full per-task system prompts appear in Appendix~\ref{sec:app_prompts}.
 \subsubsection{\texttt{<invoke>} Trigger Format}
 \label{app:details:prompts:invoke}
 
-Dynamic re-encoding (\texttt{<invoke>}) fires after every board-mutating tool
+Latent invocation (\texttt{<invoke>}) fires after every board-mutating tool
 call (\texttt{make\_move}, \texttt{undo\_move}, \texttt{reset\_position}).
 The harness re-runs the BT4 forward pass on the updated FEN, encodes a fresh
 set of $K{=}32$ state tokens, and prepends them as a \texttt{<state>} prefix to

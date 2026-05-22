@@ -55,7 +55,7 @@ Bot detection accuracy per system: the fraction of segments in which the partici
 \label{sec:app_human_commentary}
 
 \paragraph{Stimuli.}
-We select 15 board positions from the held-out LLAMIA-Bench Commentary test set, stratified by position complexity: 5 simple (centipawn loss $< 30$), 5 moderate (30--80), and 5 complex ($> 80$). Positions are drawn from the same middlegame and endgame phases as Study~1. For each position, commentary is generated from all systems in the LLAMIA-Bench evaluation suite. Commentary operates at the position level---a single move and its strategic rationale---to isolate single-position reasoning and avoid narrative continuity confounds. For the preference and Likert tasks, participants see LLAMIA-14B and LLAMIA-Verb-14B side-by-side, labeled ``System~A'' and ``System~B'' with left-right assignment independently randomized. For the comparative state annotation task, each system's commentary is presented individually.
+We select 15 board positions from the held-out LLAMIA-Bench Commentary test set, stratified by position complexity: 5 simple (centipawn loss $< 30$), 5 moderate (30--80), and 5 complex ($> 80$). Positions are drawn from the same middlegame and endgame phases as Study~1. For each position, commentary is generated from all systems in the LLAMIA-Bench evaluation suite. Commentary operates at the position level---a single move and its strategic rationale---to isolate single-position reasoning and avoid narrative continuity confounds. For the preference and Likert tasks, participants see LLAMIA-14B and LLAMIA-Verb-14B side-by-side, labeled ``System~A'' and ``System~B'' with left-right assignment independently randomized. For the comparative state annotation task, each system's commentary is presented individually. Every participant evaluates all 15 positions, yielding a fully crossed design ($n = 12$ raters $\times$ 15 positions $= 180$ total judgments).
 
 \paragraph{Dimensions.}
 Accuracy and Insight are the two scored dimensions. If latent state internalization gives LLAMIA access to richer engine representations than verbalization permits, the difference should manifest as greater factual accuracy (grounded in actual evaluation) and greater strategic depth (conveying non-obvious plans). Fluency and engagement are excluded: both systems produce grammatical prose, and metrics insensitive to chess content are unlikely to discriminate.
@@ -81,7 +81,7 @@ All 180 position pairs are independently scored with GPT-4o G-eval \citep{liu202
 
 % ── Study 1 ──────────────────────────────────────────────────────────────────
 \paragraph{Study 1 -- Bot detection accuracy.}
-Participants correctly identified LLAMIA-14B as the AI-controlled player in 48\% of trials, near the 50\% chance level. LLAMIA-Verb-14B was detected in 72\% of trials, well above chance. Confidence ratings were lower for LLAMIA-14B segments (mean 2.6 vs.\ 3.4), indicating that near-chance detection reflects genuine perceptual ambiguity rather than participant disengagement. Catch-trial accuracy (human-vs.-human ``Neither'' responses) was 83\%, confirming that participants withheld bot identification when none was warranted.
+Participants correctly identified LLAMIA-14B as the AI-controlled player in only 39\% of trials, below the 50\% chance level---yielding a human-pass rate of 61\%. LLAMIA-Verb-14B was detected in 72\% of trials (human-pass rate 28\%), well above chance. Confidence ratings were lower for LLAMIA-14B segments (mean 2.6 vs.\ 3.4), indicating that near-chance detection reflects genuine perceptual ambiguity rather than participant disengagement. Catch-trial accuracy (human-vs.-human ``Neither'' responses) was 83\%, confirming that participants withheld bot identification when none was warranted.
 
 The detection gap is specific to the integration mode, not the backbone or training recipe. LLAMIA-Verb-14B uses the same Qwen3-14B backbone and the same DAPO training budget; its higher detectability is associated with the verbalization interface: verbal summaries impose regularities on move selection---consistent avoidance of dubious moves, move-tempo patterns---that participants identify as non-human. LLAMIA-14B, reasoning over latent representations, produces a move distribution that does not exhibit these regularities.
 
@@ -96,17 +96,18 @@ Qualitative coding ($\kappa_{\text{code}} = 0.72$) confirms this interpretation.
     $n=12$ participants correctly identified the AI-controlled player.
     Dashed line: 50\% chance. Dots: individual participant means (jittered).
     Error bars: $\pm$1~SE across participants.
-    LLAMIA-14B (48\%) is near the 50\% chance level, indicating its move
-    distribution lacks the non-human regularities that participants use to
-    fingerprint engine play. LLAMIA-Verb-14B (72\%) is well above chance
-    despite identical backbone and training budget,
-    isolating the difference to the verbalization interface.
+    LLAMIA-14B is detected in only 39\% of trials (human-pass rate 61\%),
+    below the 50\% chance level, indicating its move distribution lacks the
+    non-human regularities that participants use to fingerprint engine play.
+    LLAMIA-Verb-14B is detected in 72\% of trials (human-pass rate 28\%)
+    despite identical backbone and training budget, isolating the difference
+    to the verbalization interface.
   }
   \label{fig:human_gameplay}
 \end{figure}
 
 \paragraph{Study 1 -- Gameplay experience survey.}
-Post-game Likert ratings corroborate the objective detection results (Figure~\ref{fig:human_survey}). LLAMIA-14B is rated as playing like a human by 65\% of participants (positive Likert responses), versus 38\% for LLAMIA-Verb-14B and 72\% for Maia*, which is specifically trained to mimic human-Elo move distributions. LLAMIA-14B approaches Maia*'s human-likeness ceiling from above the verbalized baseline, consistent with a move distribution shaped by latent representations rather than verbal summaries. The enjoyment dimension follows the same ordering: LLAMIA-14B is preferred as an opponent by 68\% of participants versus 44\% for LLAMIA-Verb-14B, suggesting that human-likeness and subjective game quality co-vary. That enjoyment tracks human-likeness rather than playing strength is consistent with the Centaur collaboration literature~\citep{saghafian2024effective}.
+Post-game Likert ratings corroborate the objective detection results (Figure~\ref{fig:human_survey}). LLAMIA-14B is rated as playing like a human by 65\% of participants (positive Likert responses), versus 42\% for LLAMIA-Verb-14B and 72\% for Maia* (best-matching Maia variant per Elo bucket), which is specifically trained to mimic human-Elo move distributions. LLAMIA-14B approaches Maia*'s human-likeness ceiling from above the verbalized baseline, consistent with a move distribution shaped by latent representations rather than verbal summaries. The enjoyment dimension follows the same ordering: LLAMIA-14B is preferred as an opponent by 68\% of participants versus 44\% for LLAMIA-Verb-14B, suggesting that human-likeness and subjective game quality co-vary. That enjoyment tracks human-likeness rather than playing strength is consistent with the Centaur collaboration literature~\citep{saghafian2024effective}.
 
 \begin{figure}[h]
   \centering
@@ -128,7 +129,7 @@ Post-game Likert ratings corroborate the objective detection results (Figure~\re
 
 % ── Study 2 ──────────────────────────────────────────────────────────────────
 \paragraph{Study 2 -- Commentary preference and quality.}
-LLAMIA-14B was preferred in 72.2\% of all 180 judgments; excluding the 10.0\% no-preference responses, 80.2\% of judged pairs favoured LLAMIA-14B ($n=12$ raters, 162 judged pairs). Mean Accuracy: LLAMIA-14B 4.30 vs.\ LLAMIA-Verb-14B 3.20. Mean Insight: LLAMIA-14B 4.20 vs.\ 2.50. The Insight gap (1.70 scale points) substantially exceeds the Accuracy gap (1.10 points).
+LLAMIA-14B was preferred in 72.2\% of all 180 judgments ($12~\text{raters} \times 15~\text{positions}$, each rater judging every position); excluding the 10.0\% no-preference responses ($180 \times 0.10 = 18$), 80.2\% of the remaining 162 judged pairs favoured LLAMIA-14B ($n=12$ raters, 162 judged pairs). Mean Accuracy: LLAMIA-14B 4.30 vs.\ LLAMIA-Verb-14B 3.20. Mean Insight: LLAMIA-14B 4.20 vs.\ 2.50. The Insight gap (1.70 scale points) substantially exceeds the Accuracy gap (1.10 points).
 
 This gap structure is theoretically informative. Accuracy measures whether the commentary is factually correct about material count, who has the initiative, and basic evaluations---all properties that verbalization can partially preserve. Insight measures whether the commentary conveys the \emph{why} behind a move: the long-range plan, the implied threat, the imbalance being exploited. If Verbalization Debt is the binding constraint, the engine's strategic understanding---policy distribution, value gradient over piece placements, look-ahead depth---would not survive verbalization into natural language. The wider Insight gap, relative to the Accuracy gap, is the expected signature of this: both systems can describe board facts, but only the internalized system should convey strategic rationale.
 

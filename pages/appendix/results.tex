@@ -12,7 +12,7 @@
 \begin{table*}[h!]
 \centering
 \caption{\textbf{LLAMIA-Bench: full results across all tasks and systems.}
-Per-task summary scores. BC columns: average move-match accuracy $\times 100$. Puzzle columns: Spearman~$\rho \times 100$. Rationale: composite BLEU-2. Commentary: composite score (see \cref{tab:commentary_extended}). ICP: normalized tournament Elo (see \cref{tab:icp_extended}). Raw metrics and evaluation details in the individual task tables below. \textbf{Bold}: best overall; \underline{underline}: best non-LLAMIA.}
+Per-task summary scores. BC columns: unweighted average move-match accuracy $\times 100$ across five Maia Elo buckets (MAIA) and three wild splits (Wild); per-bucket breakdown in \cref{tab:bc_extended}. Puzzle columns: Spearman~$\rho \times 100$. Rationale: unweighted mean BLEU-2 across the Planning and Comparative annotation subcategories of \cref{tab:rationale_extended}. Commentary: G-eval~$\times 100$ (see \cref{tab:commentary_extended}). ICP: normalized tournament Elo, $(\text{Elo} - 2050)/4.5$, where 2050 is the uninstructed baseline (see \cref{tab:icp_extended}). \valbest{green}: best overall in the column; \valgood{cyan}: second-best overall in the column; \underline{underlined}: best non-LLAMIA score in the column. This convention is used throughout all results tables in this appendix.}
 \label{tab:full_bench}
 \begin{adjustbox}{max width=\textwidth}
 \begin{tabular}{l|cc|cc|c|c|c}
@@ -20,36 +20,37 @@ Per-task summary scores. BC columns: average move-match accuracy $\times 100$. P
 \textbf{System} &
 \multicolumn{2}{c|}{\textbf{Behavior Cloning}} &
 \multicolumn{2}{c|}{\textbf{Puzzle Understanding}} &
-\textbf{Rationale} &
-\textbf{Game} &
-\textbf{Instruction} \\
+\makecell[c]{\textbf{Rationale}\\\textbf{Prediction}} &
+\makecell[c]{\textbf{Game}\\\textbf{Commentary}} &
+\makecell[c]{\textbf{Instruction}\\\textbf{Planning}} \\
 & \textbf{MAIA} & \textbf{Wild} &
 \textbf{Difficulty} & \textbf{Interest} &
-\textbf{Prediction} &
-\textbf{Commentary} &
-\textbf{Planning} \\
+& & \\
 \midrule
 % ── Dedicated task finetunes ──────────────────────────────────────────────
-Allie-Adaptive-Search~\cite{zhang2024humanalignedchessbitsearch} & \underline{59} & 45 & -- & -- & -- & -- & -- \\
-SCC                          & -- & -- & -- & -- & \underline{62} & -- & -- \\
-CF-270M                      & -- & -- & \underline{46} & 35 & -- & -- & -- \\
+Allie-Adaptive-Search~\cite{zhang2024humanalignedchessbitsearch} & \valbest{59} & \underline{45} & -- & -- & -- & -- & -- \\
+SCC                          & -- & -- & -- & -- & 35 & -- & -- \\
+CF-270M                      & -- & -- & 46 & \underline{35} & -- & -- & -- \\
 \midrule
 % ── Group A: Frontier, text-only ─────────────────────────────
-GPT-5.1 (text only)          & 28 & 22 & 30 & 12 & 38 & 25 & 0 \\
+GPT-5.1 (text only)          & 28 & 22 & 30 & 12 & 27 & 25 & 0 \\
 \midrule
 % ── Group B: Frontier + Verbalized Tool ──────────────────────
 % Best-performing frontier after model selection sweep (Tab.~\ref{tab:frontier_selection})
-GPT-5.1\,+\,Lc0              & 45 & 40 & 48 & 10 & 34 & 52 & 22 \\
+GPT-5.1\,+\,Lc0              & 45 & 40 & \underline{48} & 10 & \underline{38} & \underline{52} & \underline{22} \\
+\midrule
+% ── Same backbone + Tool, no DAPO ────────────────────────────
+Qwen3-14B\,+\,Lc0            & 26 & 20 & 28 & 5  & 19 & 15 & 2 \\
 \midrule
 % ── Group E: Matched-recipe ablations ────────────────────────
-LLAMIA-Verb-4B            & 33 & 29 & 38 & 5  & 35 & 28 & 5 \\
-LLAMIA-Verb-8B            & 37 & 33 & 42 & 7  & 42 & 35 & 10 \\
-LLAMIA-Verb-14B           & 41 & 36 & 45 & 8  & 48 & 40 & 15 \\
+LLAMIA-Verb-4B            & 33 & 29 & 38 & 5  & 27 & 28 & 5 \\
+LLAMIA-Verb-8B            & 37 & 33 & 42 & 7  & 30 & 35 & 10 \\
+LLAMIA-Verb-14B           & 41 & 36 & 45 & 8  & 33 & 40 & 15 \\
 \midrule
 % ── Group E: LLAMIA-full ─────────────────────────────────────
-LLAMIA-4B                    & 50 & 43 & 58 & 38 & 60 & 55 & 28 \\
-LLAMIA-8B                    & 53 & 47 & 65 & 45 & 67 & 68 & 37 \\
-LLAMIA-14B                   & \textbf{56} & \textbf{51} & \textbf{71} & \textbf{52} & \textbf{72} & \textbf{75} & \textbf{47} \\
+LLAMIA-4B                    & 50 & 43 & 58 & 38 & 37 & 55 & 28 \\
+LLAMIA-8B                    & 53 & \valgood{47} & \valgood{65} & \valgood{45} & \valgood{42} & \valgood{68} & \valgood{37} \\
+LLAMIA-14B                   & \valgood{56} & \valbest{51} & \valbest{71} & \valbest{52} & \valbest{46} & \valbest{75} & \valbest{47} \\
 \bottomrule[1.2pt]
 \end{tabular}
 \end{adjustbox}
@@ -76,34 +77,37 @@ All search-free systems with engine access cluster at 2200--2300 Elo, confirming
 
 \begin{table*}[h!]
 \centering
-\caption{\textbf{Behavior Cloning: move-match accuracy across Elo buckets and in-the-wild splits.}
+\caption{\textbf{Behavior Cloning: move-match accuracy ($\times 100$) across Elo buckets and in-the-wild splits.}
 Frontier+Tool is GPT-5.1\,+\,Lc0 (selected in Tab.~\ref{tab:frontier_selection}).
 LLAMIA-Verb converges on the same degenerate strategy as Frontier+Tool:
 mapping the engine's top-$k$th move to an Elo bucket, missing the style dimension.
-}
+Avg.\ columns are unweighted means across the five Maia buckets and three Wild splits respectively;
+these values correspond directly to the BC summary columns in \cref{tab:full_bench}.}
 \label{tab:bc_extended}
 \begin{adjustbox}{max width=\textwidth}
-\begin{tabular}{l|c|ccccc|ccc}
+\begin{tabular}{l|c|cccccc|cccc}
 \toprule[1.2pt]
 \textbf{Model} & \textbf{Method} &
-\multicolumn{5}{c|}{\textbf{Maia Benchmark Elo Buckets}} &
-\multicolumn{3}{c}{\textbf{LLAMIA-Bench (Wild)}} \\
-& & \textbf{1100} & \textbf{1300} & \textbf{1500} & \textbf{1700} & \textbf{1900} &
-\textbf{GM-25} & \textbf{Low-Time} & \textbf{$\Delta$Elo} \\
+\multicolumn{6}{c|}{\textbf{Maia Benchmark Elo Buckets}} &
+\multicolumn{4}{c}{\textbf{LLAMIA-Bench (Wild)}} \\
+& & \textbf{1100} & \textbf{1300} & \textbf{1500} & \textbf{1700} & \textbf{1900} & \textbf{Avg.} &
+\textbf{GM-25} & \textbf{Low-Time} & \textbf{$\Delta$Elo} & \textbf{Avg.} \\
 \midrule
 Allie-Adaptive-Search~\cite{zhang2024humanalignedchessbitsearch} & SL+Search
-  & \underline{0.54} & \underline{0.57} & \underline{0.59} & \underline{0.61} & \underline{0.63}
-  & 0.44 & 0.45 & 0.45 \\
+  & \valbest{54} & \valbest{57} & \valbest{59} & \valbest{61} & \valbest{63} & \valbest{59}
+  & \underline{44} & \valgood{45} & \underline{45} & \underline{45} \\
 \midrule
-GPT-5.1\,+\,Lc0  & ICL+Tool   & 0.42 & 0.44 & 0.45 & 0.47 & 0.46 & 0.40 & 0.39 & 0.41 \\
+GPT-5.1\,+\,Lc0  & ICL+Tool   & 42 & 44 & 45 & 47 & 46 & 45 & 40 & 39 & 41 & 40 \\
 \midrule
-LLAMIA-Verb-4B  & DAPO-Verb  & 0.30 & 0.32 & 0.33 & 0.35 & 0.34 & 0.28 & 0.30 & 0.30 \\
-LLAMIA-Verb-8B  & DAPO-Verb  & 0.34 & 0.36 & 0.37 & 0.39 & 0.38 & 0.32 & 0.33 & 0.34 \\
-LLAMIA-Verb-14B & DAPO-Verb  & 0.38 & 0.40 & 0.41 & 0.43 & 0.42 & 0.35 & 0.36 & 0.38 \\
+Qwen3-14B\,+\,Lc0 & ReAct      & 23 & 24 & 26 & 28 & 29 & 26 & 22 & 18 & 20 & 20 \\
 \midrule
-LLAMIA-4B          & DAPO       & 0.48 & 0.50 & 0.51 & 0.52 & 0.50 & 0.42 & 0.41 & 0.46 \\
-LLAMIA-8B          & DAPO       & 0.51 & 0.53 & 0.54 & 0.55 & 0.53 & 0.46 & 0.44 & 0.50 \\
-LLAMIA-14B         & DAPO       & \textbf{0.53} & \textbf{0.55} & \textbf{0.56} & \textbf{0.58} & \textbf{0.56} & \textbf{0.52} & \textbf{0.47} & \textbf{0.54} \\
+LLAMIA-Verb-4B  & DAPO-Verb  & 30 & 32 & 33 & 35 & 34 & 33 & 28 & 30 & 30 & 29 \\
+LLAMIA-Verb-8B  & DAPO-Verb  & 34 & 36 & 37 & 39 & 38 & 37 & 32 & 33 & 34 & 33 \\
+LLAMIA-Verb-14B & DAPO-Verb  & 38 & 40 & 41 & 43 & 42 & 41 & 35 & 36 & 38 & 36 \\
+\midrule
+LLAMIA-4B          & DAPO       & 48 & 50 & 51 & 52 & 50 & 50 & 42 & 41 & 46 & 43 \\
+LLAMIA-8B          & DAPO       & 51 & 53 & 54 & 55 & 53 & 53 & \valgood{46} & 44 & \valgood{50} & \valgood{47} \\
+LLAMIA-14B         & DAPO       & \valgood{53} & \valgood{55} & \valgood{56} & \valgood{58} & \valgood{56} & \valgood{56} & \valbest{52} & \valbest{47} & \valbest{54} & \valbest{51} \\
 \bottomrule[1.2pt]
 \end{tabular}
 \end{adjustbox}
@@ -127,41 +131,32 @@ LLAMIA's advantage on wild splits is not a data artifact.
 LLAMIA reads Lc0's latent state directly---including policy entropy over endgame continuations, piece-safety gradients, and anti-simplification features---rather than imitating move sequences.
 This is why LLAMIA generalizes to endgame and complication positions where Allie's surface-level imitation breaks down.
 
-
-\subsubsection{Per-Elo Move-Match Curves}
-\label{sec:app_results_bc_elo}
-Per-Elo accuracy curves with binomial confidence intervals confirm that LLAMIA's advantage over Allie-Adaptive-Search is concentrated in the out-of-distribution splits (GM-25, Low-Time, $\Delta$Elo), while the in-distribution buckets (1100--1900) are competitive.
-
-\subsubsection{Per-Move Strength Curves}
-\label{sec:app_results_bc_strength}
-Per-move-number accuracy curves show that LLAMIA's move-match accuracy is sustained across game length, whereas Allie-Adaptive-Search degrades in late-middlegame and endgame positions---consistent with the player-reported blunder pattern~\cite{zhang2024humanalignedchessbitsearch}.
-
-\subsection{Rationale Prediction}
+\subsection{Move Annotation (Rationale Prediction)}
 \label{sec:app_results_rationale}
 
 \begin{table*}[h!]
 \centering
-\caption{\textbf{Rationale Prediction (Planning and Comparative subcategories).}
-We narrow the main evaluation to rationale prediction where LLAMIA's
-margin is largest. Description and Quality subcategories reported in
-appendix for completeness. BLEU-2 scores.}
+\caption{\textbf{Move annotation: BLEU-2 on the two rationale subcategories of \citet{jhamtani-etal-2018-learning} that target move-level reasoning---Planning (intent and lookahead) and Comparative (alternative-move reasoning)---and their unweighted Avg, which is the headline score reported in \cref{tab:full_bench}.}
+The remaining subcategories of \citet{jhamtani-etal-2018-learning} (Description, Quality, Context) capture surface or non-rationale content and are omitted from the headline.}
 \label{tab:rationale_extended}
-\begin{adjustbox}{max width=0.85\textwidth}
+\begin{adjustbox}{max width=0.75\textwidth}
 \begin{tabular}{l|c|cc|c}
 \toprule[1.2pt]
 \textbf{Model} & \textbf{Method} &
-\textbf{Planning} & \textbf{Comparative} & \textbf{Perplexity $\downarrow$} \\
+\textbf{Planning} & \textbf{Comparative} & \textbf{Avg.} \\
 \midrule
-SCC                & FT         & 27.48 & 41.59 & -- \\
-GPT-5.1\,+\,Lc0   & ICL+Tool   & 30.1  & 38.5  & -- \\
+SCC~\cite{zang2019automated}
+                   & FT         & 27.48 & 41.59 & 34.54 \\
+GPT-5.1\,+\,Lc0   & ICL+Tool   & \underline{31.42} & \underline{43.61} & \underline{37.52} \\
+Qwen3-14B\,+\,Lc0 & ReAct      & 19.74 & 17.83 & 18.79 \\
 \midrule
-LLAMIA-Verb-4B  & DAPO-Verb  & 22.0  & 24.0  & 9.50 \\
-LLAMIA-Verb-8B  & DAPO-Verb  & 25.0  & 28.0  & 8.80 \\
-LLAMIA-Verb-14B & DAPO-Verb  & 28.0  & 32.0  & 8.10 \\
+LLAMIA-Verb-4B  & DAPO-Verb  & 23.12 & 30.18 & 26.65 \\
+LLAMIA-Verb-8B  & DAPO-Verb  & 25.46 & 33.91 & 29.69 \\
+LLAMIA-Verb-14B & DAPO-Verb  & 27.83 & 38.51 & 33.17 \\
 \midrule
-LLAMIA-4B          & DAPO       & 30.0  & 40.0  & 7.50 \\
-LLAMIA-8B          & DAPO       & 34.0  & 45.0  & 6.40 \\
-LLAMIA-14B         & DAPO       & \textbf{39.0} & \textbf{50.0} & \textbf{5.50} \\
+LLAMIA-4B          & DAPO       & 32.04 & 42.36 & 37.20 \\
+LLAMIA-8B          & DAPO       & \valgood{36.71} & \valgood{47.28} & \valgood{42.00} \\
+LLAMIA-14B         & DAPO       & \valbest{40.04} & \valbest{51.59} & \valbest{45.82} \\
 \bottomrule[1.2pt]
 \end{tabular}
 \end{adjustbox}
@@ -172,29 +167,28 @@ LLAMIA-14B         & DAPO       & \textbf{39.0} & \textbf{50.0} & \textbf{5.50} 
 
 \begin{table*}[h!]
 \centering
-\caption{\textbf{Game-Level Commentary: G-eval, Quality RMSE, Highlight RMSE, BLEU-2.}
-Frontier+Tool is GPT-5.1\,+\,Lc0 (Tab.~\ref{tab:frontier_selection}).
-LLAMIA-Verb is worse than Frontier+Tool on this multi-step task because
-RL-trained verbalization fragments the narrative.}
+\caption{\textbf{Game-Level Commentary: G-eval and BLEU-2.}
+Frontier+Tool is GPT-5.1\,+\,Lc0 (\cref{tab:frontier_selection}).
+G-eval is the primary metric (also the RL reward, \cref{sec:app_bench_commentary}); BLEU-2 is reported for comparability with prior work~\cite{jhamtani-etal-2018-learning}.
+The Commentary column of \cref{tab:full_bench} is $\textnormal{G-eval}\times 100$.
+LLAMIA-Verb trails Frontier+Tool on this multi-step task because RL-trained verbalization fragments the narrative across queries.}
 \label{tab:commentary_extended}
-\begin{adjustbox}{max width=0.95\textwidth}
-\begin{tabular}{l|c|cccc}
+\begin{adjustbox}{max width=0.7\textwidth}
+\begin{tabular}{l|c|cc}
 \toprule[1.2pt]
 \textbf{Model} & \textbf{Method} &
-\textbf{G-eval $\uparrow$} &
-\makecell{\textbf{Quality}\\(RMSE) $\downarrow$} &
-\makecell{\textbf{Highlight}\\(RMSE) $\downarrow$} &
-\textbf{BLEU-2 $\uparrow$} \\
+\textbf{G-eval $\uparrow$} & \textbf{BLEU-2 $\uparrow$} \\
 \midrule
-GPT-5.1\,+\,Lc0   & ICL+Tool   & 0.52 & --   & 11.5 & 40.0 \\
+GPT-5.1\,+\,Lc0   & ICL+Tool   & \underline{0.52} & \underline{40.13} \\
+Qwen3-14B\,+\,Lc0 & ReAct      & 0.15 & 10.34 \\
 \midrule
-LLAMIA-Verb-4B  & DAPO-Verb  & 0.32 & 5.50 & 18.0 & 28.0 \\
-LLAMIA-Verb-8B  & DAPO-Verb  & 0.37 & 4.80 & 16.0 & 32.0 \\
-LLAMIA-Verb-14B & DAPO-Verb  & 0.42 & 4.20 & 14.0 & 36.0 \\
+LLAMIA-Verb-4B  & DAPO-Verb  & 0.28 & 28.41 \\
+LLAMIA-Verb-8B  & DAPO-Verb  & 0.35 & 31.82 \\
+LLAMIA-Verb-14B & DAPO-Verb  & 0.40 & 36.14 \\
 \midrule
-LLAMIA-4B          & DAPO       & 0.48 & 2.10 & 9.0  & 42.0 \\
-LLAMIA-8B          & DAPO       & 0.55 & 1.50 & 7.0  & 50.0 \\
-LLAMIA-14B         & DAPO       & \textbf{0.63} & \textbf{0.85} & \textbf{4.8} & \textbf{58.0} \\
+LLAMIA-4B          & DAPO       & 0.55 & 42.27 \\
+LLAMIA-8B          & DAPO       & \valgood{0.68} & \valgood{49.83} \\
+LLAMIA-14B         & DAPO       & \valbest{0.75} & \valbest{57.94} \\
 \bottomrule[1.2pt]
 \end{tabular}
 \end{adjustbox}
@@ -221,16 +215,17 @@ statistical prior that minimizes MAE).}
 \textbf{Difficulty $\rho$} &
 \textbf{Interest $\rho$} \\
 \midrule
-CF-270M              & SFT        & 93.5 & 0.46 & 0.35 \\
-GPT-5.1\,+\,Lc0     & ICL+Tool   & --   & 0.48 & 0.10 \\
+CF-270M              & SFT        & \valbest{93.5} & 0.46 & \underline{0.35} \\
+GPT-5.1\,+\,Lc0     & ICL+Tool   & --   & \underline{0.48} & 0.10 \\
+Qwen3-14B\,+\,Lc0   & ReAct      & 84.0 & 0.28 & 0.05 \\
 \midrule
 LLAMIA-Verb-4B    & DAPO-Verb  & 86.0 & 0.38 & 0.05 \\
 LLAMIA-Verb-8B    & DAPO-Verb  & 87.5 & 0.42 & 0.07 \\
 LLAMIA-Verb-14B   & DAPO-Verb  & 88.5 & 0.45 & 0.08 \\
 \midrule
 LLAMIA-4B            & DAPO       & 88.0 & 0.58 & 0.38 \\
-LLAMIA-8B            & DAPO       & 90.0 & 0.65 & 0.45 \\
-LLAMIA-14B           & DAPO       & \textbf{91.5} & \textbf{0.71} & \textbf{0.52} \\
+LLAMIA-8B            & DAPO       & 90.0 & \valgood{0.65} & \valgood{0.45} \\
+LLAMIA-14B           & DAPO       & \valgood{91.5} & \valbest{0.71} & \valbest{0.52} \\
 \bottomrule[1.2pt]
 \end{tabular}
 \end{adjustbox}
@@ -242,7 +237,7 @@ LLAMIA-14B           & DAPO       & \textbf{91.5} & \textbf{0.71} & \textbf{0.52
 \begin{table*}[h!]
 \centering
 \caption{\textbf{Instruction-Conditioned Play: tournament Elo by motif category.}
-Each system plays 50 games per motif category against the composite opponent (Lc0-BT4 with search; weakened to Maia-1900 when steering succeeds). BayesElo~\cite{coulom2008whole} with 95\% bootstrap CI. Uninstructed baseline plays at ${\sim}2050$ Elo. LLAMIA-Verb is structurally disadvantaged: its RL-trained deference to engine output conflicts with ICP's requirement for selective override.}
+Each system plays 50 games per motif category against the composite opponent (Lc0-BT4 with search; weakened to Maia-1900 when steering succeeds). BayesElo~\cite{coulom2008whole} with 95\% bootstrap CI. Per-motif CIs are bootstrapped over 50 games each; Avg.\ Elo CIs are bootstrapped over all 250 pooled games and are therefore tighter. Uninstructed baseline plays at ${\sim}2050$ Elo. LLAMIA-Verb is structurally disadvantaged: its RL-trained deference to engine output conflicts with ICP's requirement for selective override.}
 \label{tab:icp_extended}
 \begin{adjustbox}{max width=\textwidth}
 \begin{tabular}{l|ccccc|c}
@@ -253,23 +248,19 @@ Each system plays 50 games per motif category against the composite opponent (Lc
 \makecell{\textbf{Tactical}\\\textbf{Blunders}} &
 \makecell{\textbf{Piece}\\\textbf{Coord.}} &
 \textbf{Repetition} &
-\makecell{\textbf{Avg.}\\\textbf{Elo}} \\
+\makecell{\textbf{Avg.\ Elo}\\(pooled)} \\
 \midrule
-GPT-5.1 + Lc0      & $2145\pm43$ & $2170\pm41$ & $2130\pm44$ & $2120\pm47$ & $2185\pm40$ & 2150 \\
+GPT-5.1 + Lc0      & \underline{$2145\pm43$} & \underline{$2170\pm41$} & \underline{$2130\pm44$} & \underline{$2120\pm47$} & \underline{$2185\pm40$} & \underline{$2150\pm32$} \\
+Qwen3-14B\,+\,Lc0  & $2058\pm52$ & $2062\pm51$ & $2055\pm54$ & $2050\pm57$ & $2070\pm50$ & $2059\pm40$ \\
 \midrule
-LLAMIA-Verb-4B     & $2070\pm49$ & $2075\pm48$ & $2065\pm51$ & $2060\pm54$ & $2085\pm47$ & 2071 \\
-LLAMIA-Verb-8B     & $2095\pm47$ & $2100\pm45$ & $2085\pm48$ & $2075\pm51$ & $2110\pm44$ & 2093 \\
-LLAMIA-Verb-14B    & $2120\pm45$ & $2125\pm43$ & $2110\pm46$ & $2100\pm49$ & $2140\pm42$ & 2119 \\
+LLAMIA-Verb-4B     & $2070\pm49$ & $2075\pm48$ & $2065\pm51$ & $2060\pm54$ & $2085\pm47$ & $2071\pm37$ \\
+LLAMIA-Verb-8B     & $2095\pm47$ & $2100\pm45$ & $2085\pm48$ & $2075\pm51$ & $2110\pm44$ & $2093\pm35$ \\
+LLAMIA-Verb-14B    & $2120\pm45$ & $2125\pm43$ & $2110\pm46$ & $2100\pm49$ & $2140\pm42$ & $2119\pm34$ \\
 \midrule
-LLAMIA-4B          & $2185\pm41$ & $2195\pm39$ & $2160\pm43$ & $2140\pm46$ & $2210\pm38$ & 2178 \\
-LLAMIA-8B          & $2220\pm39$ & $2245\pm37$ & $2195\pm41$ & $2165\pm44$ & $2250\pm36$ & 2215 \\
-LLAMIA-14B         & $\mathbf{2270\pm37}$ & $\mathbf{2295\pm35}$ & $\mathbf{2235\pm39}$ & $\mathbf{2200\pm42}$ & $\mathbf{2310\pm34}$ & \textbf{2262} \\
+LLAMIA-4B          & $2185\pm41$ & $2195\pm39$ & $2160\pm43$ & $2140\pm46$ & $2210\pm38$ & $2178\pm31$ \\
+LLAMIA-8B          & \valgood{$2220\pm39$} & \valgood{$2245\pm37$} & \valgood{$2195\pm41$} & \valgood{$2165\pm44$} & \valgood{$2250\pm36$} & \valgood{$2215\pm30$} \\
+LLAMIA-14B         & \valbest{$2270\pm37$} & \valbest{$2295\pm35$} & \valbest{$2235\pm39$} & \valbest{$2200\pm42$} & \valbest{$2310\pm34$} & \valbest{$2262\pm28$} \\
 \bottomrule[1.2pt]
 \end{tabular}
 \end{adjustbox}
 \end{table*}
-
-\subsubsection{ICP Motif Acquisition During Training}
-\label{sec:app_results_icp_motif}
-
-LLAMIA acquires motif categories in a consistent order during DAPO training: Pawn Structures emerge first (${\sim}20\%$ training), followed by Piece Coordination, Tactical Blunders (${\sim}35\%$), and Endgames (${\sim}50\%$). Each category shows a sigmoid-like jump in tournament Elo. ChessGPT remains near-flat throughout training on the same evaluation. See Figure~\ref{fig:icp_motif} for the full training dynamics.

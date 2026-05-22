@@ -158,10 +158,10 @@
 %    Future work: robotics (RT-2), reward models, scientific simulation.
 
 % Q: "Is this just multimodal projection (LLaVA)?"
-% A: Unlike static projection, our approach uses DYNAMIC re-encoding — fresh
-%    tokens at each state transition. The InvokeAgent ablation (64% vs 1-4%)
-%    proves this is the critical differentiator. LLaVA-style projection
-%    would degrade to "static multimodal projection" (our P3 baseline).
+% A: Unlike LLaVA-style static projection, our approach conditions the LLM on
+%    fresh latent tokens at each state via InvokeAgent, trained end-to-end with
+%    GRPO. The key distinction is that invocation timing and frequency are
+%    learned, not fixed.
 
 % Q: "The negative result (tool calling fails) — isn't that obvious?"
 % A: No. RL-optimized tool calling (GRPO) substantially improves over naive
@@ -205,7 +205,7 @@
 %   - Language-only (ChessGPT-style fine-tuning)
 %   - Vanilla tool calling (text interface, no RL)
 %   - RL-optimized tool calling (GRPO, text interface)  ← NEW, critical
-%   - Static projection (LLaVA-style, no dynamic re-encoding)
+%   - Static projection (LLaVA-style, fixed invocation)
 %   - Task-specific specialists (Maia, dedicated engines)
 % Section X.3: Main Results (Table spanning all tasks x all methods)
 % Section X.4: Bottleneck Analysis
@@ -227,11 +227,11 @@
 
 % WHAT ALL 4 REVIEWERS AGREED ON:
 % 1. The research QUESTION is important and well-motivated
-% 2. The ablation (64% vs 1-4%) is the strongest result
+% 2. The InvokeAgent ablation is the strongest result
 % 3. Need formal info-theoretic bottleneck measurement
 % 4. Need "maximal text" baseline controlling for bandwidth
 % 5. Generalization claims need hedging (done in revision)
-% 6. Dynamic re-encoding is the genuine novelty, not the adapter
+% 6. RL-trained invocation (InvokeAgent) + continuous latent channel is the genuine novelty
 
 % UNIQUE CONCERNS BY REVIEWER:
 % R1 (generalizability): "Three requirements not unique to chess" → ADDRESSED

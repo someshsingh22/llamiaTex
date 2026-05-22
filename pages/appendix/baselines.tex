@@ -26,11 +26,16 @@ aggregate metric per task group.
 \setlength{\tabcolsep}{5pt}
 \caption{%
   \textbf{Frontier model selection.}
-  Average metric per LLAMIA-Bench task group (100~samples each), all models
-  using Lc0-BT4 verbalized tool access via ReAct.
+  Average metric per LLAMIA-Bench task group, all models using Lc0-BT4
+  verbalized tool access via ReAct.
+  Per-group scores are unweighted means over the constituent columns of
+  \cref{tab:full_bench}: BC = mean(MAIA, Wild); Puzzle = mean(Difficulty,
+  Interest); Annot.\ = Rationale; Comm.\ = Commentary; ICP = Planning.
+  The GPT-5.1\,+\,Lc0 row aggregates directly from \cref{tab:full_bench};
+  the remaining rows are evaluated on a matched 100-sample subset per task
+  with identical tool schemas, prompts, and sampling parameters.
   Gameplay is excluded because it requires the full gauntlet protocol
-  (\cref{sec:app_results_gameplay_elo}); Stylometry is a new task with no
-  established short-form evaluation.
+  (\cref{sec:app_results_gameplay_elo}).
   GPT-5.1 achieves the highest aggregate and is adopted as the frontier
   verbalized baseline in all subsequent experiments.
 }
@@ -45,16 +50,16 @@ aggregate metric per task group.
   & \textbf{ICP\,$\uparrow$} & \textbf{Avg.\,$\uparrow$} \\
 \midrule
 GPT-5.1\,+\,Lc0
-  & \valbest{52.1} & \valbest{58.3} & \valbest{54.7}
-  & \valbest{52.0} & \valbest{9.2} & \valbest{45.3} \\
+  & \valbest{42.5} & \valbest{29.0} & \valbest{37.5}
+  & \valbest{52.0} & \valbest{22.0} & \valbest{36.6} \\
 Claude Opus~4.5\,+\,Lc0
-  & 48.5 & 55.1 & 52.8 & 50.3 & 8.5 & 43.0 \\
+  & 39.6 & 27.4 & 36.3 & 50.3 & 20.3 & 34.8 \\
 Claude Sonnet~4.5\,+\,Lc0
-  & 45.2 & 52.8 & 49.6 & 47.1 & 7.8 & 40.5 \\
+  & 36.9 & 26.3 & 34.2 & 47.1 & 18.7 & 32.6 \\
 Gemini~2.5~Pro\,+\,Lc0
-  & 49.8 & 56.4 & 53.2 & 49.8 & 8.9 & 43.6 \\
+  & 40.6 & 28.1 & 36.7 & 49.8 & 21.3 & 35.3 \\
 Qwen3-235B\,+\,Lc0
-  & 44.8 & 51.2 & 48.3 & 45.6 & 7.2 & 39.4 \\
+  & 36.5 & 25.5 & 33.4 & 45.6 & 17.2 & 31.6 \\
 \bottomrule[1.2pt]
 \end{tabular}
 \end{adjustbox}
@@ -176,61 +181,6 @@ Move Annotation
   & SL
   & 90K games \\
 
-\bottomrule[1.2pt]
-\end{tabular}
-\end{adjustbox}
-\end{table}
-
-% =============================================================================
-\subsection{Lc0 Architecture Cross-Check}
-\label{sec:app_baseline_lc0}
-% =============================================================================
-
-To verify that internalization generalizes across agent architectures, we
-repeat key evaluations replacing BT4 with weaker Lc0 networks spanning
-approximately 2000--2600~Elo.
-All ratings are measured \emph{without search} (single forward pass,
-policy-only decoding) using our gauntlet protocol
-(\cref{sec:app_results_gameplay_elo}).
-We emphasize the without-search criterion because LLAMIA internalizes the
-agent's single-forward-pass representation via the LatentBridge; the
-computational budget spent during tree search is not distilled into the
-latent state, so the no-search rating reflects the information available to
-internalization.
-
-Table~\ref{tab:lc0_crosscheck} lists the networks.
-The set spans three architectural families---convolutional SE-ResNets
-(T72, T78), standard transformers (T80, T82), and big transformers
-(BT3)---to separate the effect of network architecture from raw capacity.
-BT4 is included as the primary agent for reference.
-
-%% ── TABLE: Lc0 CROSS-CHECK ──────────────────────────────────────────────────
-\begin{table}[ht]
-\centering
-\setlength{\tabcolsep}{5pt}
-\caption{%
-  \textbf{Lc0 networks for architecture cross-check.}
-  Elo is measured without search (policy-only, single forward pass) via
-  our gauntlet protocol.
-  BT4 is the primary agent used throughout the paper.
-}
-\label{tab:lc0_crosscheck}
-\begin{adjustbox}{max width=\textwidth}
-\renewcommand{\arraystretch}{1.3}
-\small
-\begin{tabular}{llrr}
-\toprule[1.2pt]
-\textbf{Network} & \textbf{Architecture} & \textbf{Params}
-  & \textbf{Elo (no search)} \\
-\midrule
-T72   & SE-ResNet, 256$\times$20  & 40M  & 2{,}010 \\
-T78   & SE-ResNet, 384$\times$20  & 95M  & 2{,}180 \\
-T80   & Transformer, 768$\times$15$\times$24h  & 109M & 2{,}250 \\
-T82   & Transformer, 768$\times$15$\times$24h  & 109M & 2{,}292 \\
-BT3   & Transformer, 768$\times$15$\times$24h  & 160M & 2{,}510 \\
-\midrule
-BT4\textsuperscript{$\star$}
-      & Transformer, 1024$\times$15$\times$32h & 240M & 2{,}810 \\
 \bottomrule[1.2pt]
 \end{tabular}
 \end{adjustbox}

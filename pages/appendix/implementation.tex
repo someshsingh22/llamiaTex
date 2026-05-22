@@ -63,7 +63,7 @@ Input dimension $d$      & 1024      \\
 Output tokens $k$        & 32        \\
 MLP layers               & 3         \\
 Activation               & GeLU      \\
-Source layer             & 15 of 15  \\
+Source layer             & 14 of 15 (penultimate)  \\
 \bottomrule
 \end{tabular}
 \vspace{2mm}\caption{LatentBridge projector $H_\varphi$ configuration. $H_\varphi$ is a three-layer MLP with GeLU activations mapping the subagent's
@@ -79,37 +79,11 @@ LLM forward pass.}
 
 \subsection{Training Configuration}
 \label{sec:app_training}
+\label{sec:hyperparams}
 Model parameters and optimizer state are partitioned across 4 nodes of 8xA100 GPUs using PyTorch FSDP,
 coordinated via Ray.
-The rollout vLLM instance and lc0 server fleet co-reside on the same GPUs;
-\texttt{gpu\_memory\_utilization=0.5} reserves headroom for the BT4 network
-(${\sim}\,3$\,GiB per GPU), actor/critic FSDP shards, and cuBLAS workspace.
-\label{sec:hyperparams}
-
-\begin{table}[h]
-\centering
-\small
-\begin{tabular}{lll}
-\toprule
-\textbf{Hyperparameter}        & \textbf{Stage~1 (Projector)} & \textbf{Stage~2 (DAPO)} \\
-\midrule
-LR ($H_\varphi$)               & 2e-4   & 1e-5 \\
-LR ($F_\theta$)                & ---    & 1e-6 \\
-Batch size                     & 256    & 128  \\
-Steps / Epochs                 & 2 epochs & 3{,}000 steps \\
-KL coefficient $\beta$         & ---    & 0.01 \\
-Clip $\varepsilon_l / \varepsilon_h$ & ---    & 0.2\,/\,0.28  \\
-Group size $G$                 & ---    & 8    \\
-$k$ (state tokens)            & 32     & 32   \\
-Max sequence length            & 32{,}768 & 32{,}768 \\
-Rollout temperature            & ---    & 1.0  \\
-Eval temperature               & ---    & 0.0  \\
-\bottomrule
-\end{tabular}
-\vspace{2mm}\caption{Training hyperparameters. Stage~1 values are indicative best-practice defaults;
-Stage~2 values will be updated upon final runs.}
-\label{tab:hparams}
-\end{table}
+The rollout vLLM instance and lc0 server fleet co-reside on the same GPUs,
+with 3\,GiB per GPU reserved for the BT4 network.
 
 \subsubsection{Stage~1: Projector Alignment}
 \label{sec:app_stage1}
@@ -122,29 +96,69 @@ $\vz_s = H_\varphi(\vh_s)$ and a fixed prompt template (\cref{sec:app_prompts}).
 Skipping Stage~1 causes training instability during the first 40\% of Stage~2
 (\cref{sec:abl_sft_static_rl_dynamic}).
 
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{ll}
+\toprule
+\textbf{Hyperparameter}        & \textbf{Value} \\
+\midrule
+LR ($H_\varphi$)               & 2e-4 \\
+Batch size                     & 256 \\
+Steps                          & 2 epochs (${\approx}$39K steps) \\
+$k$ (state tokens)             & 32 \\
+Max sequence length            & 32{,}768 \\
+\bottomrule
+\end{tabular}
+\vspace{2mm}\caption{Stage~1 (projector alignment) hyperparameters. $F_\theta$ is frozen.}
+\label{tab:hparams_stage1}
+\end{table}
+
 \subsubsection{Stage~2: Reinforcement Learning (DAPO)}
 \label{sec:app_stage2}
 
-Stage~2 fine-tunes both $F_\theta$ and $H_\varphi$ via DAPO~\cite{yu2025dapo}
-through VERL~0.7.1 with an external vLLM rollout server.
+Stage~2 fine-tunes both $F_\theta$ and $H_\varphi$ jointly with DAPO~\cite{yu2025dapo}.
 The reward is a scalar outcome signal
 $\mathcal{R}(\tau) = R_{\mathrm{outcome}}$
 defined per task (Appendix~\ref{sec:app_reward}).
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{ll}
+\toprule
+\textbf{Hyperparameter}        & \textbf{Value} \\
+\midrule
+LR ($H_\varphi$)               & 1e-5 \\
+LR ($F_\theta$)                & 1e-6 \\
+Batch size                     & 128 \\
+Steps                          & 3{,}000 \\
+KL coefficient $\beta$         & 0.01 \\
+Clip $\varepsilon_l / \varepsilon_h$ & 0.2\,/\,0.28 \\
+Group size $G$                 & 8 \\
+$k$ (state tokens)             & 32 \\
+Max sequence length            & 32{,}768 \\
+Rollout temperature            & 1.0 \\
+Eval temperature               & 0.0 \\
+\bottomrule
+\end{tabular}
+\vspace{2mm}\caption{Stage~2 (DAPO) hyperparameters.}
+\label{tab:hparams_stage2}
+\end{table}
 
 \subsection{Chess Specialist: Lc0-BT4}
 \label{sec:app_lc0}
 
 With \texttt{ScoreType=WDL\_mu}, lc0 reports scores as $100\!\cdot\!Q$ where
-$Q\in[-1,+1]$ is the WDL-mean utility from the side to move's perspective---\emph{not}
-Stockfish-style centipawns~\cite{monroe2024mastering}.
+$Q\in[-1,+1]$ is the WDL-mean utility from the side to move's perspective~\cite{monroe2024mastering}.
 
 \subsubsection{Engine Configuration}
 \label{sec:app_lc0_config}
 \label{sec:app_lc0_latent}
 
 \paragraph{Network.}
-\texttt{BT4-1024x15x32h-swa-6147500-policytune-332}: a 1024-dim, 15-block, 32-head BT4
-transformer saved at step 6{,}147{,}500 after SWA and policy-tuning.
+\href{https://storage.lczero.org/files/networks-contrib/BT4-1024x15x32h-swa-6147500-policytune-332.pb.gz}{\texttt{BT4-1024x15x32h-swa-6147500-policytune-332}}:
+a 1024-dim, 15-layer, 32-head BT4 transformer saved at step 6{,}147{,}500 after SWA and policy-tuning.
 GPU footprint: ${\sim}\,2.9$\,GB in fp16 on A100.
 
 \begin{table}[h]
