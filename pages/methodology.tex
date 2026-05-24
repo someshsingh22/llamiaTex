@@ -12,11 +12,13 @@
 \subsection{Formulation}
 \label{sec:formulation}
 
-We formalize latent state internalization through a running example. An LLM plays chess with access to a pretrained engine exposed through a \textbf{tool API}: functions to read the board state and legal moves, advance the game by making moves, and---critically---query the engine's assessment of any position via \texttt{get\_policy} (full schema in \Cref{sec:app_toolcall_tools}). The first two categories handle environment interaction; \texttt{get\_policy} is the interface to the subagent, and \emph{what it returns} is the variable this paper studies.
+We formalize latent state internalization through a running example. An LLM plays chess with access to a pretrained engine exposed through a \textbf{tool API}: functions to read the board state and legal moves, advance the game by making moves, and---critically---query the engine's assessment of any position via \texttt{get\_policy} (full schema in \Cref{sec:app_toolcall_tools}). The first two categories handle environment interaction; \texttt{get\_policy} is the interface to the subagent, and \emph{what it returns} is the variable this paper studies\somesh{Too cliche and unclear fix}.
 
 \smallskip
 \noindent``\texttt{\mlang{The knight should develop.} \maction{Nf6}\mlang{.} \texttt{get\_policy($\mstate{s_1}$)} $\to$ (\hspace{0.3em}\latenttokens\hspace{0.3em}\latenttokens\hspace{0.3em}\latenttokens\hspace{0.3em})\hspace{0.3em}\mlang{Nc2: P\!=\!0.34, +0.12;\; e4: P\!=\!0.21, +0.08;\;\ldots}}"
 \smallskip
+
+\somesh{Colors are again inconsistent}
 
 \noindent The LLM reasons in language, plays a knight move to f6 (advancing the game to position $\mstate{s_1}$), then calls \texttt{get\_policy}. The engine returns a text summary---per-move prior probabilities and value estimates---that both model variants receive. In LLAMIA, the call additionally injects $k$ continuous \mstate{state tokens} (\hspace{0.3em}\latenttokens\hspace{0.3em}) projected from the engine's internal activations. In LLAMIA-Verb, only the text is returned. Three token types thus interleave in a trace: \mlang{language tokens} (the LLM's chain-of-thought), \maction{action tokens} (moves that advance the game), and \mstate{state tokens} (the engine's projected latent representation, present only under internalization).
 
@@ -49,7 +51,7 @@ where $\mlang{w_t} \in \mathcal{\mlang{V}}$ are language tokens (including the t
 %
 Both LLAMIA and LLAMIA-Verb receive $\hat{w}_t$. A typical return lists the engine's top moves with prior probabilities and value estimates. This captures the subagent's headline assessment but discards the remaining structure in $G_\psi(s_t)$: the full distribution over all legal moves, the value landscape across candidate continuations, and positional features like piece coordination and king safety that interpretability work has identified in engine hidden layers~\cite{jenner2024evidence}.
 
-\paragraph{Internalization.} In LLAMIA, each \texttt{get\_policy} call additionally produces $k$ continuous tokens by projecting the subagent's full latent state into the LLM's embedding space via a learned projection, \textbf{LatentBridge}:
+\somesh{Repetition from above}\paragraph{Internalization.} In LLAMIA, each \texttt{get\_policy} call additionally produces $k$ continuous tokens by projecting the subagent's full latent state into the LLM's embedding space via a learned projection, \textbf{LatentBridge}:
 %
 \begin{equation}
 \mstate{\vz_t} = H_\varphi\bigl(G_\psi(s_t)\bigr) \in \R^{k \times e}
