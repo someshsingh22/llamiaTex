@@ -7,7 +7,12 @@ Automated metrics measure textual and statistical surface properties; they do no
 \subsection{Participants}
 \label{sec:app_human_participants}
 
-We recruited $n_0 = 14$ participants from university chess club chapters via in-person announcement at weekly club meetings. Eligibility required either a current FIDE rating or a verified Chess.com or Lichess rapid rating $\geq 1300$ with $\geq 200$ rated games on record. Participation was voluntary; recordings and transcripts were anonymized upon collection. Following the calibration task described below, $n = 12$ participants met the inclusion criterion and proceeded to both studies.
+We recruited $n_0 = 14$ participants from university chess club chapters via in-person announcement at weekly club meetings. Eligibility required either a current FIDE rating or a verified Chess.com or Lichess rapid rating $\geq 1700$ with $\geq 200$ rated games on record.  Following the calibration task described below, $n = 12$ participants met the inclusion criterion and proceeded to both studies.
+
+Both human studies were conducted under a protocol approved by the Institutional Review Board (IRB).
+Participants were recruited voluntarily and provided written informed consent prior to enrollment. The consent form described the study purpose, the nature of all tasks,  and the intended use of collected data. Participants were informed that some game segments and commentary samples were AI-generated.
+
+Session data (gameplay judgments, Likert ratings, and open-text responses) were anonymized at the point of collection. Each participant was assigned a randomized identifier; no names, handles, or affiliations were retained in the analysis dataset. Raw recordings were deleted following transcription. Participant data will not be shared in identifiable form.
 
 % =============================================================================
 \subsection{Sensitivity Calibration and Participant Selection}
@@ -19,7 +24,7 @@ A participant's ability to evaluate AI gameplay depends on their sensitivity to 
 Each participant reviews 20 recorded game segments in randomized order. Ten segments are drawn from human-vs.-human games (negative controls); the remaining ten from human-vs.-bot games in which the bot is Stockfish~17 at varied strength levels ($n = 3$), Maia ($n = 4$), or a weaker rule-based engine ($n = 3$). For each segment, the participant identifies which player (White or Black) is the bot via forced binary choice; human-vs.-human segments include a ``Neither'' option. Both positive and negative controls are required to measure true discrimination sensitivity rather than a bias to label any player as a bot.
 
 \paragraph{Inclusion criterion.}
-Participants achieving $\geq 70\%$ overall accuracy ($\geq 14{/}20$ correct) proceed to the main studies. Of $n_0 = 14$ recruited participants, $n = 12$ met this criterion. The 12 included participants achieved a median calibration accuracy of 75\% (range: 65--95\%).
+Participants achieving $\geq 70\%$ overall accuracy ($\geq 14{/}20$ correct) proceed to the main studies. Of $n_0 = 14$ recruited participants, $n = 12$ met this criterion. The 12 included participants achieved a median calibration accuracy of 75\%.
 
 % =============================================================================
 \subsection{Study 1: Gameplay Identification}
@@ -44,6 +49,7 @@ Each participant evaluates 10 segments randomly drawn from the pool of 30, keepi
 \end{enumerate}
 These subjective ratings provide convergent evidence alongside the objective detection accuracy: a system that is both hard to detect and rated as human-like in experience achieves qualitative human-likeness, not merely move-distribution similarity.
 
+\somesh{do we need this?}
 \paragraph{Qualitative coding.}
 Open-text responses are transcribed and coded along four dimensions by two independent annotators: (i)~\emph{tactical cues}---references to captures, checks, or forcing sequences; (ii)~\emph{positional cues}---references to pawn structure, piece activity, or long-term plans; (iii)~\emph{stylistic cues}---references to move tempo, unnatural patterns, or ``computer-like'' consistency; (iv)~\emph{no identifiable cue}---the participant could not articulate a reason. Inter-annotator agreement is reported as Cohen's $\kappa$. This qualitative layer distinguishes tactical imitation from deeper stylistic assimilation: a system that merely selects strong moves will produce tactical cues; a system whose move distribution lacks non-human regularities will produce no-cue responses.
 
@@ -70,7 +76,7 @@ For each position (estimated 3--4 minutes), participants complete four items:
 \end{enumerate}
 
 \paragraph{Primary metrics.}
-(i)~Preference rate for LLAMIA: fraction of judged pairs (excluding ``no clear preference'') choosing the LLAMIA output, reported as a mean across 12 raters. Human preferences serve as convergent evidence alongside automated metrics, not as the primary result. (ii)~Mean Accuracy and Insight Likert scores per system. (iii)~Pearson $r$ with Stockfish per system per complexity bin.
+(i)~Preference rate for LLAMIA: fraction of judged pairs (excluding ``no clear preference'') choosing the LLAMIA output, reported as a mean across 12 raters. (ii)~Mean Accuracy and Insight Likert scores per system. (iii)~Pearson $r$ with Stockfish per system.
 
 \paragraph{Rater--judge agreement.}
 All 180 position pairs are independently scored with GPT-4o G-eval \citep{liu2023gevalnlgevaluationusing} using matched Accuracy and Insight prompts. Cohen's $\kappa$ is computed between human preference rankings and G-eval rankings, with a length-adjusted $\kappa$ computed after partialling out the Spearman correlation between G-eval score and commentary word count ($\rho_{\text{length}}$).

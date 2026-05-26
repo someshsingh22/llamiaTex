@@ -21,7 +21,7 @@ Move notation alternates UCI and SAN with probability 70\,/\,30\,\%; evaluations
 pawn units.
 
 \begin{tcolorbox}[promptbox,
-  title={$\triangleright$\; Stage~1 System Prompt --- Projector Alignment}]
+  title={$\triangleright$\; Stage~1 System Prompt}]
 \begin{quote}
 You are LLAMIA, a chess reasoning assistant.
 The board state is encoded in the \texttt{<state>} token sequence embedded in the
@@ -31,7 +31,7 @@ Do not narrate your reasoning; give the answer directly.
 \end{quote}
 \end{tcolorbox}
 
-\begin{tcolorbox}[notebox, title={Stage~1 Training Format (single episode over one FEN)}]
+\begin{tcolorbox}[notebox, title={Stage~1 Training Format}]
 \small
 \textbf{User:}~What is the evaluation of the following position?
 Describe the evaluation followed by the continuation in UCI format, e.g.\
@@ -68,7 +68,7 @@ The explicit refusal-suppression clause is required: without it, Qwen3-4B defaul
 format-pass rate to 0\,\% (verified on 20 held-out puzzles at greedy decoding).
 
 \begin{tcolorbox}[promptbox,
-  title={$\triangleright$\; Stage~2 System Prompt --- Puzzle Popularity / Elo (DAPO Rollouts)}]
+  title={$\triangleright$\; Stage~2 System Prompt --- Puzzle Understanding}]
 \begin{quote}
 You are a chess expert with access to lc0, a top neural network engine.
 A puzzle position has been loaded from the FEN in the user's message.
@@ -116,7 +116,7 @@ Read-only calls (\texttt{analyze}, \texttt{get\_policy}, \texttt{get\_position})
 trigger re-encoding; the token budget is therefore capped at $k$ additional tokens per
 state transition, regardless of analysis depth.
 
-\begin{tcolorbox}[notebox, title={\texttt{<invoke>} Turn Structure (blunder-analysis episode)}]
+\begin{tcolorbox}[notebox, title={\texttt{<invoke>} Turn Structure: Blunder Analysis}]
 \small
 \textbf{Round~1 --- User:} \texttt{<state$_0$>} Why is \texttt{Nxd4} a blunder here?
 [FEN $s_0$]\\[3pt]
@@ -132,7 +132,7 @@ Since no board mutation occurs in blunder analysis, \texttt{<invoke>} does not f
 The re-encoding path is active in multi-step planning episodes, where the agent sequences
 \texttt{make\_move} calls to explore a variation before deciding on a recommendation.
 
-\begin{tcolorbox}[notebox, title={\texttt{<invoke>} Turn Structure (multi-step planning episode)}]
+\begin{tcolorbox}[notebox, title={\texttt{<invoke>} Turn Structure: Multi-step Planning}]
 \small
 \textbf{Round~1 --- User:} \texttt{<state$_0$>} Find the best three-move combination.
 [FEN $s_0$]\\[3pt]

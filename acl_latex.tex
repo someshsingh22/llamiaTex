@@ -219,22 +219,28 @@
 \begin{document}
 \maketitle
 \begin{abstract}                    
-  Multi-agent systems coordinate specialists to solve tasks that require both general reasoning and
-  domain-specific expertise. Because such systems communicate in natural language, prior work has focused on
-   LLM-to-LLM collaboration. But in many important domains such as game playing, robotics, autonomous
-  driving, the strongest available agents are not language models; their expertise is encoded in latent    
-  representations of policy, value, and learned features. Integrating them into LLM systems today relies on
-  \emph{verbalization}: compressing rich continuous representations into sparse textual summaries. Whether
-  verbalization is adequate for deep collaboration remains an open question. Evaluating multi-agent collaboration also requires domains that combine verifiable metrics with meaningful
-   tasks. Chess uniquely provides both: humans have collaborated with engines for decades across commentary,
-   analysis, and planning, producing well-defined tasks with established protocols. We curate               
-  \textsc{LLAMIA-Bench}, a suite of collaborative chess tasks spanning behavior cloning, stylometry, puzzle
-  understanding, commentary, and instruction-conditioned planning, and show that verbalized RL baselines
-  fall short on tasks requiring deeper collaboration. To address this, we introduce \emph{latent state
-  internalization}, an integration paradigm that projects the subagent's continuous representation into the
-  LLM's chain of thought as latent tokens, with dynamic re-encoding as actions advance the environment. A
-  single 13B model trained under this paradigm, \textsc{LLAMIA}, matches or exceeds task-specific
-  specialists across every benchmark category.
+  Large language models are increasingly deployed as orchestrators that coordinate specialized subagents
+  to solve complex tasks. In many important domains---game playing, robotics, and autonomous
+  driving---the strongest available agents are not language models: their expertise is encoded in latent
+  representations of policy, value, and learned features, not in words. Today, integrating such agents
+  into LLM reasoning pipelines requires \emph{verbalization}: compressing rich continuous representations
+  into sparse textual summaries exchanged at each interaction step. Whether verbalization is an adequate
+  communication channel for deep collaboration, or whether it constitutes a structural bottleneck,
+  remains an open question. To study this rigorously, we need a domain that offers verifiable metrics, meaningful human--agent
+  collaboration, and tasks that vary in how much relevant signal survives verbalization. Chess provides
+  all three: decades of human--engine collaboration have produced well-defined tasks and large-scale
+  corpora, while engine representations encode positional geometry, tactical motifs, and lookahead
+  structure that resist faithful text description. We introduce \textsc{LLAMIA-Bench}, a suite of seven
+  collaborative chess tasks spanning behavioral imitation, state assessment, explanation, and
+  instruction-conditioned planning, designed to expose where verbalized communication breaks down. Our experiments reveal a consistent \emph{verbalization debt}: the performance gap between verbalized
+  and internalized integration widens with interaction depth and persists even as the LLM scales from
+  4B to 14B parameters. On tasks whose target signal has no faithful text representation---such as
+  predicting a puzzle's aesthetic interest---verbalized baselines remain near-chance regardless of
+  model size or verbalization density. To close this gap, we introduce \emph{latent state internalization}, which projects the subagent's
+  continuous representations directly into the LLM's token stream as learned latent tokens, with dynamic
+  re-encoding as actions advance the environment state. A single 14B model trained under this paradigm,
+  \textsc{LLAMIA}, matches or exceeds dedicated task specialists across every benchmark category while
+  generalizing out-of-distribution, where task-specific finetunes collapse.
   \end{abstract}
 
 \input{pages/intro}
@@ -249,8 +255,8 @@ We introduced latent state internalization, a method for LLM agent integration t
 
 A single LLAMIA-14B model, trained via projector alignment followed by DAPO, matches or exceeds dedicated task finetunes in aggregate, with the exception of Allie-Adaptive-Search on its in-distribution Elo buckets. The verbalization debt---the performance gap between internalized and verbalized integration---widens on tasks requiring sustained multi-step collaboration and on tasks whose target signal resists text serialization (e.g., puzzle interest), confirming that learned invocation timing and latent-state reading are both essential for effective LLM--agent integration.
 
-\paragraph{Future work.}
-The framework requires three components: a subagent with extractable representations, a lightweight projector, and a differentiable reward signal for end-to-end RL. Robotics policies (RT-2, Octo), game-playing agents, and scientific simulation controllers satisfy these requirements and are natural next instantiations. Two open questions are whether internalization scales to multiple heterogeneous agents within a single reasoning trace, and whether the structured capability emergence observed in instruction-conditioned play (\cref{sec:results_skill_discovery}) replicates across domains.
+% \paragraph{Future work.}
+% The framework requires three components: a subagent with extractable representations, a lightweight projector, and a differentiable reward signal for end-to-end RL. Robotics policies (RT-2, Octo), game-playing agents, and scientific simulation controllers satisfy these requirements and are natural next instantiations. Two open questions are whether internalization scales to multiple heterogeneous agents within a single reasoning trace, and whether the structured capability emergence observed in instruction-conditioned play (\cref{sec:results_skill_discovery}) replicates across domains.
 
 % Bibliography entries for the entire Anthology, followed by custom entries
 %\bibliography{custom,anthology-overleaf-1,anthology-overleaf-2}

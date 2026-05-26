@@ -1,13 +1,13 @@
 \section{Experiments and Results}
 \label{sec:experiments}
 
-We evaluate LLAMIA on \textsc{LLAMIA-Bench}, a suite of seven tasks spanning four collaboration facets: behavioral imitation, state assessment, explanation, and instruction-conditioned play (\cref{sec:app_bench}). Across all tasks, we compare three integration regimes under matched conditions: latent internalization (LLAMIA), RL-trained verbalized tool use (LLAMIA-Verb), and a frontier model with verbalized Lc0 access (GPT-5.1\,+\,Lc0). Full dataset descriptions, metrics, and per-task prompts appear in Appendices~\ref{sec:app_bench}--\ref{sec:app_prompts}.
+We evaluate LLAMIA on \textsc{LLAMIA-Bench}, a suite of six tasks spanning three collaboration facets: behavioral imitation, state assessment, and explanation (\cref{sec:app_bench}). Across all tasks, we compare three integration regimes under matched conditions: latent internalization (LLAMIA), RL-trained verbalized tool use (LLAMIA-Verb), and a frontier model with verbalized Lc0 access (GPT-5.1\,+\,Lc0). Full dataset descriptions, metrics, and per-task prompts appear in Appendices~\ref{sec:app_bench}--\ref{sec:app_prompts}.
 
 \subsection{Setup}
 \label{sec:exp_setup}
 
 \paragraph{Models.}
-LLAMIA uses Qwen3-14B as the backbone with Lc0-BT4 as the subagent. We train at three scales (4B, 8B, 14B) to study size effects. Stage~1 aligns the projector on 5M state--policy pairs (\cref{sec:app_stage1}); Stage~2 runs DAPO on multi-task rollouts across all seven tasks jointly. Training details and hyperparameters are in Appendix~\ref{sec:app_implementation}.
+LLAMIA uses Qwen3-14B as the backbone with Lc0-BT4 as the subagent. We train at three scales (4B, 8B, 14B) to study size effects. Stage~1 aligns the projector on 5M state--policy pairs (\cref{sec:app_stage1}); Stage~2 runs DAPO on multi-task rollouts across all six tasks jointly. Training details and hyperparameters are in Appendix~\ref{sec:app_implementation}.
 
 \paragraph{Baselines.}
 We compare against five groups:
@@ -17,7 +17,7 @@ We compare against five groups:
 (iv)~\textbf{Dedicated task finetunes}: Allie, CF-270M, SCC, trained on $10$--$100\times$ more task-specific data (\cref{sec:app_baseline_experts}).
 
 \paragraph{Metrics.}
-Each task has a primary metric detailed in \cref{sec:app_bench}: move-matching accuracy (behavior cloning), Spearman $\rho$ (difficulty and interest), G-eval and BLEU-2 (annotation and commentary), and tournament Elo (instruction-conditioned play). Primary metrics include 95\% bootstrap confidence intervals where sample sizes warrant; per-task breakdowns with CIs appear in \cref{sec:app_results}.
+Each task has a primary metric detailed in \cref{sec:app_bench}: move-matching accuracy (behavior cloning), Spearman $\rho$ (difficulty and interest), and G-eval and BLEU-2 (annotation and commentary). Primary metrics include 95\% bootstrap confidence intervals where sample sizes warrant; per-task breakdowns with CIs appear in \cref{sec:app_results}.
 
 %% ═══════════════════════════════════════════════════════════════════════════
 \subsection{Training Dynamics and Benchmark Results}
@@ -32,7 +32,7 @@ Each task has a primary metric detailed in \cref{sec:app_bench}: move-matching a
     Solid blue: LLAMIA; dashed orange: LLAMIA-Verb (identical DAPO recipe, same backbone).
     The gap reaches $2$--$3\times$ by convergence and widens throughout; model scale does not close it for LLAMIA-Verb.
     \textbf{(b)}~Per-task reward curves (LLAMIA-14B vs.\ LLAMIA-Verb-14B) for the five RL-trained tasks.
-    ICP is test-only (no training reward curve); BC(Wild) shares the BC reward and is not shown separately.
+    BC(Wild) shares the BC reward and is not shown separately.
     LLAMIA-Verb achieves partial signal on behavior cloning and difficulty (verbalizable targets)
     but stays near-flat on interest and commentary---tasks where the reward signal
     is non-verbalizable or requires multi-step integration.
@@ -54,8 +54,8 @@ These two tasks share a single cause: the reward signal encodes structure absent
 
 Panel~(c) summarizes the evaluation.
 \textbf{(1)}~The backbone alone is insufficient: Qwen3-14B\,+\,Lc0 (no DAPO) averages~16, below LLAMIA-Verb~(31) and GPT-5.1\,+\,Lc0~(36).
-\textbf{(2)}~Internalization outperforms verbalization on every task; the gap is smallest on single-position tasks and largest on interest, commentary, and ICP---consistent with panel~(b).
-\textbf{(3)}~RL on verbalized tools narrows but does not close the frontier gap: LLAMIA-Verb-14B trails GPT-5.1\,+\,Lc0 on every task, with the shortfall widest on commentary and ICP where query-response fragmentation hurts multi-step narratives.
+\textbf{(2)}~Internalization outperforms verbalization on every task; the gap is smallest on single-position tasks and largest on interest and commentary---consistent with panel~(b).
+\textbf{(3)}~RL on verbalized tools narrows but does not close the frontier gap: LLAMIA-Verb-14B trails GPT-5.1\,+\,Lc0 on every task, with the shortfall widest on commentary where query-response fragmentation hurts multi-step narratives.
 \textbf{(4)}~Task finetunes are brittle OOD: Allie leads on in-distribution Maia buckets but drops on GM-25, Low-Time, and $\Delta$Elo, where LLAMIA leads by $6.3$\,pp on average across those three splits (\cref{tab:bc_extended}).
 
 %% ═══════════════════════════════════════════════════════════════════════════
@@ -76,36 +76,14 @@ One might attribute the VD to optimization dynamics rather than information cont
 
 \begin{figure}[t]
     \centering
-
-    \begin{subfigure}[t]{0.6\linewidth}
-        \centering
-        \includegraphics[width=\linewidth]{pages/figures/agency_diversity_training.pdf}
-        \caption{Strategy entropy and task-specificity over training.}
-        \label{fig:agency_diversity_left}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[t]{0.39\linewidth}
-        \centering
-        \includegraphics[width=\linewidth]{icp.pdf}
-        \caption{ICP motif Skill acquisition}
-        \label{fig:agency_diversity_right}
-        \label{fig:icp_motif}
-    \end{subfigure}
-
+    \includegraphics[width=0.9\linewidth]{pages/figures/agency_diversity_training.pdf}
     \caption{\textbf{Verbalization debt constrains collaboration diversity.}
-    Both systems develop similar diversity through ${\sim}30\%$ of training; the curves diverge after ${\sim}40\%$, with LLAMIA rising to $H = 1.53$ (95\% of maximum) while LLAMIA-Verb plateaus at $0.93$ (58\%). Expanded analysis with per-phase annotation in \cref{fig:agency_task_specificity}.}
+    Strategy entropy and task-specificity over DAPO training. Both systems develop similar diversity through ${\sim}30\%$ of training; the curves diverge after ${\sim}40\%$, with LLAMIA rising to $H = 1.53$ (95\% of maximum) while LLAMIA-Verb plateaus at $0.93$ (58\%). Expanded analysis with per-phase annotation in \cref{fig:agency_task_specificity}.}
     \label{fig:agency_diversity}
 \end{figure}
 The verbalization debt measured in \S\ref{sec:results_vd} is a score gap. A second consequence is behavioral: it constrains the \emph{collaboration repertoire} the model can learn. We classify 500 evaluation episodes per system into five collaboration patterns via GPT-4o ($\kappa = 0.78$; taxonomy in \cref{sec:abl_agency_strategies}): engine-follow, consult-then-override, counterfactual query, multi-step lookahead, and abstention.
 
 At convergence, LLAMIA distributes across all five (Figure~\ref{fig:agency_diversity}); LLAMIA-Verb concentrates on engine-follow (69\%). The curves begin separating around ${\sim}30\%$ of training and fully diverge after ${\sim}40\%$, when LLAMIA develops two patterns absent from LLAMIA-Verb: \emph{counterfactual query} (24\%), where the model invokes the agent on hypothetical positions and compares latent representations; and \emph{multi-step lookahead} (13\%), which chains such queries to evaluate candidate plans. Together these account for 37\% of LLAMIA episodes and 3\% of LLAMIA-Verb episodes. Strategies also specialize by task ($\overline{\mathrm{JSD}}$: $0.12$ vs.\ $0.012$ for LLAMIA-Verb), which uses the same engine-follow profile regardless of task. This repertoire requires Stage~2 joint optimization: Stage~1 alone (projector alignment, LLM frozen) produces only engine-follow behavior, because the LLM cannot learn \emph{when} to invoke or how to compose responses across invocations without RL (\cref{sec:app_ablations}).
-
-\label{sec:results_ablations}
-\label{sec:results_skill_discovery}
-\paragraph{Skill discovery via ICP.}
-Instruction-conditioned planning (ICP) tests whether a model can steer play toward natural-language directives about opponent weaknesses. ICP is a test-only task, so improvement reflects transfer from training.
-LLAMIA-14B achieves $2262\,(\pm 28)$ average tournament Elo across five weakness categories, versus $2150\,(\pm 32)$ for GPT-5.1\,+\,Lc0 and $2119\,(\pm 34)$ for LLAMIA-Verb (\cref{tab:icp_extended}).
-Motif categories emerge in a structured order during training: Pawn Structures and Repetition Traps first, then Piece Coordination, Tactical Blunders, and Endgames last, each with a sigmoid-like jump (\cref{sec:app_results_icp_motif}). The ordering mirrors chess pedagogy---simpler tactical and loop-forcing patterns precede multi-phase structural play---consistent with latent projection enabling curriculum-like acquisition. ICP depends on the counterfactual-query and multi-step-lookahead patterns that only LLAMIA develops. Additional ablations (dual-axis scaling, failure-mode taxonomy) appear in \cref{sec:app_ablations}.
 
 %% ═══════════════════════════════════════════════════════════════════════════
 \subsection{Human Evaluation}

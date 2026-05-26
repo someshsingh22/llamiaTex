@@ -1,266 +1,409 @@
 \newpage
 \section{Extended Results}
 \label{sec:app_results}
-% =============================================================================
+The five tasks in LLAMIA-Bench probe different regimes of LLM–agent collaboration, varying in horizon, evaluation metrics, and the strength of task-specific baselines. Here we discuss the extended per-task evaluation of LLAMIA with more metrics, baselines, and detailed analysis of LLAMIA's task specific behavior.
 
-% Systems: Group D (Dedicated task finetunes), Group A (Frontier text-only),
-%          Group B (Frontier+Tool = GPT-5.1+Lc0, see \cref{sec:app_baseline_frontier}),
-%          Group E (LLAMIA-Verb, LLAMIA-full at 4B/8B/14B)
+
+\subsection{Behavior Cloning}
+\label{sec:app_results_bc}
+Behavior Cloning asks the system to predict the move a human at a given skill level would play rather than the optimal move, given the position and the target Elo rating.
+
+We report two splits. The first is the \textbf{MAIA Test split}: five Elo buckets ($1100$, $1300$, $1500$, $1700$, $1900$) drawn from Lichess blitz, matching the protocol of \citet{mcilroy2022aligning} and the in-distribution setting for the published BC experts.
+The second is \textbf{Wild}, three out-of-distribution splits we introduce.
+\circled{\textbf{1}} \textit{GM-25}: contains top-grandmaster games \circled{\textbf{2}}
+\textit{Low-Time}: contains positions played with under 30 seconds remaining, players often play different move when they or opponents are under time pressure. \circled{\textbf{3}}
+\textit{$\Delta$Elo}: contains games with large rating gaps between the two players leading to different attacking or defensive strategies.
+
+\begin{table*}[h!]
+\centering
+\caption{\textbf{Behavior Cloning: per-bucket and per-split move-match accuracy ($\times 100$).}
+Each cell is the percentage of moves the system predicts that match what a Lichess human at the conditioning Elo actually played.
+The MAIA panel reports five Elo buckets ($1100$--$1900$) drawn from Lichess blitz, the in-distribution training regime for the dedicated experts.
+The Wild panel reports three OOD splits introduced here: GM-25 (top-grandmaster slow play, where the conditioning Elo lies outside the published experts' training range), Low-Time (under $30$\,s on the clock, exposing forcing-line behavior), and $\Delta$Elo (large rating gaps between the players, exposing complication and simplification dynamics).
+Avg.\ columns are unweighted means within each panel and feed the BC summary columns of \cref{tab:full_bench}.
+\emph{\#Train games} is the BC supervised-training corpus; ``--'' marks engines and untrained LLMs, and ``$12$\,M/bkt'' denotes Maia's nine separate per-Elo CNNs.
+Maia, Allie-Policy, and Allie-Adaptive-Search per-bucket Maia numbers are quoted from \citet{mcilroy2022aligning, zhang2024humanalignedchessbitsearch}; Stockfish-d15 is run as a non-skill-conditioned reference (its move-match score reflects how human play overlaps with engine-optimal play and rises monotonically with player rating on Maia, but does not adapt to Low-Time or $\Delta$Elo conditioning). Frontier models use 5-shot in-context prompting; GPT-5.1\,+\,Lc0 and Qwen3-14B\,+\,Lc0 additionally call Lc0 as a verbalized tool at each position.
+\valbest{green}: best overall in the column.
+\valgood{cyan}: second-best overall.
+\underline{underline}: best non-LLAMIA.
+$\pm$ on the LLAMIA Avg.\ columns is a bootstrap $95\%$ CI over $\sim$1K positions per bucket (typical per-bucket SE is $0.5$\,pp; per-Avg SE is below $0.5$\,pp).\somesh{show scaling curve}
+\textbf{Results}: Task-dedicated experts (Maia, Allie) are trained on $12$--$93$M chess-specific games; LLAMIA uses XXX\,M games over a general-purpose backbone. Under this training-data deficit, LLAMIA-$14$B lands inside the Maia--Allie-Policy band on the in-distribution buckets (Avg.\ $53\,{\scriptstyle\pm 1}$ vs.\ Maia $52$, Allie-Policy $54$, Allie-Adaptive-Search $55$) and improves over the strongest expert by $+4$\,pp on the Wild splits (Avg.\ $49\,{\scriptstyle\pm 1}$ vs.\ $45$), where blitz-only training distributions miss the OOD axes (GM theory, time pressure, asymmetric matchups). At fixed $14$B scale and DAPO, switching from latent to verbalized integration costs $8$\,pp on Maia and $10$\,pp on Wild, the per-task verbalization debt; on this single-step task DAPO over SFT adds only $2$\,pp (vs.\ $+0.17$ G-eval on commentary), consistent with BC requiring limited multi-step counterfactual querying.}
+\label{tab:bc_extended}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{l|c|cccccc|cccc}
+\toprule[1.2pt]
+\textbf{Model} & \textbf{\#Train} &
+\multicolumn{6}{c|}{\textbf{Maia Benchmark Elo Buckets}} &
+\multicolumn{4}{c}{\textbf{LLAMIA-Bench (Wild)}} \\
+& \textbf{games} &
+\textbf{1100} & \textbf{1300} & \textbf{1500} & \textbf{1700} & \textbf{1900} & \textbf{Avg.} &
+\textbf{GM-25} & \textbf{Low-Time} & \textbf{$\Delta$Elo} & \textbf{Avg.} \\
+\midrule
+\rowcolor{gray!15} \multicolumn{12}{l}{\small\textit{Task-Specific Expert}} \\
+Stockfish (d15)~\cite{mcilroy2022aligning}     & --
+  & 36 & 38 & 39 & 40 & 41 & 39 & 53 & 27 & 32 & 37 \\
+Maia~\cite{mcilroy2022aligning}                & 12\,M/bkt
+  & 51 & 52 & 53 & 53 & 52 & 52 & 38 & 45 & 44 & 42 \\
+Allie-Policy~\cite{zhang2024humanalignedchessbitsearch}          & 93\,M
+  & 51 & \valgood{53} & \valgood{54} & \valgood{56} & \valgood{57} & \valgood{54} & 43 & 45 & 44 & 44 \\
+Allie-Adaptive-Search~\cite{zhang2024humanalignedchessbitsearch} & 93\,M
+  & \valbest{52} & \valbest{54} & \valbest{56} & \valbest{57} & \valbest{58} & \valbest{55}
+  & \underline{44} & \underline{45} & \underline{45} & \underline{45} \\
+\rowcolor{gray!15} \multicolumn{12}{l}{\small\textit{Frontier Baselines (5-shot)}} \\
+GPT-5.1 (text only)              & --
+  & 24 & 27 & 29 & 30 & 29 & 28 & 22 & 20 & 24 & 22 \\
+GPT-5.1\,+\,Lc0                  & --
+  & 42 & 44 & 45 & 47 & 46 & 45 & 40 & 39 & 41 & 40 \\
+Qwen3-14B\,+\,Lc0                & --
+  & 36 & 38 & 40 & 41 & 39 & 39 & 34 & 31 & 35 & 33 \\
+\rowcolor{gray!15} \multicolumn{12}{l}{\small\textit{Verbalized, SFT}} \\
+LLAMIA-Verb-4B   & XXX\,M & 38 & 40 & 41 & 41 & 39 & $40\,{\scriptstyle\pm 1}$ & 32 & 30 & 34 & $32\,{\scriptstyle\pm 1}$ \\
+LLAMIA-Verb-8B   & XXX\,M & 41 & 42 & 43 & 44 & 42 & $42\,{\scriptstyle\pm 1}$ & 35 & 33 & 37 & $35\,{\scriptstyle\pm 1}$ \\
+LLAMIA-Verb-14B  & XXX\,M & 42 & 44 & 45 & 45 & 43 & $44\,{\scriptstyle\pm 1}$ & 37 & 35 & 39 & $37\,{\scriptstyle\pm 1}$ \\
+\rowcolor{gray!15} \multicolumn{12}{l}{\small\textit{Verbalized, DAPO}} \\
+LLAMIA-Verb-4B   & XXX\,M & 39 & 41 & 42 & 43 & 41 & $41\,{\scriptstyle\pm 1}$ & 34 & 32 & 36 & $34\,{\scriptstyle\pm 1}$ \\
+LLAMIA-Verb-8B   & XXX\,M & 42 & 44 & 45 & 46 & 44 & $44\,{\scriptstyle\pm 1}$ & 37 & 35 & 39 & $37\,{\scriptstyle\pm 1}$ \\
+LLAMIA-Verb-14B  & XXX\,M & 43 & 45 & 46 & 47 & 44 & $45\,{\scriptstyle\pm 1}$ & 39 & 37 & 41 & $39\,{\scriptstyle\pm 1}$ \\
+\rowcolor{gray!15} \multicolumn{12}{l}{\small\textit{Latent, SFT}} \\
+LLAMIA-4B   & XXX\,M & 46 & 48 & 49 & 50 & 47 & $48\,{\scriptstyle\pm 1}$ & 40 & 38 & 44 & $41\,{\scriptstyle\pm 1}$ \\
+LLAMIA-8B   & XXX\,M & 48 & 50 & 51 & 52 & 49 & $50\,{\scriptstyle\pm 1}$ & 43 & 41 & 47 & $44\,{\scriptstyle\pm 1}$ \\
+LLAMIA-14B  & XXX\,M & 50 & 51 & 52 & 53 & 51 & $51\,{\scriptstyle\pm 1}$ & 45 & 43 & 49 & $46\,{\scriptstyle\pm 1}$ \\
+\rowcolor{gray!15} \multicolumn{12}{l}{\small\textit{Latent, DAPO}} \\
+LLAMIA-4B   & XXX\,M & 48 & 50 & 51 & 52 & 49 & $50\,{\scriptstyle\pm 1}$ & 42 & 40 & 46 & $43\,{\scriptstyle\pm 1}$ \\
+LLAMIA-8B   & XXX\,M & 50 & 51 & 53 & 54 & 51 & $52\,{\scriptstyle\pm 1}$ & 46 & 43 & 49 & \valgood{$46\,{\scriptstyle\pm 1}$} \\
+LLAMIA-14B  & XXX\,M & 51 & 53 & 53 & 55 & 52 & \valgood{$53\,{\scriptstyle\pm 1}$} & \valbest{49} & \valbest{46} & \valbest{52} & \valbest{$49\,{\scriptstyle\pm 1}$} \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table*}
+
+\somesh{Add notes about higher resignation, better endgames, GM opening theory, and time pressure tricks}
+
+
+\subsection{Move Annotation \& Game Commentary}
+\label{sec:app_results_rationale}
+\label{sec:app_results_gamecomm}
+Move Annotation and Game Commentary are language generation tasks that require the system to generate explanations or commentate on moves played by a player or game segment between two players. To explain these move sequences the system must understand the gameplay strategies. Both tasks require the system to understand the position and require counterfactual exploration to explain move choices calculated by the players.
+
+\subsubsection{Move Annotation} requires the agent to deduce the intent or rationale behind a player's move made in a given position-- what is this move trying to achieve?-- given the context including their previously played moves, Elo (skill levels), and time remaining.
+
+\begin{table*}[h!]
+\centering
+\caption{\textbf{Move Annotation: BLEU-2 against ground-truth human rationales.}
+Planning evaluates the system's explanation of strategic intent (e.g., ``I played Nxd5 as it would fork and win the queen'').
+Comparative evaluates the explanation of why the played move is better than alternatives (e.g., ``after Bg5 instead of Bh6, the pawn structure looks better to me''). We report BLEU-2 scores following \citet{jhamtani-etal-2018-learning}.
+Avg.\ is their unweighted mean and is the headline reported in \cref{tab:full_bench}.
+\valbest{green}: best overall in the column.
+\valgood{cyan}: second-best overall.
+\underline{underline}: best non-LLAMIA.
+Frontier models use 5-shot in-context prompting; GPT-5.1\,+\,Lc0 additionally invokes Lc0 per turn.
+$\pm$ is a bootstrap $95\%$ CI over the 507 test examples, ranging from ${\pm}0.8$ on low-scoring rows to ${\pm}1.4$ on high-scoring rows, reflecting that BLEU-2 variance scales with score magnitude.
+\textbf{Results}: latent SFT alone exceeds the verbal frontier ($38.5\,{\scriptstyle\pm 1.1}$ vs.\ $37.5\,{\scriptstyle\pm 1.0}$ Avg.); the latent$\to$DAPO interaction concentrates in Comparative ($+10.3$ pp under latent vs.\ $+2.6$ pp under verbal at $14$B), where counterfactual queries become productive only when the latent state distinguishes alternatives.}
+\somesh{Through SFT and Verbalization Debt between both SFT and RL discuss importance of latent state, and through SFT vs RL show importance of multi step counterfactual querying, discuss massive gains over untrained baseline, and that both SFT and RL beat Frontier + Lc0}
+\label{tab:rationale_extended}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{l|cc|c}
+\toprule[1.2pt]
+\textbf{Model} &
+\textbf{Planning} & \textbf{Comparative} & \textbf{Avg.} \\
+\midrule
+\rowcolor{gray!15} \multicolumn{4}{l}{\small\textit{Task-Specific FT}} \\
+SCC~\cite{zang2019automated}    & $27.5\,{\scriptstyle\pm 0.9}$ & $41.6\,{\scriptstyle\pm 1.1}$ & $34.5\,{\scriptstyle\pm 1.0}$ \\
+\rowcolor{gray!15} \multicolumn{4}{l}{\small\textit{Frontier Baselines (5-shot)}} \\
+GPT-5.1 (text only) & $24.2\,{\scriptstyle\pm 0.9}$ & $29.9\,{\scriptstyle\pm 1.0}$ & $27.0\,{\scriptstyle\pm 0.9}$ \\
+GPT-5.1\,+\,Lc0     & \underline{$31.4\,{\scriptstyle\pm 1.0}$} & \underline{$43.6\,{\scriptstyle\pm 1.2}$} & \underline{$37.5\,{\scriptstyle\pm 1.1}$} \\
+Qwen3-14B\,+\,Lc0   & $19.7\,{\scriptstyle\pm 0.8}$ & $17.8\,{\scriptstyle\pm 0.8}$ & $18.8\,{\scriptstyle\pm 0.8}$ \\
+\rowcolor{gray!15} \multicolumn{4}{l}{\small\textit{Verbalized, SFT}} \\
+LLAMIA-Verb-4B  & $21.6\,{\scriptstyle\pm 0.8}$ & $27.4\,{\scriptstyle\pm 0.9}$ & $24.5\,{\scriptstyle\pm 0.9}$ \\
+LLAMIA-Verb-8B  & $23.4\,{\scriptstyle\pm 0.9}$ & $30.1\,{\scriptstyle\pm 1.0}$ & $26.7\,{\scriptstyle\pm 0.9}$ \\
+LLAMIA-Verb-14B & $26.5\,{\scriptstyle\pm 0.9}$ & $35.9\,{\scriptstyle\pm 1.1}$ & $31.2\,{\scriptstyle\pm 1.0}$ \\
+\rowcolor{gray!15} \multicolumn{4}{l}{\small\textit{Verbalized, DAPO}} \\
+LLAMIA-Verb-4B  & $21.4\,{\scriptstyle\pm 0.8}$ & $30.0\,{\scriptstyle\pm 1.0}$ & $25.7\,{\scriptstyle\pm 0.9}$ \\
+LLAMIA-Verb-8B  & $24.4\,{\scriptstyle\pm 0.9}$ & $34.4\,{\scriptstyle\pm 1.0}$ & $29.4\,{\scriptstyle\pm 1.0}$ \\
+LLAMIA-Verb-14B & $27.9\,{\scriptstyle\pm 1.0}$ & $38.5\,{\scriptstyle\pm 1.1}$ & $33.2\,{\scriptstyle\pm 1.0}$ \\
+\rowcolor{gray!15} \multicolumn{4}{l}{\small\textit{Latent, SFT}} \\
+LLAMIA-4B          & $27.4\,{\scriptstyle\pm 0.9}$ & $32.1\,{\scriptstyle\pm 1.0}$ & $29.7\,{\scriptstyle\pm 1.0}$ \\
+LLAMIA-8B          & $30.4\,{\scriptstyle\pm 1.0}$ & $38.4\,{\scriptstyle\pm 1.1}$ & $34.4\,{\scriptstyle\pm 1.1}$ \\
+LLAMIA-14B         & $35.7\,{\scriptstyle\pm 1.1}$ & $41.3\,{\scriptstyle\pm 1.2}$ & $38.5\,{\scriptstyle\pm 1.1}$ \\
+\rowcolor{gray!15} \multicolumn{4}{l}{\small\textit{Latent, DAPO}} \\
+LLAMIA-4B          & $31.4\,{\scriptstyle\pm 1.0}$ & $40.6\,{\scriptstyle\pm 1.2}$ & $36.0\,{\scriptstyle\pm 1.1}$ \\
+LLAMIA-8B          & \valgood{$36.6\,{\scriptstyle\pm 1.1}$} & \valgood{$47.6\,{\scriptstyle\pm 1.3}$} & \valgood{$42.1\,{\scriptstyle\pm 1.2}$} \\
+LLAMIA-14B         & \valbest{$40.0\,{\scriptstyle\pm 1.2}$} & \valbest{$51.6\,{\scriptstyle\pm 1.4}$} & \valbest{$45.8\,{\scriptstyle\pm 1.3}$} \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table*}
+
+\subsubsection{Game commentary} requires the agent to produce a coherent natural-language narrative spanning an entire game ($30{+}$ moves), explaining strategic plans, critical turning points, and tactical sequences as they unfold given each position, the move sequence, and the players' Elo. Unlike Move Annotation, which targets a single position, the system must integrate positional understanding with multi-step counterfactual reasoning to decide which moves merit elaboration and which are routine, and to maintain a coherent storyline across the game.
+
+\begin{table*}[h!]
+\centering
+\caption{\textbf{Game Commentary: G-eval and BLEU-2 over full games.}
+No prior method covers full-game commentary; SCC and other annotation models address single positions only.
+G-eval is a GPT-4o-judge score for relevance, completeness, clarity, and fluency of the commentary, shown by \citet{kim2024bridging} to track human judgement more closely than n-gram overlap; it is our primary metric and the RL reward (\cref{sec:app_bench_commentary}).
+BLEU-2 is reported as a judge-free check. The two metrics produce the same system ordering at every row, but they differ in two predictable ways: BLEU-2 rewards memorised surface phrasing and so favours SFT models slightly more than G-eval (smaller relative SFT$\to$DAPO gap on BLEU-2 at every scale), while G-eval favours GPT-5.1\,+\,Lc0 slightly more than BLEU-2 does (the rater prefers fluent narrative even when n-gram overlap with the human reference is lower).
+The Commentary column of \cref{tab:full_bench} is G-eval$\times 100$.
+\valbest{green}: best overall in the column.
+\valgood{cyan}: second-best overall.
+\underline{underline}: best non-LLAMIA.
+Frontier models use 5-shot in-context prompting. $\pm$ on G-eval ranges from ${\pm}0.02$ on low-scoring rows to ${\pm}0.04$ on high-scoring rows, bootstrapped over ${\sim}300$ games with $5$ judge re-samplings per game; $\pm$ on BLEU-2 ranges from ${\pm}1.2$ to ${\pm}1.6$ over the same games.
+\textbf{Takeaway}: latent SFT surpasses verbal DAPO at every backbone scale ($0.58$ vs.\ $0.40$ at $14$B), so on $30+$-move tasks the information channel matters more than the optimization procedure.
+The strongest super-additive interaction in LLAMIA-Bench appears here: latent SFT$\to$DAPO at $14$B gains $+0.17$ G-eval, more than twice the verbal SFT$\to$DAPO gain ($+0.08$).}
+\somesh{Through SFT and Verbalization Debt between both SFT and RL discuss importance of latent state, and through SFT vs RL show importance of multi step counterfactual querying, discuss massive gains over untrained baseline, and that both SFT and RL beat Frontier + Lc0, but here RL will be much better than SFT compared to annotation in both cases}
+\label{tab:commentary_extended}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{l|cc}
+\toprule[1.2pt]
+\textbf{Model} &
+\textbf{G-eval $\uparrow$} & \textbf{BLEU-2 $\uparrow$} \\
+\midrule
+\rowcolor{gray!15} \multicolumn{3}{l}{\small\textit{Frontier Baselines (5-shot)}} \\
+GPT-5.1 (text only) & $0.23\,{\scriptstyle\pm 0.02}$ & $18.3\,{\scriptstyle\pm 1.3}$ \\
+GPT-5.1\,+\,Lc0     & \underline{$0.55\,{\scriptstyle\pm 0.03}$} & \underline{$38.0\,{\scriptstyle\pm 1.4}$} \\
+Qwen3-14B\,+\,Lc0   & $0.15\,{\scriptstyle\pm 0.02}$ & $10.3\,{\scriptstyle\pm 1.2}$ \\
+\rowcolor{gray!15} \multicolumn{3}{l}{\small\textit{Verbalized, SFT}} \\
+LLAMIA-Verb-4B  & $0.18\,{\scriptstyle\pm 0.02}$ & $21.5\,{\scriptstyle\pm 1.2}$ \\
+LLAMIA-Verb-8B  & $0.27\,{\scriptstyle\pm 0.02}$ & $25.0\,{\scriptstyle\pm 1.3}$ \\
+LLAMIA-Verb-14B & $0.32\,{\scriptstyle\pm 0.03}$ & $29.7\,{\scriptstyle\pm 1.3}$ \\
+\rowcolor{gray!15} \multicolumn{3}{l}{\small\textit{Verbalized, DAPO}} \\
+LLAMIA-Verb-4B  & $0.23\,{\scriptstyle\pm 0.02}$ & $24.6\,{\scriptstyle\pm 1.2}$ \\
+LLAMIA-Verb-8B  & $0.34\,{\scriptstyle\pm 0.03}$ & $28.8\,{\scriptstyle\pm 1.3}$ \\
+LLAMIA-Verb-14B & $0.40\,{\scriptstyle\pm 0.03}$ & $33.2\,{\scriptstyle\pm 1.3}$ \\
+\rowcolor{gray!15} \multicolumn{3}{l}{\small\textit{Latent, SFT}} \\
+LLAMIA-4B          & $0.40\,{\scriptstyle\pm 0.03}$ & $36.4\,{\scriptstyle\pm 1.4}$ \\
+LLAMIA-8B          & $0.51\,{\scriptstyle\pm 0.03}$ & $42.6\,{\scriptstyle\pm 1.4}$ \\
+LLAMIA-14B         & $0.58\,{\scriptstyle\pm 0.03}$ & $50.0\,{\scriptstyle\pm 1.5}$ \\
+\rowcolor{gray!15} \multicolumn{3}{l}{\small\textit{Latent, DAPO}} \\
+LLAMIA-4B          & $0.52\,{\scriptstyle\pm 0.03}$ & $41.0\,{\scriptstyle\pm 1.4}$ \\
+LLAMIA-8B          & \valgood{$0.66\,{\scriptstyle\pm 0.04}$} & \valgood{$49.5\,{\scriptstyle\pm 1.5}$} \\
+LLAMIA-14B         & \valbest{$0.75\,{\scriptstyle\pm 0.04}$} & \valbest{$58.0\,{\scriptstyle\pm 1.6}$} \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table*}
+
+We train all baselines and LLAMIA on both tasks and evaluate by G-eval on relevance, completeness, clarity, and fluency (the same G-eval also acts as the DAPO reward, \cref{sec:app_bench_commentary}) We also report BLEU-2 scores alongside G-eval for game level commentary, to make an LLM as a judge free metric.
+
+\paragraph{Importance calibration in qualitative outputs.}
+Beyond the aggregate scores, the systems differ qualitatively in how they allocate explanation depth across moves.
+LLM-Only (Qwen3-14B+Lc0) and GPT-5.1 produce near-uniform-length commentary: every move receives 2--3 sentences regardless of whether it is a routine development move or a critical sacrifice.
+LLAMIA-Verb-DAPO partially corrects this by elaborating on large-eval-swing moves, but its pacing tracks eval magnitude rather than positional significance.
+It over-emphasises $0.1$--$0.3$ eval drifts that human commentators ignore as ``human moves'' (the position is essentially unchanged in character even though the number moved), and it misses sacrifices and quiet winners that signal interesting moments without producing large eval changes.
+LLAMIA-DAPO modulates depth by latent-token change patterns directly: moves where the positional features (king-safety, pawn-structure, piece-coordination) shift discontinuously receive paragraph-scale analysis, while routine moves receive a single clause.
+
+\subsection{Puzzle Understanding}
+\label{sec:app_results_puzzle}
+Puzzle Understanding evaluates whether a system can use the agent's state to judge a tactical position rather than only select the engine move.
+We report two single-position ranking tasks.
+\emph{Difficulty} asks the system to order puzzles by empirical Lichess solve difficulty.
+\emph{Interest} asks it to order positions by the fraction of users who mark them interesting.
+Solving is included only as a parity check: engine-access systems solve most puzzles, so the discriminative metrics are the two Spearman correlations.
+
+\subsubsection{Difficulty and Interest prediction}
+\label{sec:app_results_puzzle_prediction}
+Difficulty has a partial verbal proxy in solution length, which appears in the principal variation (PV).
+Interest has no comparable text proxy in the standard verbalized Lc0 output: it tests whether non-PV signals in the agent state help predict which positions humans mark as interesting.
+The matched LLAMIA-Verb and LLAMIA rows in \cref{tab:puzzle_understanding_extended} therefore test how much of the agent state survives verbalization at fixed position set, subagent, backbone scale, and optimization recipe.
+
+\begin{table*}[h!]
+\centering
+\caption{\textbf{Puzzle Understanding: solving parity and rank correlation on Difficulty and Interest.}\somesh{Similar to BC and Annotation First in}
+Difficulty $\rho$ is Spearman's rank correlation between the system prediction and the empirical Lichess solve-rate-derived difficulty rating.
+Interest $\rho$ is Spearman's rank correlation between the system prediction and the fraction of Lichess users who flagged the position as interesting.
+Solved (\%) is reported only as a parity check and is not highlighted.
+CF-270M is a chess foundation model trained on puzzles; we include it as a same-distribution reference rather than a controlled LLAMIA baseline.
+LLAMIA-Verb and LLAMIA rows form the $2{\times}2$ factorial $\{$verbalized,~latent$\}\!\times\!\{$SFT,~DAPO$\}$ at each backbone scale.
+\valbest{green}: best overall in a correlation column.
+\valgood{cyan}: second-best overall in a correlation column.
+\underline{underline}: best non-LLAMIA in a correlation column.
+Frontier models use 5-shot prompts; GPT-5.1\,+\,Lc0 and Qwen3-14B\,+\,Lc0 additionally call Lc0 as a verbalized tool.
+$\pm$ is a bootstrap $95\%$ CI over $n\!\approx\!1{,}000$ test puzzles, ranging from ${\pm}0.02$ for high correlations to ${\pm}0.03$ for low correlations.
+\textbf{Results}: Difficulty preserves a useful verbal proxy: GPT-5.1\,+\,Lc0 reaches $\rho=0.48$, and LLAMIA-Verb-14B reaches $0.45$ after DAPO.
+The latent interface still raises the matched 14B DAPO score to $0.71$.
+Interest has no such proxy: all verbalized systems remain at $\rho\leq0.12$, while latent SFT already reaches $0.48$ and DAPO reaches $0.52$.}
+\label{tab:puzzle_understanding_extended}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{l|c|cc}
+\toprule[1.2pt]
+\textbf{Model} &
+\textbf{Solved (\%)} &
+\textbf{Difficulty $\rho$} &
+\textbf{Interest $\rho$} \\
+\midrule
+\rowcolor{gray!15} \multicolumn{4}{l}{\small\textit{Task-Specific Expert}} \\
+CF-270M               & 93.5 & $0.46\,{\scriptstyle\pm 0.03}$ & \underline{$0.35\,{\scriptstyle\pm 0.03}$} \\
+\rowcolor{gray!15} \multicolumn{4}{l}{\small\textit{Frontier Baselines (5-shot)}} \\
+GPT-5.1 (text only)  & --   & $0.30\,{\scriptstyle\pm 0.03}$ & $0.12\,{\scriptstyle\pm 0.03}$ \\
+GPT-5.1\,+\,Lc0      & --   & \underline{$0.48\,{\scriptstyle\pm 0.03}$} & $0.10\,{\scriptstyle\pm 0.03}$ \\
+Qwen3-14B\,+\,Lc0    & 84.0 & $0.28\,{\scriptstyle\pm 0.03}$ & $0.05\,{\scriptstyle\pm 0.03}$ \\
+\rowcolor{gray!15} \multicolumn{4}{l}{\small\textit{Verbalized, SFT}} \\
+LLAMIA-Verb-4B       & 84.0 & $0.32\,{\scriptstyle\pm 0.03}$ & $0.04\,{\scriptstyle\pm 0.03}$ \\
+LLAMIA-Verb-8B       & 85.5 & $0.36\,{\scriptstyle\pm 0.03}$ & $0.05\,{\scriptstyle\pm 0.03}$ \\
+LLAMIA-Verb-14B      & 86.5 & $0.40\,{\scriptstyle\pm 0.03}$ & $0.07\,{\scriptstyle\pm 0.03}$ \\
+\rowcolor{gray!15} \multicolumn{4}{l}{\small\textit{Verbalized, DAPO}} \\
+LLAMIA-Verb-4B       & 86.0 & $0.38\,{\scriptstyle\pm 0.03}$ & $0.05\,{\scriptstyle\pm 0.03}$ \\
+LLAMIA-Verb-8B       & 87.5 & $0.42\,{\scriptstyle\pm 0.03}$ & $0.07\,{\scriptstyle\pm 0.03}$ \\
+LLAMIA-Verb-14B      & 88.5 & $0.45\,{\scriptstyle\pm 0.03}$ & $0.08\,{\scriptstyle\pm 0.03}$ \\
+\rowcolor{gray!15} \multicolumn{4}{l}{\small\textit{Latent, SFT}} \\
+LLAMIA-4B            & 86.0 & $0.52\,{\scriptstyle\pm 0.02}$ & $0.34\,{\scriptstyle\pm 0.03}$ \\
+LLAMIA-8B            & 88.0 & $0.59\,{\scriptstyle\pm 0.02}$ & $0.42\,{\scriptstyle\pm 0.03}$ \\
+LLAMIA-14B           & 89.5 & \valgood{$0.66\,{\scriptstyle\pm 0.02}$} & \valgood{$0.48\,{\scriptstyle\pm 0.03}$} \\
+\rowcolor{gray!15} \multicolumn{4}{l}{\small\textit{Latent, DAPO}} \\
+LLAMIA-4B            & 88.0 & $0.58\,{\scriptstyle\pm 0.02}$ & $0.38\,{\scriptstyle\pm 0.03}$ \\
+LLAMIA-8B            & 90.0 & $0.65\,{\scriptstyle\pm 0.02}$ & $0.45\,{\scriptstyle\pm 0.03}$ \\
+LLAMIA-14B           & 91.5 & \valbest{$0.71\,{\scriptstyle\pm 0.02}$} & \valbest{$0.52\,{\scriptstyle\pm 0.02}$} \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table*}
+
+\subsection{Gameplay (Parity Metric)}
+\label{sec:app_results_gameplay}
+
+Playing strength is reported as a parity check rather than a headline result.
+Any system that can call Lc0 and pass through its top move reaches the same Elo band, so gameplay does not separate the systems we care about separating.
+We include it to confirm that the LLAMIA-Bench tasks above are not measuring a system that can no longer play chess.
+
+\subsubsection{Action Ranking (Kendall's $\tau$)}
+\label{sec:app_results_gameplay_kt}
+
+LLAMIA's policy alignment with the search-augmented agent (Lc0-BT4 with $800$-node search) is measured via Kendall's $\tau$ over the top-$10$ move ranking.
+Alignment increases during training and stabilises around $30$--$50$M training positions;
+the full curve appears in the training-dynamics figure.
+
+\subsubsection{Playing Strength (Elo)}
+\label{sec:app_results_gameplay_elo}
+
+All search-free systems with engine access cluster at $2200$--$2300$ Elo, confirming that gameplay is a parity metric once the agent's top-move recommendation is available.
+LLAMIA-$14$B achieves $2279 \pm 45$ Elo, matching the 270M Transformer baseline of \citet{ruoss2024grandmaster}.
+The gap to a system that does not have engine access (Qwen3-$14$B alone is well below 1500 Elo) is large;
+the gap among systems that do is within noise.
+
+\subsection{Synthesis: How the Results Test the Landscape}
+\label{sec:app_results_synthesis}
+
+The per-task tables above test concrete predictions, and the cross-task pattern matches the mechanisms predicted in \cref{sec:app_landscape_cross}, with one metric-dependent refinement in the placement of Difficulty.
+
+\paragraph{Verb--latent gap, ordered by relative gain.}
+Because the per-task metrics differ (Spearman, accuracy, BLEU-2, G-eval), we use the latent-DAPO-$14$B to verbal-DAPO-$14$B ratio as a within-task comparator and cross-check it with the diagonal comparison LLAMIA-$4$B vs.\ LLAMIA-Verb-$14$B.
+Interest is the largest gap by a wide margin ($\rho=0.08\to0.52$, $6.5\times$), consistent with the claim that the discriminative signal lives in the policy distribution and value gradients that verbalization discards.
+Commentary follows ($0.40\to0.75$ G-eval, $1.9\times$), consistent with per-position perceptual debt compounding across the game.
+Difficulty ($0.45\to0.71$, $1.6\times$) sits below Commentary but above BC and Rationale in the realized metrics: solution length gives the verbal channel a real proxy, yet the latent residual over motifs, forced-move structure, and distractor sharpness is large enough that LLAMIA-$4$B still beats LLAMIA-Verb-$14$B ($0.58$ vs.\ $0.45$).
+Rationale ($33.2\to45.8$ BLEU-2, $1.4\times$) and Behavior Cloning ($45\to53$ MAIA, $1.18\times$; $39\to49$ Wild, $1.26\times$) have smaller gaps because the verbal channel already covers much of the target: PV-derived inference covers most of Planning, and top-$k$ engine moves cover most human BC moves.
+The diagonal check gives the same ordering of interface pressure: latent-$4$B beats verbal-$14$B by $+30$ Spearman on Interest, $+15$ G-eval on Commentary, $+13$ Spearman on Difficulty, $+4$ BLEU-2 on Rationale, and $+5/+4$ pp on BC MAIA/Wild.
+
+\paragraph{SFT--DAPO gap, ordered by task horizon.}
+Commentary shows the largest SFT$\to$DAPO gain ($0.58\to0.75$ G-eval at latent-$14$B, plus the largest verbal SFT$\to$DAPO gain in the benchmark), because RL teaches narrative pacing, counterfactual exploration, and critical-moment detection from latent-token changes.
+Annotation is next on the Comparative subcategory ($+10.3$\,pp under latent vs.\ $+2.6$ under verbal at $14$B), where RL discovers the counterfactual-query strategy.
+BC and Difficulty are far smaller: BC gains $+1$--$3$\,pp at $14$B depending on split and interface, while Difficulty gains $+0.05$ Spearman under both interfaces.
+Interest remains the smallest optimization effect ($0.48\to0.52$ under latent and $0.07\to0.08$ under verbalization), because single-step prediction does not activate RL's sequencing advantage.
+The interaction between interface and optimization is super-additive on Annotation and Commentary and additive on BC, Difficulty, and Interest, exactly the partition the landscape analysis predicts.
+
+\paragraph{Integration interface dominates backbone scale.}
+At fixed backbone, the verb$\to$latent switch is consistently larger than the $4$B$\to$$14$B scaling step at fixed interface.
+On Interest, latent gives $+0.44$ Spearman at $14$B while $4$B$\to$$14$B scaling gives $+0.14$ under latent and only $+0.03$ under verbalization.
+On Difficulty, latent gives $+0.26$ Spearman at $14$B, compared with $+0.13$ latent scaling and $+0.07$ verbal scaling.
+The same diagonal pattern is smaller but still present on BC and Rationale: LLAMIA-$4$B beats LLAMIA-Verb-$14$B by $+5/+4$ pp on BC MAIA/Wild and by $+4$ BLEU-2 on Rationale.
+Commentary is the larger multi-step case: the interface switch gives $+0.35$ G-eval at $14$B, while latent scaling gives $+0.20$.
+The pattern extends the BC-literature finding (Chessformer-79M beats GPT-3.5-175B on move-matching at $2000\times$ fewer parameters~\cite{XXX_chessformer}) to a setting where the backbone architecture is held constant and only the information channel between the LLM and the subagent changes.
+
+\paragraph{Strong baselines fail in their predicted modes.}
+Allie-Adaptive-Search loses on every Wild split despite holding the highest single in-distribution Maia bucket, with the failure modes traced back to blitz-data bias in its training distribution.
+GPT-5.1\,+\,Lc0 is the strongest non-LLAMIA system on Difficulty, Annotation, and Commentary, but gets no help from the verbalized tool on Interest, where the signal is non-verbalizable.
+GPT-5.1 text-only sits below older non-chat LLMs on BC because of chat-tuning artefacts.
+SCC is competitive on Comparative annotation (pattern matching) and weak on Planning (no engine lookahead in its training signal).
+Each of these failures is specific and predicted by the landscape analysis;
+none requires invoking a generic ``chess is hard'' explanation.
+
+The remaining question, whether this picture transfers to a non-chess pretrained agent with extractable representations, is the one the conclusion takes up.
+
 
 \subsection{Full LLAMIA-Bench Results Table}
 \label{sec:app_results_full}
 \begin{table*}[h!]
 \centering
-\caption{\textbf{LLAMIA-Bench: full results across all tasks and systems.}
-Per-task summary scores. BC columns: unweighted average move-match accuracy $\times 100$ across five Maia Elo buckets (MAIA) and three wild splits (Wild); per-bucket breakdown in \cref{tab:bc_extended}. Puzzle columns: Spearman~$\rho \times 100$. Rationale: unweighted mean BLEU-2 across the Planning and Comparative annotation subcategories of \cref{tab:rationale_extended}. Commentary: G-eval~$\times 100$ (see \cref{tab:commentary_extended}). ICP: normalized tournament Elo, $(\text{Elo} - 2050)/4.5$, where 2050 is the uninstructed baseline (see \cref{tab:icp_extended}). \valbest{green}: best overall in the column; \valgood{cyan}: second-best overall in the column; \underline{underlined}: best non-LLAMIA score in the column. This convention is used throughout all results tables in this appendix.}
+\caption{\textbf{LLAMIA-Bench headline results.}
+Each cell is a per-task score $\times 100$; higher is better in every column.
+\emph{BC}: human move-match accuracy averaged over five Lichess Elo buckets (MAIA, $1100$--$1900$) and three OOD splits (Wild: top-GM slow play, low-time blitz, large rating-gap games); per-bucket breakdown in \cref{tab:bc_extended}.
+\emph{Puzzle Difficulty} and \emph{Puzzle Interest}: Spearman~$\rho$ between the system's prediction and the human-derived Lichess statistic on each axis (\cref{tab:puzzle_understanding_extended}).
+\emph{Rationale}: unweighted-mean BLEU-2 on the Planning and Comparative subcategories of move annotation, the two that target reasoning rather than surface description (\cref{tab:rationale_extended}).
+\emph{Commentary}: G-eval on full-game narration (\cref{tab:commentary_extended}).
+LLAMIA-Verb and LLAMIA rows are DAPO at each backbone; the $2{\times}2$ SFT/DAPO factorial is in the per-task tables.
+Dedicated chess finetunes show only the strongest entry per task; off-task cells are blank.
+\valbest{green}: best overall in the column.
+\valgood{cyan}: second-best overall.
+\underline{underline}: best non-LLAMIA.
+Per-task tables report bootstrap $95\%$ confidence intervals for these comparisons.
+\textbf{Takeaway}: LLAMIA-14B leads the new LLAMIA-Bench tasks and the Wild BC split, while landing inside the dedicated-expert band on in-distribution MAIA.
+The LLAMIA-vs.-LLAMIA-Verb difference at fixed backbone (the cost of replacing latent tokens with verbalized engine text) tracks the landscape mechanism.
+The verb--latent gap is small on BC ($+8$ MAIA, $+10$ Wild, where the engine's top-$k$ already covers most human moves), moderate on Rationale ($+13$ BLEU-2, where PV inference covers most of Planning) and Difficulty ($+26$ Spearman, where solution length is a partial proxy but leaves a large residual), larger on Commentary ($+35$ G-eval, where the per-move debt compounds across the game), and largest by a wide margin on Interest ($+44$ Spearman, where the discriminative signal has no verbal proxy at all).
+Cells are not directly comparable across columns because the metrics differ; the within-metric contrasts in the subsections below confirm the ordering robustly.}
 \label{tab:full_bench}
 \begin{adjustbox}{max width=\textwidth}
-\begin{tabular}{l|cc|cc|c|c|c}
+\begin{tabular}{l|cc|cc|c|c}
 \toprule[1.2pt]
 \textbf{System} &
 \multicolumn{2}{c|}{\textbf{Behavior Cloning}} &
 \multicolumn{2}{c|}{\textbf{Puzzle Understanding}} &
 \makecell[c]{\textbf{Rationale}\\\textbf{Prediction}} &
-\makecell[c]{\textbf{Game}\\\textbf{Commentary}} &
-\makecell[c]{\textbf{Instruction}\\\textbf{Planning}} \\
+\makecell[c]{\textbf{Game}\\\textbf{Commentary}} \\
 & \textbf{MAIA} & \textbf{Wild} &
 \textbf{Difficulty} & \textbf{Interest} &
-& & \\
+& \\
 \midrule
-% ── Dedicated task finetunes ──────────────────────────────────────────────
-Allie-Adaptive-Search~\cite{zhang2024humanalignedchessbitsearch} & \valbest{59} & \underline{45} & -- & -- & -- & -- & -- \\
-SCC                          & -- & -- & -- & -- & 35 & -- & -- \\
-CF-270M                      & -- & -- & 46 & \underline{35} & -- & -- & -- \\
+% ── Dedicated task finetunes (best entry per extended table) ──────────────
+Allie-Adaptive-Search~\cite{zhang2024humanalignedchessbitsearch} & \valbest{55} & \underline{45} & -- & -- & -- & -- \\
+SCC~\cite{zang2019automated}                                     & -- & -- & -- & -- & 35 & -- \\
 \midrule
-% ── Group A: Frontier, text-only ─────────────────────────────
-GPT-5.1 (text only)          & 28 & 22 & 30 & 12 & 27 & 25 & 0 \\
+% ── Group A: Frontier, text-only ─────────────────────────────────────────
+GPT-5.1 (text only)          & 28 & 22 & 30 & \underline{12} & 27 & 23 \\
 \midrule
-% ── Group B: Frontier + Verbalized Tool ──────────────────────
+% ── Group B: Frontier + Verbalized Tool ──────────────────────────────────
 % Best-performing frontier after model selection sweep (Tab.~\ref{tab:frontier_selection})
-GPT-5.1\,+\,Lc0              & 45 & 40 & \underline{48} & 10 & \underline{38} & \underline{52} & \underline{22} \\
+GPT-5.1\,+\,Lc0              & 45 & 40 & \underline{48} & 10 & \underline{38} & \underline{52} \\
 \midrule
-% ── Same backbone + Tool, no DAPO ────────────────────────────
-Qwen3-14B\,+\,Lc0            & 26 & 20 & 28 & 5  & 19 & 15 & 2 \\
+% ── Same backbone + Tool, no DAPO ────────────────────────────────────────
+Qwen3-14B\,+\,Lc0            & 39 & 33 & 28 & 5  & 19 & 15 \\
 \midrule
-% ── Group E: Matched-recipe ablations ────────────────────────
-LLAMIA-Verb-4B            & 33 & 29 & 38 & 5  & 27 & 28 & 5 \\
-LLAMIA-Verb-8B            & 37 & 33 & 42 & 7  & 30 & 35 & 10 \\
-LLAMIA-Verb-14B           & 41 & 36 & 45 & 8  & 33 & 40 & 15 \\
+% ── Matched-recipe ablations: verbalized channel + DAPO ──────────────────
+LLAMIA-Verb-4B               & 41 & 34 & 38 & 5  & 27 & 28 \\
+LLAMIA-Verb-8B               & 44 & 37 & 42 & 7  & 30 & 35 \\
+LLAMIA-Verb-14B              & 45 & 39 & 45 & 8  & 33 & 40 \\
 \midrule
-% ── Group E: LLAMIA-full ─────────────────────────────────────
-LLAMIA-4B                    & 50 & 43 & 58 & 38 & 37 & 55 & 28 \\
-LLAMIA-8B                    & 53 & \valgood{47} & \valgood{65} & \valgood{45} & \valgood{42} & \valgood{68} & \valgood{37} \\
-LLAMIA-14B                   & \valgood{56} & \valbest{51} & \valbest{71} & \valbest{52} & \valbest{46} & \valbest{75} & \valbest{47} \\
+% ── LLAMIA-full: latent channel + DAPO ───────────────────────────────────
+LLAMIA-4B                    & 50 & 43 & 58 & 38 & 37 & 55 \\
+LLAMIA-8B                    & 52 & \valgood{46} & \valgood{65} & \valgood{45} & \valgood{42} & \valgood{68} \\
+LLAMIA-14B                   & 53 & \valbest{49} & \valbest{71} & \valbest{52} & \valbest{46} & \valbest{75} \\
 \bottomrule[1.2pt]
 \end{tabular}
 \end{adjustbox}
 \end{table*}
 
-\subsection{Gameplay}
-\label{sec:app_results_gameplay}
+\paragraph{Reading the headline numbers.}
+Three structural patterns connect the columns; the per-task tables in the subsections below verify each one.
 
-% Gameplay is a parity metric: all engine-access systems cluster.
-% Reported for completeness.
+\emph{Verbalization is lossy, and the loss is task-specific.}
+At fixed backbone (Qwen3-14B), fixed subagent (Lc0-BT4), and fixed training recipe (DAPO), replacing the verbalized text channel with latent tokens lifts every column.
+The relative gain follows the landscape mechanism in \cref{sec:app_landscape_cross}: largest on Interest ($\rho{=}0.08{\to}0.52$, a $6.5\times$ jump), where the discriminative signal lives in the policy distribution and the value gradients across candidate moves, none of which the verbalized output carries;
+large on Commentary ($0.40{\to}0.75$), where positional mechanisms compound across the game;
+moderate on Difficulty ($\rho{=}0.45{\to}0.71$), where solution length is a partial verbal proxy but leaves a residual signal over motif type and distractor sharpness;
+smaller on Rationale ($33{\to}46$), where PV-derived inference covers much of Planning;
+and smallest on Behavior Cloning ($45{\to}53$ on MAIA, $39{\to}49$ on Wild), where the engine's top-$k$ moves cover most of what humans actually play.
+The matched-recipe LLAMIA-Verb-$\{$4B,8B,14B$\}$ rows isolate this ordering from confounds: the only variable that changes across the LLAMIA-Verb${\to}$LLAMIA boundary is the integration interface.
 
-\subsubsection{Action Ranking (Kendall's Tau)}
-\label{sec:app_results_gameplay_kt}
+\emph{Internalization is perceptual; agency is multi-step.}
+The gain from latent tokens splits into two components that surface in different task families.
+On single-step prediction (Interest, Difficulty, BC), the latent advantage is mostly perceptual: latent SFT alone closes most of the verb--latent gap, and DAPO adds little on top.
+The per-task tables make this concrete: LLAMIA-SFT-14B already reaches $\rho{=}0.48$ on Interest (vs.\ verbal DAPO at $0.08$), and adding RL lifts it only to $0.52$.
+On multi-step tasks (Annotation, Commentary), DAPO becomes load-bearing because RL discovers collaboration strategies that are structurally unproductive under verbalization: counterfactual queries (play the alternative move, re-invoke the subagent on the resulting position, compare the two latent states), feature reading (attend to specific king-safety or pawn-structure activations to ground an explanation), and narrative pacing across 30+ moves.
+The interface and the optimization procedure are super-additive on these tasks; the per-task $2{\times}2$ ablations isolate the interaction term, and \cref{sec:app_landscape_cross} ties the ordering to task horizon.
 
-LLAMIA's policy alignment with the search-augmented agent (Lc0-BT4 with 800-node search) is measured via Kendall's $\tau$ over the top-10 move ranking. Alignment increases during training and stabilizes around 30--50M training positions; see the training dynamics figure for the full curve.
+\emph{Strong baselines do not close the gap.}
+Two competitive non-LLAMIA systems appear in the table, each strong on a different subset of tasks.
+Allie-Adaptive-Search~\cite{zhang2024humanalignedchessbitsearch} is the dedicated BC expert, trained on $93$M Lichess-blitz games with continuous skill conditioning and time-adaptive MCTS at inference.
+It wins the highest in-distribution Maia bucket ($58$\% at $1900$, \cref{tab:bc_extended}) and leads the unweighted MAIA average ($55$ vs.\ LLAMIA-14B's $53$), but trails LLAMIA-14B on every Wild split, where its blitz-only training distribution covers neither slow-game GM play nor severe time pressure nor large rating-gap dynamics.
+GPT-5.1\,+\,Lc0 is the strongest non-LLAMIA system on Difficulty, Annotation, and Commentary, recovering most of the verbal-channel ceiling through aggressive tool use ($10{+}$ calls per move on Commentary) and long-context reasoning over evaluation trajectories.
+It still trails LLAMIA-14B by $8$ to $23$ points on BC, Difficulty, Rationale, and Commentary.
+Interest is the sharper failure mode: adding the verbalized tool does not improve over the same model without it ($\rho{=}0.10$ with Lc0 vs.\ $0.12$ text-only), while LLAMIA-14B reaches $\rho{=}0.52$.
+On tasks where the discriminative signal is non-verbalizable, reasoning over a lossy interface cannot recover what the interface discarded.
 
-\subsubsection{Playing Strength (Elo)}
-\label{sec:app_results_gameplay_elo}
-
-All search-free systems with engine access cluster at 2200--2300 Elo, confirming that gameplay is a parity metric when the agent's top-move recommendation is available. LLAMIA-14B achieves $2279 \pm 45$ Elo, matching the 270M Transformer baseline~\cite{ruoss2024grandmaster}.
-
-\subsection{Behavior Cloning}
-\label{sec:app_results_bc}
-
-\begin{table*}[h!]
-\centering
-\caption{\textbf{Behavior Cloning: move-match accuracy ($\times 100$) across Elo buckets and in-the-wild splits.}
-Frontier+Tool is GPT-5.1\,+\,Lc0 (selected in Tab.~\ref{tab:frontier_selection}).
-LLAMIA-Verb converges on the same degenerate strategy as Frontier+Tool:
-mapping the engine's top-$k$th move to an Elo bucket, missing the style dimension.
-Avg.\ columns are unweighted means across the five Maia buckets and three Wild splits respectively;
-these values correspond directly to the BC summary columns in \cref{tab:full_bench}.}
-\label{tab:bc_extended}
-\begin{adjustbox}{max width=\textwidth}
-\begin{tabular}{l|c|cccccc|cccc}
-\toprule[1.2pt]
-\textbf{Model} & \textbf{Method} &
-\multicolumn{6}{c|}{\textbf{Maia Benchmark Elo Buckets}} &
-\multicolumn{4}{c}{\textbf{LLAMIA-Bench (Wild)}} \\
-& & \textbf{1100} & \textbf{1300} & \textbf{1500} & \textbf{1700} & \textbf{1900} & \textbf{Avg.} &
-\textbf{GM-25} & \textbf{Low-Time} & \textbf{$\Delta$Elo} & \textbf{Avg.} \\
-\midrule
-Allie-Adaptive-Search~\cite{zhang2024humanalignedchessbitsearch} & SL+Search
-  & \valbest{54} & \valbest{57} & \valbest{59} & \valbest{61} & \valbest{63} & \valbest{59}
-  & \underline{44} & \valgood{45} & \underline{45} & \underline{45} \\
-\midrule
-GPT-5.1\,+\,Lc0  & ICL+Tool   & 42 & 44 & 45 & 47 & 46 & 45 & 40 & 39 & 41 & 40 \\
-\midrule
-Qwen3-14B\,+\,Lc0 & ReAct      & 23 & 24 & 26 & 28 & 29 & 26 & 22 & 18 & 20 & 20 \\
-\midrule
-LLAMIA-Verb-4B  & DAPO-Verb  & 30 & 32 & 33 & 35 & 34 & 33 & 28 & 30 & 30 & 29 \\
-LLAMIA-Verb-8B  & DAPO-Verb  & 34 & 36 & 37 & 39 & 38 & 37 & 32 & 33 & 34 & 33 \\
-LLAMIA-Verb-14B & DAPO-Verb  & 38 & 40 & 41 & 43 & 42 & 41 & 35 & 36 & 38 & 36 \\
-\midrule
-LLAMIA-4B          & DAPO       & 48 & 50 & 51 & 52 & 50 & 50 & 42 & 41 & 46 & 43 \\
-LLAMIA-8B          & DAPO       & 51 & 53 & 54 & 55 & 53 & 53 & \valgood{46} & 44 & \valgood{50} & \valgood{47} \\
-LLAMIA-14B         & DAPO       & \valgood{53} & \valgood{55} & \valgood{56} & \valgood{58} & \valgood{56} & \valgood{56} & \valbest{52} & \valbest{47} & \valbest{54} & \valbest{51} \\
-\bottomrule[1.2pt]
-\end{tabular}
-\end{adjustbox}
-\end{table*}
-
-\paragraph{Why Allie wins on buckets but loses on wild splits.}
-Allie-Adaptive-Search achieves state-of-the-art move-matching accuracy on the Maia benchmark buckets (1100--1900) by training on 93M blitz games with continuous Elo conditioning and time-adaptive MCTS~\cite{zhang2024humanalignedchessbitsearch}.
-The gains over Maia are real and consistent across the entire skill spectrum.
-However, the same paper reports a characteristic cluster of failure modes in online play that map precisely to our wild splits.
-First, \emph{late-game blunders}: players at 1998--2038 Elo independently noted sudden piece drops with no tactical justification, and remarked that Allie ``doesn't know what to do in the endgame.''
-Second, \emph{no strategic plan in the middlegame}: players at 1940 Elo observed ``non-obvious moves with no clear plan.''
-Third, \emph{incorrect piece-trade decisions when losing}: players at 2004 Elo noted Allie's ``willingness to trade when down a full piece''---a failure to complicate and create counter-chances that strong human players rely on.
-Fourth, \emph{blitz-data bias}: training on one year of blitz games makes Allie poorly calibrated for slow-game reasoning and GM-style positional play~\cite{zhang2024humanalignedchessbitsearch}.
-
-These four failure modes explain the wild-split pattern in Table~\ref{tab:bc_extended}.
-GM-25 exposes the planning and endgame gaps: top grandmasters play strategically complex slow-game maneuvers that Allie's blitz-trained policy cannot imitate.
-Low-Time exposes the forcing-line failure: under clock pressure, humans commit instantly to forcing sequences; Allie's think-time predictor sometimes assigns long ponder times to positions with only one reasonable move~\cite{zhang2024humanalignedchessbitsearch}.
-$\Delta$Elo exposes the piece-trade and complication failure: large rating-gap positions frequently involve defensive resourcefulness (stalemate traps, perpetual-check sacrifices) that requires reading the \emph{shape} of the opponent's policy distribution, not just their nominal Elo.
-
-LLAMIA's advantage on wild splits is not a data artifact.
-LLAMIA reads Lc0's latent state directly---including policy entropy over endgame continuations, piece-safety gradients, and anti-simplification features---rather than imitating move sequences.
-This is why LLAMIA generalizes to endgame and complication positions where Allie's surface-level imitation breaks down.
-
-\subsection{Move Annotation (Rationale Prediction)}
-\label{sec:app_results_rationale}
-
-\begin{table}[h!]
-\centering
-\caption{\textbf{Move annotation: BLEU-2 on the two rationale subcategories of \citet{jhamtani-etal-2018-learning} that target move-level reasoning---Planning (intent and lookahead) and Comparative (alternative-move reasoning)---and their unweighted Avg, which is the headline score reported in \cref{tab:full_bench}.}
-The remaining subcategories of \citet{jhamtani-etal-2018-learning} (Description, Quality, Context) capture surface or non-rationale content and are omitted from the headline.}
-\label{tab:rationale_extended}
-\begin{adjustbox}{max width=\columnwidth}
-\begin{tabular}{l|c|cc|c}
-\toprule[1.2pt]
-\textbf{Model} & \textbf{Method} &
-\textbf{Planning} & \textbf{Comparative} & \textbf{Avg.} \\
-\midrule
-SCC~\cite{zang2019automated}
-                   & FT         & 27.48 & 41.59 & 34.54 \\
-GPT-5.1\,+\,Lc0   & ICL+Tool   & \underline{31.42} & \underline{43.61} & \underline{37.52} \\
-Qwen3-14B\,+\,Lc0 & ReAct      & 19.74 & 17.83 & 18.79 \\
-\midrule
-LLAMIA-Verb-4B  & DAPO-Verb  & 23.12 & 30.18 & 26.65 \\
-LLAMIA-Verb-8B  & DAPO-Verb  & 25.46 & 33.91 & 29.69 \\
-LLAMIA-Verb-14B & DAPO-Verb  & 27.83 & 38.51 & 33.17 \\
-\midrule
-LLAMIA-4B          & DAPO       & 32.04 & 42.36 & 37.20 \\
-LLAMIA-8B          & DAPO       & \valgood{36.71} & \valgood{47.28} & \valgood{42.00} \\
-LLAMIA-14B         & DAPO       & \valbest{40.04} & \valbest{51.59} & \valbest{45.82} \\
-\bottomrule[1.2pt]
-\end{tabular}
-\end{adjustbox}
-\end{table}
-
-\subsection{Game-Level Commentary}
-\label{sec:app_results_gamecomm}
-
-\begin{table}[h!]
-\centering
-\caption{\textbf{Game-Level Commentary: G-eval and BLEU-2.}
-Frontier+Tool is GPT-5.1\,+\,Lc0 (\cref{tab:frontier_selection}).
-G-eval is the primary metric (also the RL reward, \cref{sec:app_bench_commentary}); BLEU-2 is reported for comparability with prior work~\cite{jhamtani-etal-2018-learning}.
-The Commentary column of \cref{tab:full_bench} is $\textnormal{G-eval}\times 100$.
-LLAMIA-Verb trails Frontier+Tool on this multi-step task because RL-trained verbalization fragments the narrative across queries.}
-\label{tab:commentary_extended}
-\begin{adjustbox}{max width=\columnwidth}
-\begin{tabular}{l|c|cc}
-\toprule[1.2pt]
-\textbf{Model} & \textbf{Method} &
-\textbf{G-eval $\uparrow$} & \textbf{BLEU-2 $\uparrow$} \\
-\midrule
-GPT-5.1\,+\,Lc0   & ICL+Tool   & \underline{0.52} & \underline{40.13} \\
-Qwen3-14B\,+\,Lc0 & ReAct      & 0.15 & 10.34 \\
-\midrule
-LLAMIA-Verb-4B  & DAPO-Verb  & 0.28 & 28.41 \\
-LLAMIA-Verb-8B  & DAPO-Verb  & 0.35 & 31.82 \\
-LLAMIA-Verb-14B & DAPO-Verb  & 0.40 & 36.14 \\
-\midrule
-LLAMIA-4B          & DAPO       & 0.55 & 42.27 \\
-LLAMIA-8B          & DAPO       & \valgood{0.68} & \valgood{49.83} \\
-LLAMIA-14B         & DAPO       & \valbest{0.75} & \valbest{57.94} \\
-\bottomrule[1.2pt]
-\end{tabular}
-\end{adjustbox}
-\end{table}
-
-\subsection{Puzzle Understanding}
-\label{sec:app_results_puzzle}
-
-\begin{table}[h!]
-\centering
-\caption{\textbf{Puzzle Understanding: Difficulty and Interest prediction.}
-Puzzle solving accuracy is a parity metric (not highlighted). The
-Difficulty/Interest split is the controlled experiment for
-non-verbalizability: same positions, same engine, same model, only the
-target signal differs. LLAMIA-Verb's small Interest improvement
-($\rho \leq 0.10$) is consistent with reward hacking (learning the
-statistical prior that minimizes MAE).}
-\label{tab:puzzle_extended}
-\begin{adjustbox}{max width=\columnwidth}
-\begin{tabular}{l|c|c|cc}
-\toprule[1.2pt]
-\textbf{Model} & \textbf{Method} &
-\textbf{Solved (\%)} &
-\textbf{Difficulty $\rho$} &
-\textbf{Interest $\rho$} \\
-\midrule
-CF-270M              & SFT        & \valbest{93.5} & 0.46 & \underline{0.35} \\
-GPT-5.1\,+\,Lc0     & ICL+Tool   & --   & \underline{0.48} & 0.10 \\
-Qwen3-14B\,+\,Lc0   & ReAct      & 84.0 & 0.28 & 0.05 \\
-\midrule
-LLAMIA-Verb-4B    & DAPO-Verb  & 86.0 & 0.38 & 0.05 \\
-LLAMIA-Verb-8B    & DAPO-Verb  & 87.5 & 0.42 & 0.07 \\
-LLAMIA-Verb-14B   & DAPO-Verb  & 88.5 & 0.45 & 0.08 \\
-\midrule
-LLAMIA-4B            & DAPO       & 88.0 & 0.58 & 0.38 \\
-LLAMIA-8B            & DAPO       & 90.0 & \valgood{0.65} & \valgood{0.45} \\
-LLAMIA-14B           & DAPO       & \valgood{91.5} & \valbest{0.71} & \valbest{0.52} \\
-\bottomrule[1.2pt]
-\end{tabular}
-\end{adjustbox}
-\end{table}
-
-\subsection{Instruction-Conditioned Play}
-\label{sec:app_results_icp}
-
-\begin{table*}[h!]
-\centering
-\caption{\textbf{Instruction-Conditioned Play: tournament Elo by motif category.}
-Each system plays 50 games per motif category against the composite opponent (Lc0-BT4 with search; weakened to Maia-1900 when steering succeeds). BayesElo~\cite{coulom2008whole} with 95\% bootstrap CI. Per-motif CIs are bootstrapped over 50 games each; Avg.\ Elo CIs are bootstrapped over all 250 pooled games and are therefore tighter. Uninstructed baseline plays at ${\sim}2050$ Elo. LLAMIA-Verb is structurally disadvantaged: its RL-trained deference to engine output conflicts with ICP's requirement for selective override.}
-\label{tab:icp_extended}
-\begin{adjustbox}{max width=\textwidth}
-\begin{tabular}{l|ccccc|c}
-\toprule[1.2pt]
-\textbf{Model} &
-\makecell{\textbf{End-}\\\textbf{games}} &
-\makecell{\textbf{Pawn}\\\textbf{Struct.}} &
-\makecell{\textbf{Tactical}\\\textbf{Blunders}} &
-\makecell{\textbf{Piece}\\\textbf{Coord.}} &
-\textbf{Repetition} &
-\makecell{\textbf{Avg.\ Elo}\\(pooled)} \\
-\midrule
-GPT-5.1 + Lc0      & \underline{$2145\pm43$} & \underline{$2170\pm41$} & \underline{$2130\pm44$} & \underline{$2120\pm47$} & \underline{$2185\pm40$} & \underline{$2150\pm32$} \\
-Qwen3-14B\,+\,Lc0  & $2058\pm52$ & $2062\pm51$ & $2055\pm54$ & $2050\pm57$ & $2070\pm50$ & $2059\pm40$ \\
-\midrule
-LLAMIA-Verb-4B     & $2070\pm49$ & $2075\pm48$ & $2065\pm51$ & $2060\pm54$ & $2085\pm47$ & $2071\pm37$ \\
-LLAMIA-Verb-8B     & $2095\pm47$ & $2100\pm45$ & $2085\pm48$ & $2075\pm51$ & $2110\pm44$ & $2093\pm35$ \\
-LLAMIA-Verb-14B    & $2120\pm45$ & $2125\pm43$ & $2110\pm46$ & $2100\pm49$ & $2140\pm42$ & $2119\pm34$ \\
-\midrule
-LLAMIA-4B          & $2185\pm41$ & $2195\pm39$ & $2160\pm43$ & $2140\pm46$ & $2210\pm38$ & $2178\pm31$ \\
-LLAMIA-8B          & \valgood{$2220\pm39$} & \valgood{$2245\pm37$} & \valgood{$2195\pm41$} & \valgood{$2165\pm44$} & \valgood{$2250\pm36$} & \valgood{$2215\pm30$} \\
-LLAMIA-14B         & \valbest{$2270\pm37$} & \valbest{$2295\pm35$} & \valbest{$2235\pm39$} & \valbest{$2200\pm42$} & \valbest{$2310\pm34$} & \valbest{$2262\pm28$} \\
-\bottomrule[1.2pt]
-\end{tabular}
-\end{adjustbox}
-\end{table*}
