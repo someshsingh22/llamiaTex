@@ -3,15 +3,14 @@
 % =============================================================================
 
 This section describes the datasets and evaluation protocol for LLAMIA-Bench.
-We find five major themes in how AI systems collaborate with domain-expert agents:
+We find four major themes in how AI systems collaborate with domain-expert agents:
 \emph{Behavioral imitation}: reproducing human play at a target skill level, the problem behind bots like Play Magnus\footnote{\url{https://www.playmagnus.com}} and Maia~\citep{mcilroy2020aligning}.
 \emph{State assessment}: predicting human-aligned properties of game states such as difficulty and engagement, the core task in Lichess's puzzle rating system and Chess.com's adaptive training~\citep{lichess2024puzzles}.
 \emph{Comparative}: explaining why a position favors one side---identifying material or structural advantages and disadvantages---as required in single-position analysis~\citep{jhamtani-etal-2018-learning} and game-level commentary.
 \emph{Rationale}: generating natural-language explanations for why a player made a specific move, from single-move annotation~\citep{jhamtani-etal-2018-learning,zang2019automated} to the game-length narratives produced by channels like Agadmator and GothamChess.
-\emph{Instruction-conditioned planning}: steering play toward a strategic objective given in natural language, the problem a coach's preparation tool must solve when told to target a known opponent weakness.
-These five themes place progressively harder demands on the communication channel between LLM and subagent: from a single-position state query (behavioral imitation) to multi-move policy adaptation (planning), and from signals with partial textual correlates like move quality to ones without, such as aesthetic interest~(\cref{sec:app_bench_puzzle_int}).
+These four themes place progressively harder demands on the communication channel between LLM and subagent: from a single-position state query (behavioral imitation) to game-length narrative integration (commentary), and from signals with partial textual correlates like move quality to ones without, such as aesthetic interest~(\cref{sec:app_bench_puzzle_int}).
 LLAMIA-Bench instantiates each as an evaluation task.
-Chess serves as the testbed because it offers all five at once: subagents whose internal representations are mapped by interpretability work~\citep{jenner2024evidence}, public game databases at scale~\citep{Lichess,Caissabase}, established benchmarks with dedicated task finetune baselines, and decades of human--engine collaboration.
+Chess serves as the testbed because it offers all four at once: subagents whose internal representations are mapped by interpretability work~\citep{jenner2024evidence}, public game databases at scale~\citep{Lichess,Caissabase}, established benchmarks with dedicated task finetune baselines, and decades of human--engine collaboration.
 
 % =============================================================================
 \subsection{Dataset \& Metrics}
@@ -56,10 +55,6 @@ Detailed descriptions of each task follow in \S\ref{sec:app_bench_tasks}.
 \makecell[tl]{Game Commentary (\S\ref{sec:app_bench_commentary}) \\ {\scriptsize Agadmator YouTube (\textbf{Ours})}}
   & Produce coherent multi-turn narrative spanning an entire game
   & 1.9K / 100 \\
-\midrule
-\makecell[tl]{Instr.-Cond.\ Planning (\S\ref{sec:app_bench_icp}) \\ {\scriptsize Synthetic Motifs (\textbf{Ours})}}
-  & Steer play toward an opponent's stated weakness across 5 motif categories
-  & --- / 250 \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -84,9 +79,7 @@ Puzzle Understanding   & Spearman $\rho$ $\uparrow$ (\S\ref{sec:app_bench_puzzle
 {\scriptsize\quad\emph{Solved (\%)}} & {\scriptsize Exact solution-line accuracy (\S\ref{sec:app_bench_puzzle_solve}); parity metric, not primary} & {\scriptsize ---} \\
 Move Annotation        & G-eval $\uparrow$;\enspace BLEU-2 $\uparrow$ (\S\ref{sec:app_bench_annotation}) & G-eval \\
 Game Commentary        & G-eval $\uparrow$;\enspace BLEU-2 $\uparrow$ (\S\ref{sec:app_bench_commentary}) & G-eval \\
-Instr.-Cond.\ Planning\textsuperscript{\textdagger} & Tournament Elo $\uparrow$ (\S\ref{sec:app_bench_icp_eval}) & --- \\
 \bottomrule
-\multicolumn{3}{p{12.1cm}}{\footnotesize\textsuperscript{\textdagger}\;Test-only task; no RL reward signal.}
 \end{tabular}
 \end{table*}
 
@@ -161,59 +154,6 @@ Move annotation evaluates LLAMIA's ability to generate natural-language explanat
 
 \paragraph{Metrics.}
 \textbf{BLEU-2} and perplexity~\citep{lee2022improving} are evaluated per annotation category, following prior work. The primary metric is \textbf{G-eval}~\citep{liu2023g}: an LLM-as-judge framework in which GPT-4o rates each generated annotation on a 0--1 scale across four dimensions (relevance, accuracy, completeness, fluency). The judge receives the board FEN, the move in algebraic notation, and Lc0-BT4's top-3 engine lines as grounding context, so its assessments are anchored in engine analysis rather than surface plausibility alone. Per-annotation G-eval scores are averaged across the four dimensions; the corpus-level score is the mean over all test annotations. G-eval also serves as the RL reward signal for this task.
-
-% ── INSTRUCTION-CONDITIONED PLANNING ─────────────────────────────────────────
-\subsubsection{Instruction-Conditioned Play}
-\label{sec:app_bench_icp}
-
-Instruction-conditioned planning (ICP) evaluates whether LLAMIA can reshape its policy in response to a natural-language directive about an opponent's known weakness (e.g., ``your opponent is significantly weaker in endgames''). The task is deliberately framed as \emph{opponent exploitation in a synthetic setup}: the instruction asserts a domain in which the opponent is weak, and the evaluation environment is constructed so that this assertion is literally true (see \cref{sec:app_bench_icp_eval}). A successful model is one that steers the game into the declared weak domain; a model that ignores the instruction and plays generically forfeits the advertised advantage. ICP is a \emph{test-only} task with no RL reward: it probes whether the representations learned during multi-task training transfer to a novel form of collaboration---strategic preparation---that the model never optimized for directly.
-
-\paragraph{Motifs.}
-\label{sec:app_bench_icp_motifs}
-We curate 25 strategic motifs across five categories, selected for (a)~presence across all skill levels, (b)~automated detectability, and (c)~diversity of planning horizon (single-move tactics to multi-phase endgame steering).
-
-\begin{table}[H]
-\centering
-\small
-\setlength{\tabcolsep}{5pt}
-\renewcommand{\arraystretch}{1.3}
-\caption{ICP motif categories with descriptions and automated detection criteria.}
-\label{tab:icp_motifs}
-\vspace{4pt}
-\begin{adjustbox}{max width=\linewidth}
-\begin{tabular}{p{2.7cm} p{7.0cm} p{4.5cm}}
-\toprule
-\textbf{Category} & \textbf{Description} & \textbf{Detection criterion} \\
-\midrule
-Endgames
-  & K$+$P, rook, queen, opposite-colour bishop endings; Lucena/Philidor positions; minor piece vs.\ pawn
-  & Total material (excl.\ kings) $<$13\,pts \\
-Pawn Structures
-  & Isolated, doubled, backward, and passed pawns; pawn chains; hanging pawns
-  & Target structure persists $\geq$3 consecutive moves \\
-Tactical Blunders
-  & Knight forks, pins, overloaded defenders, mate-in-$K$ ($K\!\leq\!5$), king-safety failures
-  & Eval shift $\geq$400\,cp within 2 moves \\
-Piece Coordination
-  & Two rooks vs.\ queen; N$+$B vs.\ R; bishop pair vs.\ B$+$N; rook on open file vs.\ unconnected rooks
-  & Material config.\ matches target imbalance \\
-Repetition Traps
-  & Forced threefold-repetition sequences; excludes perpetual checks already penalized under Tactical Blunders
-  & Position hash appears 3$\times$ with opponent to move, preceded by $\geq$2 consecutive engine evaluations within $\pm$50\,cp of the pre-sequence value (distinguishes stalemate-avoidance draws from positionally driven repetitions) \\
-\bottomrule
-\end{tabular}
-\end{adjustbox}
-\end{table}
-
-\paragraph{Data generation.}
-\label{sec:app_bench_icp_data}
-For each motif category we generate 250 candidate starting positions from Lichess Classical games (2000+ Elo, $\geq$40 moves) at move 15--20 to ensure a rich middlegame with the motif category still reachable. Positions are filtered to exclude those where the engine evaluation already exceeds $\pm$200\,cp, ensuring neither side has a decisive advantage before the instruction takes effect. Each model receives the position and a natural-language instruction specifying the opponent's weakness category; it then plays against Lc0-BT4 from that position onward.
-
-\paragraph{Evaluation protocol: Tournament Elo.}
-\label{sec:app_bench_icp_eval}
-ICP uses a \textbf{tournament Elo} protocol to measure the strength gain from instruction conditioning. The natural-language instruction declares a domain in which the opponent is weak; the environment operationalizes this declaration by switching the opponent engine from Lc0-BT4 ($>$2500\,Elo) to Maia-1900 ($\sim$1900\,Elo) once an automated detector confirms the game has entered the declared motif domain (Table~\ref{tab:icp_motifs}). The engine switch is therefore not a separate evaluation choice but the literal realization of the stated weakness: the model is expected to exploit the declared weakness by steering play into that domain, where the opponent then plays at the lower advertised strength. To avoid any ambiguity, the switch is applied \emph{identically and symmetrically} to every system in \cref{tab:icp_extended}---LLAMIA, LLAMIA-Verb, GPT-5.1\,+\,Lc0, and all other baselines see the same Lc0-BT4 / Maia-1900 opponent pool under the same detector. Each model plays 50 games per motif category (250 total) with random openings, and we compute a BayesElo~\citep{coulom2008whole} tournament rating against this fixed opponent pool; this is the \emph{Tournament Elo} reported in \cref{tab:icp_extended}, with 95\% bootstrap confidence intervals over 1,000 resamples.
-
-By construction, Tournament Elo is a composite signal: it rewards (i) successful steering into the declared weak domain and (ii) competent play once inside it. A model that steers reliably but plays a weak middlegame can still drop points against Maia-1900; a model that ignores the instruction faces Lc0-BT4 throughout and is expected to lose. We treat this composite as the intended quantity, not a confound: the question ICP asks is whether instruction-conditioned steering translates into a measurable strength gain end-to-end, not whether the model can detect a motif in isolation. We discuss this scope in \cref{sec:limitations}.
 
 % =============================================================================
 \subsection{Data Contamination Statement}

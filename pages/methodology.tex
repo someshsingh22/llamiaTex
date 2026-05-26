@@ -24,6 +24,7 @@ We formalize latent state internalization through a running example. An LLM play
 
 More formally: a policy $\pi_\theta$ (the LLM) interacts with an environment whose states $\mstate{s} \in \mathcal{\mstate{S}}$ evolve through actions $\maction{a} \in \mathcal{\maction{A}}$. A pretrained \textbf{subagent} with encoder $G_\psi\!: \mathcal{\mstate{S}} \to \mstate{\R^d}$ maps each state to a latent representation $\mstate{\vh_s} = G_\psi(\mstate{s})$. The LLM queries the subagent at self-chosen moments via \texttt{get\_policy}, specifying either the current position $\mstate{s_t}$ or a hypothetical state reached by a candidate move. Over a $T$-step interaction the policy produces a trace $\tau$:
 %
+\vspace{-2mm}
 \begin{multline}
 \tau = \bigl(\,
   \mstate{\vz_0^{1:k}},\;
@@ -40,6 +41,7 @@ More formally: a policy $\pi_\theta$ (the LLM) interacts with an environment who
 \label{eq:trace}
 \end{multline}
 %
+\vspace{-1mm}
 where $\mlang{w_t} \in \mathcal{\mlang{V}}$ are language tokens (including the text returned by \texttt{get\_policy}), $\maction{a_t}$ are actions, and $\mstate{\vz_t^{1:k}}$ are $k$ contiguous state tokens injected alongside the text response. In LLAMIA-Verb, $k{=}0$: no state tokens appear, and the LLM reasons over text alone. In LLAMIA, $k{=}32$. How these state tokens are produced defines the internalization method.
 
 \paragraph{Verbalization.} Every \texttt{get\_policy} call returns a text serialization of the subagent's output:
