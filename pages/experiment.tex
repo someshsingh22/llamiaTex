@@ -79,7 +79,7 @@ $\Delta$ (debt)   & $+8$ & $+18$ & $+22$ & $+44$ & $+17.1$ & $+35$ \\
 % =========================================================================
 \subsection{Verbalization Debt}
 \label{sec:results_vd}
-\somesh{Now that we have quantitatively differentiated LLAMIA on all tasks against Frontier + Task specific Finetunes we discuss the verbalization debt through table 1 and figure again, divide into key insights, Verbalization gap is consistent across }
+\somesh{Now that we have quantitatively differentiated LLAMIA on all tasks against Frontier + Task specific Finetunes we discuss the verbalization debt through table 1 and figure again, divide into key insights, Verbalization gap is consistent across scale, throughout training, }
 
 We define \textbf{verbalization debt} as the performance gap between LLAMIA and LLAMIA-Verb when backbone, subagent, and training recipe are held fixed. The $\Delta$ row of \cref{tab:main_bench} reports this quantity per task. Internalization improves every task, but the margin spans an order of magnitude. At one extreme, the engine's policy shape and value gradients that distinguish engaging puzzles from routine ones have no text equivalent; every verbalized system scores ${\leq}12$ on Interest regardless of model scale (\cref{fig:combined}c), while LLAMIA reaches $52$. At the other, the engine's top-$k$ moves already cover most human play, leaving a modest gap on in-distribution behavior cloning. The per-task analysis in \cref{sec:app_landscape} traces each task's debt to the specific information that verbalization discards.
 
