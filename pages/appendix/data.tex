@@ -34,6 +34,4 @@ Stage~2 uses DAPO rollouts on task-specific prompts. The training data for RL to
 
 \paragraph{Game Commentary.} 50K annotated game segments (15--30 moves each) from grandmaster commentary databases, chess books transcribed to PGN, and Lichess studies with annotations. The reward combines a G-eval score for commentary quality with BLEU-2 against reference commentaries.
 
-\paragraph{Instruction-Conditioned Play.} ICP is \emph{test-only}. No ICP-specific data is used during RL training. Performance on ICP reflects transfer from the training tasks, not direct optimization. This design is critical: it tests whether internalization enables the model to generalize strategic instruction-following from related training signals.
-
 % =============================================================================

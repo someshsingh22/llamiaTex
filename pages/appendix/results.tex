@@ -27,7 +27,7 @@ Maia, Allie-Policy, and Allie-Adaptive-Search per-bucket Maia numbers are quoted
 \valgood{cyan}: second-best overall.
 \underline{underline}: best non-LLAMIA.
 $\pm$ on the LLAMIA Avg.\ columns is a bootstrap $95\%$ CI over $\sim$1K positions per bucket (typical per-bucket SE is $0.5$\,pp; per-Avg SE is below $0.5$\,pp).\somesh{show scaling curve, fix CIs to decimal and noisy, add stochastic to Frontier baselines and LLAMIA Bench Avg.}
-\textbf{Results}: Task-dedicated experts (Maia, Allie) are trained on $12$--$93$M chess-specific games; LLAMIA uses XXX\,M games over a general-purpose backbone. Under this training-data deficit, LLAMIA-$14$B lands inside the Maia--Allie-Policy band on the in-distribution buckets (Avg.\ $53\,{\scriptstyle\pm 1}$ vs.\ Maia $52$, Allie-Policy $54$, Allie-Adaptive-Search $55$) and improves over the strongest expert by $+4$\,pp on the Wild splits (Avg.\ $49\,{\scriptstyle\pm 1}$ vs.\ $45$), where blitz-only training distributions miss the OOD axes (GM theory, time pressure, asymmetric matchups). At fixed $14$B scale and DAPO, switching from latent to verbalized integration costs $8$\,pp on Maia and $10$\,pp on Wild, the per-task verbalization debt; on this single-step task DAPO over SFT adds only $2$\,pp (vs.\ $+0.17$ G-eval on commentary), consistent with BC requiring limited multi-step counterfactual querying.}
+\textbf{Results}: Task-dedicated experts (Maia, Allie) are trained on $12$--$93$M chess-specific games; LLAMIA uses 20\,K games over a general-purpose backbone. Under this training-data deficit, LLAMIA-$14$B lands inside the Maia--Allie-Policy band on the in-distribution buckets (Avg.\ $53\,{\scriptstyle\pm 1}$ vs.\ Maia $52$, Allie-Policy $54$, Allie-Adaptive-Search $55$) and improves over the strongest expert by $+4$\,pp on the Wild splits (Avg.\ $49\,{\scriptstyle\pm 1}$ vs.\ $45$), where blitz-only training distributions miss the OOD axes (GM theory, time pressure, asymmetric matchups). At fixed $14$B scale and DAPO, switching from latent to verbalized integration costs $8$\,pp on Maia and $10$\,pp on Wild, the per-task verbalization debt; on this single-step task DAPO over SFT adds only $2$\,pp (vs.\ $+0.17$ G-eval on commentary), consistent with BC requiring limited multi-step counterfactual querying.}
 \label{tab:bc_extended}
 \begin{adjustbox}{max width=\textwidth}
 \begin{tabular}{l|c|cccccc|cccc}
@@ -57,21 +57,21 @@ GPT-5\,+\,Lc0                  & --
 Qwen3-14B\,+\,Lc0                & --
   & 36 & 38 & 40 & 41 & 39 & 39 & 34 & 31 & 35 & 33 \\
 \rowcolor{gray!15} \multicolumn{12}{l}{\small\textit{Verbalized, SFT}} \\
-LLAMIA-Verb-4B   & XXX\,M & 38 & 40 & 41 & 41 & 39 & $40\,{\scriptstyle\pm 1}$ & 32 & 30 & 34 & $32\,{\scriptstyle\pm 1}$ \\
-LLAMIA-Verb-8B   & XXX\,M & 41 & 42 & 43 & 44 & 42 & $42\,{\scriptstyle\pm 1}$ & 35 & 33 & 37 & $35\,{\scriptstyle\pm 1}$ \\
-LLAMIA-Verb-14B  & XXX\,M & 42 & 44 & 45 & 45 & 43 & $44\,{\scriptstyle\pm 1}$ & 37 & 35 & 39 & $37\,{\scriptstyle\pm 1}$ \\
+LLAMIA-Verb-4B   & 20\,K & 38 & 40 & 41 & 41 & 39 & $40\,{\scriptstyle\pm 1}$ & 32 & 30 & 34 & $32\,{\scriptstyle\pm 1}$ \\
+LLAMIA-Verb-8B   & 20\,K & 41 & 42 & 43 & 44 & 42 & $42\,{\scriptstyle\pm 1}$ & 35 & 33 & 37 & $35\,{\scriptstyle\pm 1}$ \\
+LLAMIA-Verb-14B  & 20\,K & 42 & 44 & 45 & 45 & 43 & $44\,{\scriptstyle\pm 1}$ & 37 & 35 & 39 & $37\,{\scriptstyle\pm 1}$ \\
 \rowcolor{gray!15} \multicolumn{12}{l}{\small\textit{Verbalized, DAPO}} \\
-LLAMIA-Verb-4B   & XXX\,M & 39 & 41 & 42 & 43 & 41 & $41\,{\scriptstyle\pm 1}$ & 34 & 32 & 36 & $34\,{\scriptstyle\pm 1}$ \\
-LLAMIA-Verb-8B   & XXX\,M & 42 & 44 & 45 & 46 & 44 & $44\,{\scriptstyle\pm 1}$ & 37 & 35 & 39 & $37\,{\scriptstyle\pm 1}$ \\
-LLAMIA-Verb-14B  & XXX\,M & 43 & 45 & 46 & 47 & 44 & $45\,{\scriptstyle\pm 1}$ & 39 & 37 & 41 & $39\,{\scriptstyle\pm 1}$ \\
+LLAMIA-Verb-4B   & 20\,K & 39 & 41 & 42 & 43 & 41 & $41\,{\scriptstyle\pm 1}$ & 34 & 32 & 36 & $34\,{\scriptstyle\pm 1}$ \\
+LLAMIA-Verb-8B   & 20\,K & 42 & 44 & 45 & 46 & 44 & $44\,{\scriptstyle\pm 1}$ & 37 & 35 & 39 & $37\,{\scriptstyle\pm 1}$ \\
+LLAMIA-Verb-14B  & 20\,K & 43 & 45 & 46 & 47 & 44 & $45\,{\scriptstyle\pm 1}$ & 39 & 37 & 41 & $39\,{\scriptstyle\pm 1}$ \\
 \rowcolor{gray!15} \multicolumn{12}{l}{\small\textit{Latent, SFT}} \\
-LLAMIA-4B   & XXX\,M & 46 & 48 & 49 & 50 & 47 & $48\,{\scriptstyle\pm 1}$ & 40 & 38 & 44 & $41\,{\scriptstyle\pm 1}$ \\
-LLAMIA-8B   & XXX\,M & 48 & 50 & 51 & 52 & 49 & $50\,{\scriptstyle\pm 1}$ & 43 & 41 & 47 & $44\,{\scriptstyle\pm 1}$ \\
-LLAMIA-14B  & XXX\,M & 50 & 51 & 52 & 53 & 51 & $51\,{\scriptstyle\pm 1}$ & 45 & 43 & 49 & $46\,{\scriptstyle\pm 1}$ \\
+LLAMIA-4B   & 20\,K & 46 & 48 & 49 & 50 & 47 & $48\,{\scriptstyle\pm 1}$ & 40 & 38 & 44 & $41\,{\scriptstyle\pm 1}$ \\
+LLAMIA-8B   & 20\,K & 48 & 50 & 51 & 52 & 49 & $50\,{\scriptstyle\pm 1}$ & 43 & 41 & 47 & $44\,{\scriptstyle\pm 1}$ \\
+LLAMIA-14B  & 20\,K & 50 & 51 & 52 & 53 & 51 & $51\,{\scriptstyle\pm 1}$ & 45 & 43 & 49 & $46\,{\scriptstyle\pm 1}$ \\
 \rowcolor{gray!15} \multicolumn{12}{l}{\small\textit{Latent, DAPO}} \\
-LLAMIA-4B   & XXX\,M & 48 & 50 & 51 & 52 & 49 & $50\,{\scriptstyle\pm 1}$ & 46 & 45 & 50 & $47\,{\scriptstyle\pm 1}$ \\
-LLAMIA-8B   & XXX\,M & 50 & 51 & 53 & 54 & 51 & $52\,{\scriptstyle\pm 1}$ & 51 & 49 & 54 & \valgood{$51\,{\scriptstyle\pm 1}$} \\
-LLAMIA-14B  & XXX\,M & 51 & 53 & 53 & 55 & 52 & \valgood{$53\,{\scriptstyle\pm 1}$} & \valbest{57} & \valbest{54} & \valbest{60} & \valbest{$57\,{\scriptstyle\pm 1}$} \\
+LLAMIA-4B   & 20\,K & 48 & 50 & 51 & 52 & 49 & $50\,{\scriptstyle\pm 1}$ & 46 & 45 & 50 & $47\,{\scriptstyle\pm 1}$ \\
+LLAMIA-8B   & 20\,K & 50 & 51 & 53 & 54 & 51 & $52\,{\scriptstyle\pm 1}$ & 51 & 49 & 54 & \valgood{$51\,{\scriptstyle\pm 1}$} \\
+LLAMIA-14B  & 20\,K & 51 & 53 & 53 & 55 & 52 & \valgood{$53\,{\scriptstyle\pm 1}$} & \valbest{57} & \valbest{54} & \valbest{60} & \valbest{$57\,{\scriptstyle\pm 1}$} \\
 \bottomrule[1.2pt]
 \end{tabular}
 \end{adjustbox}

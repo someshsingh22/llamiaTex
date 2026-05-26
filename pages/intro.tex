@@ -30,17 +30,25 @@ Moreover, this error compounds across interactions, in multi-step settings, each
 
 \textbf{Verbalization Debt:} To conclusively establish and analyze the effect of internalization, we train a controlled ablation, LLAMIA-Verb, in which the subagent's outputs are exposed to the LLM through verbalization, without the latent tokens. LLAMIA consistently achieves higher reward across all tasks throughout training (\cref{fig:combined}). The gap widens on tasks requiring deeper multi-step integration. These results show that verbalization is a fundamental bottleneck when non-language agents are treated as tools.
 
-\textbf{LLAMIA-Bench, Chess as a testbed:} Despite abundant applications, LLM collaboration with non-language agents remains underexplored. A central reason is the lack of environments that combine what is needed to structurally test this collaboration: diverse tasks with verifiable metrics, large-scale public data, and open pretrained agents. Chess satisfies all three: decades of human-engine collaboration on commentary, preparation, and puzzles have produced established evaluation protocols, large-scale public databases like Lichess, and annotated corpora~\cite{feng2024chessgpt}. We therefore use chess as our primary testbed and introduce \textsc{LLAMIA-Bench} (\cref{sec:app_bench}), a curated suite of seven tasks spanning behavior cloning across skill levels, puzzle interest and difficulty estimation, move annotation, game-level commentary, and instruction-conditioned planning. We introduce a new dataset curated from \href{https://www.youtube.com/channel/UCL5YbN5WLFD8dLIegT5QAbA}{Agadmator's YouTube Channel} for game level commentary, and a task for Instruction Conditioned Planning.
+\textbf{LLAMIA-Bench, Chess as a testbed:} Despite abundant applications, LLM collaboration with non-language agents remains underexplored. A central reason is the lack of environments that combine what is needed to structurally test this collaboration: diverse tasks with verifiable metrics, large-scale public data, and open pretrained agents. Chess satisfies all three: decades of human-engine collaboration on commentary, preparation, and puzzles have produced established evaluation protocols, large-scale public databases like Lichess, and annotated corpora~\cite{feng2024chessgpt}. We therefore use chess as our primary testbed and introduce \textsc{LLAMIA-Bench} (\cref{sec:app_bench}), a curated suite of seven tasks spanning behavior cloning across skill levels, puzzle interest and difficulty estimation, move annotation, game-level commentary, and instruction-conditioned planning. We introduce a new dataset curated from \href{https://www.youtube.com/channel/UCL5YbN5WLFD8dLIegT5QAbA}{Agadmator's YouTube Channel} for game level commentary.
 
 \begin{figure}
 \centering
-\includegraphics[width=0.95\linewidth]{pages/figures/llamia_bench_radar_intro.pdf}
-    \caption{\textsc{LLAMIA-Bench}: seven tasks, five systems. LLAMIA (dark blue) dominates all spokes.}
-    
-    \label{fig:radar_intro}\somesh{Font needs to be bigger for legend and axes, tasks need to be explained beforehand}
+\includegraphics[width=0.95\linewidth]{plots/panel_c_no_verb.pdf}
+    \caption{\textbf{LLAMIA-Bench performance across collaboration interfaces.}
+    Scores ($\times 100$) on six chess--LLM tasks. Methods are labeled by
+    access type and backbone (OS = open-source, CS = closed-source):
+    verbalized tool use (Qwen3-14B+Lc0, GPT-5+Lc0), per-task finetuned
+    experts (Task-Finetune), and LLAMIA's latent integration. LLAMIA
+    matches or exceeds every baseline on every task and is the only system
+    to score on Puzzle Interest, where the engine signal has no text
+    surrogate. ``Avg.\ Performance'' averages each method over its
+    reported tasks.}
+    \vspace{-2mm}
+    \label{fig:radar_intro}
 \end{figure}
-\vspace{-2mm}
-\textbf{Results.} \somesh{Seems unclear why these results are important} A single LLAMIA-14B model matches or exceeds every specialist and baseline across all seven \textsc{LLAMIA-Bench} tasks (\cref{fig:radar_intro}). The verbalization debt is sharpest on tasks requiring multi-step state tracking or non-verbalizable signals: LLAMIA-Verb's reward stays flat on commentary, planning, and puzzle interest despite identical compute. Beyond benchmark numbers, LLAMIA reproduces human behavioral signatures : under time pressure it commits the same blunders humans do, and at different skill levels its attention concentrates on the same pieces human players prioritize. A human study rates its commentary higher on both correctness and explanatory depth. Attention analysis over the latent tokens shows that on a fixed position, LLAMIA's reading shifts with the target Elo: at 2000 it concentrates on the mating geometry while at 1100 it disperses to material, confirming that the projected latent state is modulated by the natural-language instruction.
+
+\textbf{Results.} A single LLAMIA-14B model matches or exceeds every task-specific specialist and frontier model across all six \textsc{LLAMIA-Bench} tasks (\cref{fig:radar_intro}). The verbalization debt is sharpest on tasks requiring multi-step state tracking or non-verbalizable signals: LLAMIA-Verb's reward stays flat on commentary and puzzle interest despite identical compute. Internalization also shapes the \emph{kind} of collaboration that emerges: LLAMIA develops counterfactual queries and multi-step lookahead strategies absent from LLAMIA-Verb, which collapses to engine-follow regardless of task, suggesting that access to the full latent state is what makes richer collaboration learnable. Beyond benchmark numbers, LLAMIA reproduces human behavioral signatures: under time pressure it commits the same blunders humans do, and at different skill levels its attention concentrates on the same pieces human players prioritize. A human study confirms this: LLAMIA's gameplay passes as human in the majority of trials, and its commentary is preferred on both strategic insight and explanatory depth compared to the verbalized baseline. 
 
 
 Our contributions are fourfold:
@@ -65,9 +73,23 @@ Our contributions are fourfold:
 \vspace{-2mm}
 \begin{figure*}[!h]
     \centering
-    \includegraphics[width=0.98\linewidth]{llamia-fig (10).pdf}
-    \caption{\textbf{Latent State Internalization.} \textit{Left:} The LLM reasons over an interleaved trace of \textcolor{orange}{language}, \textcolor{teal}{action}, and \textcolor{magenta}{latent state} tokens. At state $S_0$, the subagent's encoding is projected into $k{=}32$ latent tokens $z_0$ that prefix the LLM's reasoning, which unfolds in natural language and culminates in an action (e.g., Nc2). Executing the action transitions the environment to $S_1$, where the subagent is re-invoked to produce fresh latent tokens $z_1$ that condition the next round of reasoning and the subsequent action (e.g., Bc4). This dynamic re-encoding ensures the LLM always reasons over the current state. \textit{Right:} Architectural detail of a single encoding step. The board state is passed through the frozen subagent (Lc0-BT4); its penultimate-layer activations $h_s \in \mathbb{R}^{1024}$ are mapped through the trainable \textbf{LatentBridge} projector $H_\phi$ into $k{=}32$ continuous tokens of dimension $e$ matching the LLM's embedding space. Stage~1 trains only $H_\phi$ on state--policy pairs with the LLM frozen; Stage~2 trains both the LLM and $H_\phi$ jointly via DAPO. The subagent remains frozen throughout.\somesh{1. [optional] introduce logos for llamia / user 2. n is dangling in legend action 3. Some texts like Subagent invocation are very small 4. pink boxes are not aligned in latent state 5. Language Action Latent theme looks inconsistent across figure/caption/text 6. Use the whitespace in the State box for something? 7. Werent we planning to show ... ? to show t=20 8. Fix caption 9. Chain of Thought is dangling it should be like the heading of the three blocks? 10. Update boards to show the correct position}
-    }
+    \includegraphics[width=0.98\linewidth]{plots/llamia-fig (12).pdf}
+    \caption{\textbf{Latent State Internalization.}
+  A single chain of thought rolled out over time.
+  \emph{$t{=}0$ (subagent invocation):} the LLM begins reasoning in
+  \mlang{language} and emits \texttt{<invoke>}; the current board $S_0$ is
+  passed through the frozen subagent (Lc0-BT4) and the \textbf{LatentBridge}
+  maps its hidden activations into $k{=}32$ continuous \mstate{latent state}
+  tokens that are appended to the context.
+  \emph{$t{=}1$ (state transition):} conditioned on $S_0$ and its latent
+  state, the LLM continues reasoning and emits an \maction{action} (Nc2),
+  which advances the environment to $S_1$.
+  \emph{$t{=}2$ (subagent invocation):} the LLM chooses to re-invoke,
+  encoding $S_1$ into a fresh \mstate{latent state} so subsequent reasoning
+  is grounded in the updated board. The LLM decides when to re-invoke
+  rather than re-encoding on every step. Stage~1 trains only the
+  LatentBridge on state--policy pairs; Stage~2 jointly fine-tunes it with
+  the LLM via DAPO. The subagent is frozen throughout.}
     \vspace{-3mm}
     \label{fig:LLAMIA}
 

@@ -32,7 +32,7 @@ Figure~\ref{fig:agency_heatmaps} decomposes this difference. Five collaboration 
     Both panels plot a metric of collaboration behavior against DAPO training progress (\%).
     Solid blue: LLAMIA (latent internalization). Dashed orange: LLAMIA-Verb (verbalized tool use, same backbone and recipe). Shaded bands: running standard deviation.
     \emph{Left:} Strategy entropy $H$ (nats) over the five collaboration patterns in \cref{fig:agency_heatmaps}. Maximum entropy is $\ln 5 = 1.61$ (dotted line). Through ${\sim}$30\% of training, both systems develop similar diversity ($H \approx 0.75$): the model learns \emph{when} to invoke and \emph{whether} to follow---agency over the questions, available to both interfaces. After ${\sim}$40\%, the curves diverge. LLAMIA's entropy rises to $H = 1.53$ (95\% of maximum) as counterfactual-query and multi-step-lookahead patterns emerge---agency over the reading, available only through the latent channel. LLAMIA-Verb plateaus at $H = 0.93$ (58\%); no new patterns appear because the text response carries the same compressed summary regardless of how the model queries.
-    \emph{Right:} Task-specificity ($\overline{\mathrm{JSD}}$, nats) between per-task strategy distributions (\cref{fig:agency_heatmaps}). LLAMIA's strategies diverge across tasks: override dominates behavior cloning (48\%), counterfactual query dominates commentary (40\%), and both concentrate in ICP. LLAMIA-Verb's distribution is engine-follow on every task (62--76\%), yielding $\overline{\mathrm{JSD}} = 0.012$---an order of magnitude below LLAMIA's $0.12$. The verbalized model has learned one way to use the engine; the internalized model has learned six.
+    \emph{Right:} Task-specificity ($\overline{\mathrm{JSD}}$, nats) between per-task strategy distributions (\cref{fig:agency_heatmaps}). LLAMIA's strategies diverge across tasks: override dominates behavior cloning (48\%), and counterfactual query dominates commentary (40\%). LLAMIA-Verb's distribution is engine-follow on every task (62--76\%), yielding $\overline{\mathrm{JSD}} = 0.012$---an order of magnitude below LLAMIA's $0.12$. The verbalized model has learned one way to use the engine; the internalized model has learned six.
     }
     \label{fig:agency_task_specificity}
 \end{figure}
@@ -79,39 +79,39 @@ We replace BT4 (240M params, $\sim$2810\,Elo without search, $\sim$3300 with 100
 
 \begin{table}[h]
 \centering
-\caption{\textbf{Agent-size ablation.} LLAMIA-14B performance with different Lc0 backends. BC, Commentary, and ICP are representative tasks; Avg.\ is the unweighted mean across all seven LLAMIA-Bench tasks. Stronger agents yield monotonically better scores.}
+\caption{\textbf{Agent-size ablation.} LLAMIA-14B performance with different Lc0 backends. BC and Commentary are representative tasks; Avg.\ is the unweighted mean across all LLAMIA-Bench tasks. Stronger agents yield monotonically better scores.}
 \label{tab:abl_agent_size}
 \begin{adjustbox}{max width=\columnwidth}
 \renewcommand{\arraystretch}{1.25}
 \small
-\begin{tabular}{lccccc}
+\begin{tabular}{lcccc}
 \toprule[1.2pt]
-\textbf{Agent} & \textbf{Elo (no search)} & \textbf{BC} & \textbf{Comm.} & \textbf{ICP} & \textbf{Avg.} \\
+\textbf{Agent} & \textbf{Elo (no search)} & \textbf{BC} & \textbf{Comm.} & \textbf{Avg.} \\
 \midrule
-T72   & $\sim$2000 & 44 & 52 & 28 & 38.7 \\
-T80   & $\sim$2200 & 49 & 62 & 37 & 46.3 \\
-T82   & 2292       & 51 & 66 & 40 & 48.9 \\
-BT3   & $\sim$2500 & \valgood{53} & \valgood{71} & \valgood{44} & \valgood{51.7} \\
-BT4   & $\sim$2810 & \valbest{56} & \valbest{75} & \valbest{47} & \valbest{56.9} \\
+T72   & $\sim$2000 & 44 & 52 & 38.7 \\
+T80   & $\sim$2200 & 49 & 62 & 46.3 \\
+T82   & 2292       & 51 & 66 & 48.9 \\
+BT3   & $\sim$2500 & \valgood{53} & \valgood{71} & \valgood{51.7} \\
+BT4   & $\sim$2810 & \valbest{56} & \valbest{75} & \valbest{56.9} \\
 \bottomrule[1.2pt]
 \end{tabular}
 \end{adjustbox}
 \end{table}
 
-Stronger agents monotonically improve LLAMIA across the representative tasks and the seven-task average, indicating that the projected representation preserves capability-relevant information. The trend does not rely on BT4 alone: T72 and T80 follow the same ordering on behavior cloning, commentary, and instruction planning under the identical training recipe.
+Stronger agents monotonically improve LLAMIA across the representative tasks and the overall average, indicating that the projected representation preserves capability-relevant information. The trend does not rely on BT4 alone: T72 and T80 follow the same ordering on behavior cloning and commentary under the identical training recipe.
 
 \subsubsection{LLM Backbone and Agent Strength}
 \label{sec:app_abl_scaling_both_axes}
 
-Figure~\ref{fig:scaling_bars} extends the agent-size ablation to two LLM backbones (4B and 14B) across the same five agents, now spanning both SE-ResNet and Transformer architectures (Table~\ref{tab:lc0_crosscheck}). Performance increases monotonically with both LLM capacity and agent strength on all four representative tasks.
+Figure~\ref{fig:scaling_bars} extends the agent-size ablation to two LLM backbones (4B and 14B) across the same five agents, now spanning both SE-ResNet and Transformer architectures (Table~\ref{tab:lc0_crosscheck}). Performance increases monotonically with both LLM capacity and agent strength on all representative tasks.
 
 The 4B-to-14B improvement is 2.4--3.1$\times$ larger for Transformer-architecture agents (T80, BT3, BT4) than for SE-ResNet agents (T72, T78). The ratio is largest on Interest ($3.1\times$) and Commentary ($2.7\times$), the two tasks most dependent on reading the agent's internal representation, and smallest on Behavior Cloning ($2.4\times$). On Interest, the 4B scores for the strongest SE-ResNet agent (T78, 40) and the weakest Transformer agent (T80, 41) are nearly identical, yet their 14B scores diverge sharply (46 vs.\ 55). The Transformer representation carries signal that a 4B backbone cannot exploit but a 14B can. Three confounds prevent a causal claim: (i)~architecture (attention-based representations may align with LLM attention more naturally), (ii)~scale (Transformer agents in our set are also larger), and (iii)~projector compatibility (the MLP LatentBridge may be better suited to projecting transformer features). Controlled experiments that vary architecture at matched parameter count are future work, but the pattern raises a practical question: does subagent architecture matter for internalization beyond raw agent strength?
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=\linewidth]{pages/figures/scaling_bars_2x2.pdf}
+    \includegraphics[width=\linewidth]{pages/figures/scaling_bars_1x3.pdf}
     \caption{\textbf{LLM backbone $\times$ agent architecture and strength.}
-    Each panel shows one representative LLAMIA-Bench task (Behavior Cloning, Puzzle Interest, Game Commentary, Instruction Planning).
+    Each panel shows one representative LLAMIA-Bench task (Behavior Cloning, Puzzle Interest, Game Commentary).
     $x$-axis: Lc0 agents ordered by architecture family (SE-ResNet \emph{left}, Transformer \emph{right}) and by playing strength (Elo without search, in parentheses).
     Bars: LLAMIA-4B (light blue) and LLAMIA-14B (dark blue).
     Green/brown annotations: the 4B$\to$14B improvement $\Delta$.
@@ -130,20 +130,20 @@ We vary the number of state tokens $k \in \{4, 8, 16, 32, 64\}$ injected per \te
 
 \begin{table}[h]
 \centering
-\caption{\textbf{Projection token count ablation.} LLAMIA-14B with varying $k$. BC, Commentary, and ICP are representative tasks; Avg.\ is the unweighted mean across all seven LLAMIA-Bench tasks. Performance saturates at $k{=}32$, which is used throughout.}
+\caption{\textbf{Projection token count ablation.} LLAMIA-14B with varying $k$. BC and Commentary are representative tasks; Avg.\ is the unweighted mean across all LLAMIA-Bench tasks. Performance saturates at $k{=}32$, which is used throughout.}
 \label{tab:abl_tokens}
 \begin{adjustbox}{max width=\columnwidth}
 \renewcommand{\arraystretch}{1.25}
 \small
-\begin{tabular}{cccccc}
+\begin{tabular}{ccccc}
 \toprule[1.2pt]
-$k$ & \textbf{BC} & \textbf{Comm.} & \textbf{ICP} & \textbf{Avg.} & \textbf{Tokens/episode} \\
+$k$ & \textbf{BC} & \textbf{Comm.} & \textbf{Avg.} & \textbf{Tokens/episode} \\
 \midrule
-4   & 48 & 58 & 30 & 45.1 & 680 \\
-8   & 51 & 65 & 37 & 49.7 & 720 \\
-16  & \valgood{54} & \valgood{73} & \valgood{44} & 54.9 & 790 \\
-32  & \valbest{56} & \valbest{75} & \valbest{47} & \valbest{56.9} & 920 \\
-64  & 56 & 75 & 47 & \valgood{56.7} & 1180 \\
+4   & 48 & 58 & 45.1 & 680 \\
+8   & 51 & 65 & 49.7 & 720 \\
+16  & \valgood{54} & \valgood{73} & 54.9 & 790 \\
+32  & \valbest{56} & \valbest{75} & \valbest{56.9} & 920 \\
+64  & 56 & 75 & \valgood{56.7} & 1180 \\
 \bottomrule[1.2pt]
 \end{tabular}
 \end{adjustbox}
