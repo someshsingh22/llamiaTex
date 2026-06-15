@@ -30,7 +30,7 @@ Moreover, this error compounds across interactions, in multi-step settings, each
 
 \textbf{Verbalization Debt:} To conclusively establish and analyze the effect of internalization, we train a controlled ablation, LLAMIA-Verb, in which the subagent's outputs are exposed to the LLM through verbalization, without the latent tokens. LLAMIA consistently achieves higher reward across all tasks throughout training (\cref{fig:combined}). The gap widens on tasks requiring deeper multi-step integration. These results show that verbalization is a fundamental bottleneck when non-language agents are treated as tools.
 
-\textbf{LLAMIA-Bench, Chess as a testbed:} Despite abundant applications, LLM collaboration with non-language agents remains underexplored. A central reason is the lack of environments that combine what is needed to structurally test this collaboration: diverse tasks with verifiable metrics, large-scale public data, and open pretrained agents. Chess satisfies all three: decades of human-engine collaboration on commentary, preparation, and puzzles have produced established evaluation protocols, large-scale public databases like Lichess, and annotated corpora~\cite{feng2024chessgpt}. We therefore use chess as our primary testbed and introduce \textsc{LLAMIA-Bench} (\cref{sec:app_bench}), a curated suite of seven tasks spanning behavior cloning across skill levels, puzzle interest and difficulty estimation, move annotation, game-level commentary, and instruction-conditioned planning. We introduce a new dataset curated from \href{https://www.youtube.com/channel/UCL5YbN5WLFD8dLIegT5QAbA}{Agadmator's YouTube Channel} for game level commentary.
+\textbf{LLAMIA-Bench, Chess as a testbed:} Despite abundant applications, LLM collaboration with non-language agents remains underexplored. A central reason is the lack of environments that combine what is needed to structurally test this collaboration: diverse tasks with verifiable metrics, large-scale public data, and open pretrained agents. Chess satisfies all three: decades of human-engine collaboration on commentary, preparation, and puzzles have produced established evaluation protocols, large-scale public databases like Lichess, and annotated corpora~\cite{feng2024chessgpt}. We therefore use chess as our primary testbed and introduce \textsc{LLAMIA-Bench} (\cref{sec:app_bench}), a curated suite of six tasks spanning behavior cloning across skill levels, puzzle interest and difficulty estimation, move annotation and game-level commentary. We introduce a new dataset curated from \href{https://www.youtube.com/channel/UCL5YbN5WLFD8dLIegT5QAbA}{Agadmator's YouTube Channel} for game level commentary.
 
 \begin{figure}
 \centering
@@ -44,7 +44,7 @@ Moreover, this error compounds across interactions, in multi-step settings, each
     to score on Puzzle Interest, where the engine signal has no text
     surrogate. ``Avg.\ Performance'' averages each method over its
     reported tasks.}
-    \vspace{-2mm}
+    \vspace{-3mm}
     \label{fig:radar_intro}
 \end{figure}
 
@@ -57,7 +57,7 @@ Our contributions are fourfold:
 \lang{language}, \action{action}, \state{latent state}\rangle$ tokens.
 \item \textbf{LLAMIA} (Section~\ref{sec:methodology}): A two-stage training framework of self-supervised projector alignment followed by end-to-end RL (DAPO) that yields a single model, LLAMIA, achieving state-of-the-art performance across diverse collaborative tasks. LLAMIA enables real world application by giving close-weight models faithful access to subagents.
 \item \textbf{Verbalization Debt} (Section~\ref{sec:experiments}): Through controlled ablations against LLAMIA-Verb, we define and quantify the \emph{Verbalization Debt} (the performance gap between internalized and verbalized integration), showing it is suboptimal in both performance and compute, with the gap widening on tasks requiring deeper or multi-step collaboration.
-\item \textbf{\textsc{LLAMIA-Bench}} (Section~\ref{sec:experiments}): A curated benchmark of seven chess tasks spanning diverse collaborative tasks including behavior cloning, puzzle understanding, commentary, and planning. 
+\item \textbf{\textsc{LLAMIA-Bench}} (Section~\ref{sec:experiments}): A curated benchmark of six chess tasks spanning diverse collaborative tasks including behavior cloning, puzzle understanding, commentary, and planning. 
 \end{enumerate}
 
 % \begin{enumerate}[leftmargin=*, labelsep=0.5em, topsep=2pt, itemsep=2pt]

@@ -41,7 +41,7 @@ Figure~\ref{fig:agency_heatmaps} decomposes this difference. Five collaboration 
 \subsection{Agent Size and Playing Strength}
 \label{sec:app_abl_agent_size_playing_strength}
 
-This ablation asks whether internalization gains are tied to BT4 specifically or generalize across agent architectures and capacities. We draw the agent pool from five additional Lc0 networks spanning roughly 2000--2600\,Elo, covering three architectural families---convolutional SE-ResNets (T72, T78), standard transformers (T80, T82), and big transformers (BT3)---so that architecture is separated from raw capacity. All Elos are measured \emph{without search} (single forward pass, policy-only decoding) via the gauntlet protocol of \cref{sec:app_results_gameplay_elo}: LLAMIA internalizes the agent's single-forward-pass representation through the LatentBridge, so the no-search rating reflects the information actually available to internalization---tree-search budget is not distilled into the latent state. Table~\ref{tab:lc0_crosscheck} lists the networks, with BT4 included as the primary agent for reference.
+This ablation asks whether internalization gains are tied to BT4 specifically or generalize across agent architectures and capacities. We draw the agent pool from five additional Lc0 networks spanning roughly 2000--2600\,Elo, covering three architectural families---convolutional SE-ResNets (T72, T78), standard transformers (T80, T82), and big transformers (BT3)---so that architecture is separated from raw capacity. All Elos are measured \emph{without search} (single forward pass, policy-only decoding) via the gauntlet protocol : LLAMIA internalizes the agent's single-forward-pass representation through the LatentBridge, so the no-search rating reflects the information actually available to internalization---tree-search budget is not distilled into the latent state. Table~\ref{tab:lc0_crosscheck} lists the networks, with BT4 included as the primary agent for reference.
 
 %% ── TABLE: Lc0 NETWORK POOL ─────────────────────────────────────────────────
 \begin{table}[h]
@@ -50,7 +50,7 @@ This ablation asks whether internalization gains are tied to BT4 specifically or
 \caption{%
   \textbf{Lc0 network pool for the agent-size ablation.}
   Elo is measured without search (policy-only, single forward pass) via the
-  gauntlet protocol of \cref{sec:app_results_gameplay_elo}.
+  gauntlet protocol.
   BT4 is the primary agent used throughout the paper.
 }
 \label{tab:lc0_crosscheck}

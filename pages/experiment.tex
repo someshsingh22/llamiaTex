@@ -1,7 +1,7 @@
 \section{Experiments and Results}
 \label{sec:experiments}
 
-We evaluate \textsc{LLAMIA} on \textsc{LLAMIA-Bench}, a suite of six tasks spanning three collaboration facets: behavioral imitation, state assessment, and natural-language explanation (\cref{sec:app_bench}). Tasks are chosen to be unsolvable by either component alone, ensuring that performance reflects genuine LLM--agent collaboration rather than isolated backbone or engine capability. For comparing LLAMIA with cosed source models where training isnt possible, we pair them with Lc0 as a verbalized tool, testing whether model scale alone can compensate for the absence of latent integration. To evaluate against open-source models we create three settings: an untrained tool-use baseline, a 
+We evaluate \textsc{LLAMIA} on \textsc{LLAMIA-Bench}, a suite of six tasks spanning three collaboration facets: behavioral imitation, state assessment, and natural-language explanation (\cref{sec:app_bench}). For comparing LLAMIA with closed source models where training isnt possible, we pair them with Lc0 as a verbalized tool. To evaluate against open-source models we create three settings: an untrained tool-use baseline, a 
 training-matched verbalization system, and our internalized model, isolating the integration interface as the sole variable.  Within the 
 open-source trained systems, we report both SFT and SFT + DAPO checkpoints to disentangle the contributions of supervised pretraining and reinforcement 
 learning.
@@ -38,7 +38,7 @@ Each task has a primary metric detailed in \cref{sec:app_bench}: move-matching a
     \textbf{DAPO training dynamics and LLAMIA-Bench evaluation.}
     \textbf{(a)}~Aggregate reward vs.\ training step at three backbone scales.
     Solid: LLAMIA (latent); dashed: LLAMIA-Verb (verbalized, identical recipe and backbone).
-    The gap widens throughout and reaches $2$--$3\times$ by convergence; scaling the backbone does not close it for LLAMIA-Verb.
+    The debt widens throughout and reaches $2$--$3\times$ by convergence; scaling the backbone does not close it for LLAMIA-Verb.
     \textbf{(b)}~Per-task reward curves at 14B.
     LLAMIA-Verb gains partial signal on behavior cloning and difficulty (tasks with verbalizable proxies) but stays near-flat on interest and commentary, where the reward requires non-verbalizable features or multi-step integration.
     \textbf{(c)}~LLAMIA-Bench scores ($0$--$100$).
@@ -47,17 +47,17 @@ Each task has a primary metric detailed in \cref{sec:app_bench}: move-matching a
     }
     \label{fig:combined}
 \end{figure*}
-LLAMIA-14B leads all six tasks with a single multi-task model (\cref{tab:main_bench}; \cref{fig:combined}c), outperforming GPT-5\,+\,Lc0 by $+8$ to $+42$ points across the suite.
-On behavior cloning, LLAMIA-14B lands within $2$\,pp of Allie-Adaptive-Search on the in-distribution Maia split ($53$ vs.\ $55$) and surpasses it by $+12$\,pp on Wild ($57$ vs.\ $45$), where blitz-only training data misses grandmaster play, time pressure, and large rating gaps.
+LLAMIA-14B achieves the highest score on all six \textsc{LLAMIA-Bench} tasks (\cref{fig:combined}c), surpassing frontier verbalized systems an order of magnitude larger and remaining competitive with dedicated task-specific finetunes that are trained on substantially more in-domain data.
+On behavior cloning, Maia and Allie are trained on tens of millions of chess-specific games, against LLAMIA's general-purpose backbone. LLAMIA-14B remains inside the expert band on the in-distribution Maia split and surpasses the strongest expert by a wide margin on the OOD Wild splits (GM-25, Low-Time, $\Delta$Elo), which probe regimes absent from the experts' blitz-only training mixture. Latent access to the engine's policy and value structure thus generalizes more reliably than direct supervision on a narrower distribution.
 The advantage over GPT-5\,+\,Lc0 does not require the 14B backbone: LLAMIA-8B already leads on all six tasks, and LLAMIA-4B on four of six (\cref{tab:full_bench}).
 Per-task evaluations with additional metrics, baselines, and confidence intervals are in \cref{sec:app_results}.
 
 \paragraph{Latent tokens enable new evaluation targets.}
-Puzzle Interest requires ranking positions by community-derived interestingness, a signal that depends on the engine's policy distribution and value gradients across candidate moves (\cref{sec:app_landscape_interest}).
+Puzzle Interest requires ranking positions by community-derived interestingness, a signal that depends on the engine's policy distribution and value gradients across candidate moves.
 No verbalized engine output carries these features.
 Every verbalized system scores ${\leq}12$ on Interest regardless of model scale or frontier capability; LLAMIA-14B reaches $52$ (\cref{fig:combined}c).
-The margin here is qualitative, not incremental: verbalization has zero useful signal for this task, while latent tokens give the LLM direct access to the distributional structure that defines interestingness.
-The variation in this gap across tasks, from $+8$ on in-distribution BC to $+44$ on Interest (\cref{tab:main_bench}, $\Delta$ row), is the subject of the next section.
+Verbalization has zero useful signal for this task, while latent tokens give the LLM direct access to the distributional structure that defines interestingness.
+
 
 % \begin{table}[t]
 % \centering
@@ -88,24 +88,24 @@ The variation in this gap across tasks, from $+8$ on in-distribution BC to $+44$
 % =========================================================================
 \subsection{Verbalization Debt}
 \label{sec:results_vd}
-\somesh{Now that we have quantitatively differentiated LLAMIA on all tasks against Frontier + Task specific Finetunes we discuss the verbalization debt through key headings, first, define it. Summarize the results from table 1, then from figure Verbalization gap is consistent across scale, and throughout training, from training dynamics figure.}
+\somesh{Now that we have quantitatively differentiated LLAMIA on all tasks against Frontier + Task specific Finetunes we discuss the verbalization debt through key headings, first, define it. Summarize the results from table 1, then from figure Verbalization debt is consistent across scale, and throughout training, from training dynamics figure.}
 
-LLAMIA and LLAMIA-Verb share the same 14B backbone, Lc0-BT4 subagent, and DAPO recipe; the only difference is whether the subagent's state reaches the LLM as latent tokens or as verbalized text. We define the resulting performance gap as the \textbf{verbalization debt}, reported per task in the $\Delta$ row of \cref{tab:main_bench}.
+LLAMIA and LLAMIA-Verb share the same 14B backbone, Lc0-BT4 subagent, and DAPO recipe; the only difference is whether the subagent's state reaches the LLM as latent tokens or as verbalized text. We define the resulting performance gap as the \textbf{verbalization debt}.
 
-\paragraph{The debt is task-specific and tracks what verbalization discards.}
-The margin spans an order of magnitude: $+44$ on Interest, $+35$ on Commentary, $+22$ on Difficulty, $+18$ on Wild BC, $+17.1$ on Annotation, and $+8$ on MAIA BC. At one extreme, the policy shape and value gradients that distinguish engaging puzzles from routine ones have no text equivalent; every verbalized system scores ${\leq}12$ on Interest regardless of model scale (\cref{fig:combined}c), while LLAMIA reaches $52$. At the other, the engine's top-$k$ moves already cover most human play, leaving a modest residual on in-distribution behavior cloning. \cref{sec:app_landscape} traces each task's debt to the specific features that verbalization discards.
+\paragraph{Verbalization debt is significant across all tasks}
+Figure \ref{fig:combined} shows that the verbalization debt is consistent across all tasks. The debt varies across tasks, it is largest on tasks whose target signal lives in the engine's full policy distribution or value landscape (Interest, Commentary), which have no faithful text equivalent. It is smallest on in-distribution behavior cloning, where the engine's top-$k$ moves already approximate the answer and the verbal summary loses little.
 
-\paragraph{The gap persists across backbone scale.}
-Increasing the LLM from 4B to 14B improves both systems, but the debt persists at every scale (\cref{tab:full_bench}). On Interest, LLAMIA-Verb-14B scores $8$ while LLAMIA-4B already reaches $38$. The bottleneck is the interface, not model capacity.
+\paragraph{The debt persists across backbone scale.}
+Increasing the LLM from 4B to 14B improves both systems, but the debt persists at every scale (\cref{tab:full_bench}). On Interest, LLAMIA-Verb-14B scores $8$ while LLAMIA-4B already reaches $38$.
 
-\paragraph{The gap widens throughout training.}
+\paragraph{The debt widens throughout training.}
 The debt grows throughout DAPO, reaching $2$--$3\times$ by the end of training (\cref{fig:combined}a). Per-task reward curves (\cref{fig:combined}b) reveal where the verbal channel saturates: LLAMIA-Verb gains partial signal on behavior cloning and difficulty, where the verbalized output carries a useful proxy (top-$k$ moves, solution length), but stays near-flat on interest and commentary, where no such proxy exists.
 
 
 \subsection{Collaboration Strategies}
 \label{sec:results_agency}
 \somesh{The signposting or motivation of why we are discussing Collaboration strategies is missing. `apart from quantitative comparison in agent performance we now analyze the learnt collaboration strategies through internalization and RL over multi-step planning. We qualitatively analyze and identify the following dominant patterns of subagent invokation and actions as shown in figure 2. We describe these patterns and their definitions in appendix ... Then key headlines, training for strategic collaboration with non language agent collapses with verbalization, whereas with internalization LLAMIA exhibits better agency with task specific strategies learnt during training. Defer to dynamics from figure only.}
-Does the integration interface determine how the model learns to use the subagent, or only how well it performs? We classify subagent invocations during evaluation into five recurring strategies and trace their evolution during DAPO training (\cref{fig:agency_diversity}; strategy definitions and per-task heatmaps in \cref{fig:agency_heatmaps}).
+Does the integration interface determine how the model learns to use the subagent, or only how well it performs? We classify subagent invocations during evaluation into five recurring strategies and trace their evolution during DAPO training (\cref{fig:agency_task_specificity}; strategy definitions and per-task heatmaps in \cref{fig:agency_heatmaps}).
 
 \begin{figure}[t]
     \centering
@@ -118,6 +118,8 @@ Does the integration interface determine how the model learns to use the subagen
   query for commentary); LLAMIA-Verb collapses to engine-follow on every
   row (62--76\%). Detailed discussion can be found in \cref{sec:abl_agency_strategies}}
     \label{fig:agency_heatmaps}
+
+    \vspace{-2mm}
 \end{figure}
 
 
@@ -126,20 +128,20 @@ The five strategies are \emph{engine-follow} (adopt the top recommendation), \em
 \paragraph{Internalization produces task-specific collaboration; verbalization collapses it.}
 LLAMIA adapts its strategy to the task: engine-follow dominates gameplay (65\%), consult-then-override dominates behavior cloning (48\%), and counterfactual query dominates commentary (40\%). LLAMIA-Verb collapses to engine-follow on every task (62--76\%), regardless of what the task requires (\cref{fig:agency_heatmaps}). The verbalized channel returns the same compressed summary no matter how the model queries it, so RL converges on a single use pattern.
 
-\subsection{Ablations}
-\label{sec:results_ablations}
-\somesh{This section needs a more motivating and signposting opening in a few sentences what abltions are we doing and why, and instead of bluntly referring to appendix section go result by result and refer to the results there.}
+% \subsection{Ablations}
+% \label{sec:results_ablations}
+% \somesh{This section needs a more motivating and signposting opening in a few sentences what abltions are we doing and why, and instead of bluntly referring to appendix section go result by result and refer to the results there.}
 
-The gains above could stem from the latent channel, the RL procedure, or properties of the specific subagent. We isolate each and vary the projection bandwidth; full factorial tables appear in \cref{sec:app_ablations}.
+% The gains above could stem from the latent channel, the RL procedure, or properties of the specific subagent. We isolate each and vary the projection bandwidth; full factorial tables appear in \cref{sec:app_ablations}.
 
-\paragraph{Training method: SFT vs.\ DAPO.}
-Latent SFT alone matches or exceeds verbal DAPO on four of six tasks (Commentary: $0.58$ vs.\ $0.40$ G-eval; Annotation: $38.5$ vs.\ $33.2$ BLEU-2; Interest: $\rho{=}0.48$ vs.\ $0.08$; BC: $51$ vs.\ $45$; per-task tables in \cref{sec:app_results}), so the latent channel improves performance regardless of the optimization method. DAPO then amplifies the latent advantage, but unevenly: Commentary gains $+0.17$ G-eval and Annotation Comparative gains $+10.3$\,pp under latent access, vs.\ $+0.08$ and $+2.6$\,pp under verbalization (\cref{tab:commentary_extended,tab:rationale_extended}). On single-step tasks the latent tokens already carry the discriminative signal and RL adds little (BC: $+2$\,pp; Interest: $+0.04\,\rho$). RL's contribution concentrates on multi-step tasks (\cref{sec:results_agency}), where counterfactual queries and lookahead chains require the agent's full state to produce useful gradient signal.
+% \paragraph{Training method: SFT vs.\ DAPO.}
+% Latent SFT alone matches or exceeds verbal DAPO on four of six tasks (Commentary: $0.58$ vs.\ $0.40$ G-eval; Annotation: $38.5$ vs.\ $33.2$ BLEU-2; Interest: $\rho{=}0.48$ vs.\ $0.08$; BC: $51$ vs.\ $45$; per-task tables in \cref{sec:app_results}), so the latent channel improves performance regardless of the optimization method. DAPO then amplifies the latent advantage, but unevenly: Commentary gains $+0.17$ G-eval and Annotation Comparative gains $+10.3$\,pp under latent access, vs.\ $+0.08$ and $+2.6$\,pp under verbalization (\cref{tab:commentary_extended,tab:rationale_extended}). On single-step tasks the latent tokens already carry the discriminative signal and RL adds little (BC: $+2$\,pp; Interest: $+0.04\,\rho$). RL's contribution concentrates on multi-step tasks (\cref{sec:results_agency}), where counterfactual queries and lookahead chains require the agent's full state to produce useful gradient signal.
 
-\paragraph{Agent architecture and strength.}
-To confirm the gain is not tied to BT4, we replace it with five weaker networks spanning 2000--2500 Elo across SE-ResNet and Transformer families (\cref{tab:abl_agent_size}). Performance increases monotonically with agent strength on all tasks. Transformer agents show larger gains from LLM backbone scaling, though architecture and scale are confounded; we discuss this interaction in \cref{sec:app_abl_scaling_both_axes}.
+% \paragraph{Agent architecture and strength.}
+% To confirm the gain is not tied to BT4, we replace it with five weaker networks spanning 2000--2500 Elo across SE-ResNet and Transformer families (\cref{tab:abl_agent_size}). Performance increases monotonically with agent strength on all tasks. Transformer agents show larger gains from LLM backbone scaling, though architecture and scale are confounded; we discuss this interaction in \cref{sec:app_abl_scaling_both_axes}.
 
-\paragraph{Projection token count.}
-We vary the number of state tokens per invocation, $k \in \{4, 8, 16, 32, 64\}$. Performance saturates at $k{=}32$; $k{=}16$ already reaches 97\% of the $k{=}32$ average (\cref{tab:abl_tokens}). Doubling to $k{=}64$ adds no gain but increases context length by 28\%. We use $k{=}32$ throughout.
+% \paragraph{Projection token count.}
+% We vary the number of state tokens per invocation, $k \in \{4, 8, 16, 32, 64\}$. Performance saturates at $k{=}32$; $k{=}16$ already reaches 97\% of the $k{=}32$ average (\cref{tab:abl_tokens}). Doubling to $k{=}64$ adds no gain but increases context length by 28\%. We use $k{=}32$ throughout.
 
 
 \subsection{Human Evaluation}
@@ -172,15 +174,16 @@ We vary the number of state tokens per invocation, $k \in \{4, 8, 16, 32, 64\}$.
     \textbf{Human evaluation ($n{=}12$ skilled players, all rated ${\geq}1700$).}
     \textbf{(a)}~Attention difference over latent tokens on a back-rank mate position: conditioning on 2000~Elo concentrates attention on mating geometry (red); 1100~Elo disperses to material (blue). The same latent state is read differently depending on the language instruction.
     \textbf{(b)}~Bot-detection rate (Study~1): LLAMIA-14B passes as human in 61\% of trials (detection 39\%, below chance); LLAMIA-Verb detected in 72\%.
-    \textbf{(c)}~Post-game Likert: LLAMIA matches Maia* (best Maia variant per Elo bucket) on human-likeness without training on human-move distributions.
+    \textbf{(c)}~Post-game Likert (Strongly Disagree $\rightarrow$ Strongly Agree): LLAMIA matches Maia* (best Maia variant per Elo bucket) on human-likeness without training on human-move distributions.
     \textbf{(d)}~Commentary preference (Study~2): 72.2\% of 180 judgments favour LLAMIA; Insight gap (1.7\,pts) exceeds Accuracy gap (1.1\,pts).
     Study design and qualitative results in \cref{sec:app_human}.
     }
+    \vspace{-3mm}
     \label{fig:human_eval}
 \end{figure*}
 
 \paragraph{Gameplay.}
-Skilled players ($n{=}12$, all ${\geq}1700$ Elo) cannot reliably distinguish LLAMIA from a human opponent: detection falls below chance (\cref{fig:human_gameplay_main}), and post-game ratings place LLAMIA alongside Maia* on perceived human-likeness (\cref{fig:human_survey_main}). Maia is trained directly on millions of human-Elo move distributions; LLAMIA receives no human-move supervision. Instead, behavioral signatures such as time-pressure blunders and skill-appropriate piece saliency emerge from latent-state conditioning alone. LLAMIA-Verb, trained with the same backbone and DAPO budget, is detected at rates well above chance, consistent with the stylistic regularities that verbal summaries impose on move selection.
+Skilled players ($n{=}12$, all ${\geq}1700$ Elo) cannot reliably distinguish LLAMIA from a human opponent: detection falls below chance (\cref{fig:human_gameplay_main}), and post-game ratings place LLAMIA alongside Maia* on perceived human-likeness (\cref{fig:human_survey_main}). Maia is trained directly on millions of move distributions; LLAMIA receives no human-move supervision. Instead, behavioral signatures such as time-pressure blunders and skill-appropriate piece saliency emerge from latent-state conditioning alone. LLAMIA-Verb, trained with the same backbone and DAPO budget, is detected at rates well above chance, consistent with the stylistic regularities that verbal summaries impose on move selection.
 
 \paragraph{Commentary.}
 Both systems achieve comparable factual accuracy: material balance, initiative assessment, and basic evaluations survive verbalization reasonably well. The gap concentrates on strategic insight (\cref{fig:human_commentary_main}), where participants rate LLAMIA higher by a wider margin on the Insight dimension than on Accuracy. Text preserves \emph{what} is happening on the board, but explaining \emph{why} a move is strong requires representational features (policy gradients, value topology, look-ahead depth) that do not survive verbal compression.

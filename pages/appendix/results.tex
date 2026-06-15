@@ -332,7 +332,7 @@ LLAMIA-14B          & $53\,{\scriptstyle\pm 1}$ & \valbest{$49\,{\scriptstyle\pm
 
 \paragraph{Verbalization is lossy, and the loss is task-specific.}
 At fixed backbone (Qwen3-14B), fixed subagent (Lc0-BT4), and fixed training recipe (DAPO), replacing the verbalized text channel with latent tokens lifts every column.
-The relative gain follows the landscape mechanism in \cref{sec:app_landscape_cross}: largest on Interest ($\rho{=}0.08{\to}0.52$, a $6.5\times$ jump), where the discriminative signal lives in the policy distribution and the value gradients across candidate moves, none of which the verbalized output carries;
+The relative gain follows the landscape mechanism: largest on Interest ($\rho{=}0.08{\to}0.52$, a $6.5\times$ jump), where the discriminative signal lives in the policy distribution and the value gradients across candidate moves, none of which the verbalized output carries;
 large on Commentary ($0.40{\to}0.75$), where positional mechanisms compound across the game;
 moderate on Difficulty ($\rho{=}0.45{\to}0.71$), where solution length is a partial verbal proxy but leaves a residual signal over motif type and distractor sharpness;
 smaller on Rationale ($33{\to}46$), where PV-derived inference covers much of Planning;

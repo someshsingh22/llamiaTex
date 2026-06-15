@@ -116,10 +116,10 @@
 % -------------------------
 % AUTHOR COMMENT MACROS
 % -------------------------
-\newcommand{\somesh}[1]{{\small\textcolor{red}{[Somesh: #1]}}}
+\newcommand{\somesh}[1]{}
 \definecolor{themeharini}{RGB}{50,128,128}
-\newcommand{\yaman}[1]{{\scriptsize\textcolor{red}{[Yaman: #1]}}}
-\newcommand{\harini}[1]{{\scriptsize\textcolor{blue}{[Harini: #1]}}}
+\newcommand{\yaman}[1]{}
+\newcommand{\harini}[1]{}
 
 % -------------------------
 % STATE / LANGUAGE / ACTION MACROS
@@ -218,25 +218,50 @@
 %}
 \begin{document}
 \maketitle
-\begin{abstract}                    
+\begin{abstract}
+
+% LLMs are now routinely deployed as orchestrators that delegate to
+% specialized subagents, and that delegation is mediated in natural
+% language. This default works when the subagent is itself an LLM. It
+% breaks down in domains where the strongest agents are not language
+% models: chess engines, robot policies, and autonomous-driving stacks
+% encode their expertise in latent representations of policy, value, and
+% learned features rather than in words. Connecting such an agent to an
+% LLM currently requires verbalization, with each interaction step
+% compressing a continuous representation into a short textual summary.
+% We ask whether this textual interface is adequate when the collaboration
+% has to survive multiple steps or carry signals that resist serialization.
+% We answer the question on LLAMIA-Bench, six collaborative chess tasks
+% covering behavior cloning, stylometry, puzzle understanding, and
+% commentary. No task is solvable by the LLM or the engine in isolation,
+% and the suite is constructed so that the fraction of task-relevant
+% signal preserved by verbalization varies across tasks. Against this
+% benchmark we propose latent state internalization. A learned projector
+% maps the subagent's continuous representation into the LLM's token
+% stream as state tokens, and the projection is re-issued whenever an
+% action advances the environment so the LLM always reasons over the
+% current state.
+% A single 14B model trained this way, LLAMIA, matches or exceeds
+% task-specific finetunes and GPT-5.1 with tool access on every category
+% of LLAMIA-Bench. The gap between internalized and verbalized
+% integration, which we call the verbalization debt, grows with the
+% number of interaction steps and does not close as the LLM scales from
+% 4B to 14B parameters. LLAMIA also holds up out of distribution on
+% boards where task-specific finetunes collapse.
+
   LLMs are increasingly deployed as orchestrators that coordinate specialized subagents
-  to solve complex tasks. In many important domains (game playing, robotics, autonomous driving),
-  the strongest available agents are not language models: \yaman{two independent sentences not connected very well} their expertise is encoded in latent
-  representations of policy, value, and learned features, not in words. Integrating such \yaman{what is such pointing to?} agents
-  into LLM reasoning pipelines currently requires \emph{verbalization}: compressing rich continuous
-  representations into sparse textual summaries at each interaction step. To study whether verbalization
-  constitutes a structural bottleneck \yaman{of what?}, we introduce \textsc{LLAMIA-Bench}, a suite of six collaborative chess tasks spanning three facets: behavioral imitation, state
-  assessment, and natural-language explanation. Tasks are drawn from prominent problems in chess
-  literature and industry, each unsolvable by either component alone \yaman{which componenets?}, and selected to vary in how much
-  relevant signal survives verbalization. Our experiments reveal a consistent \emph{verbalization debt}:
-  the performance gap between verbalized and internalized integration \yaman{where was internalized integration introduced?} widens throughout training \yaman{why did we suddenly bring up training?} and persists as the LLM scales from 4B to 14B parameters. The effect is sharpest on tasks whose target
-  signal has no faithful text representation: on puzzle interest prediction, verbalized systems of all
-  sizes remain near-chance (${\leq}12/100$) while internalization reaches $52/100$. To close this gap, we introduce \emph{latent state internalization}, which
+  to solve complex tasks through natural language. However, in many important domains like game playing and robotics
+  the strongest available agents are not language models. Integrating non language agents with LLMs would require \emph{verbalization} or compressing their rich continuous representations into sparse textual summaries at each interaction step.
+  In this work we introduce the concept of \textit{internalization}, where we embed the non language agent's internal latent state directly into the LLM's chain of thought instead of verbalizing it. We show that training LLMs and subagents through internalization and Reinforcement learning can solve previously unsolvable tasks, and a single model can outperform existing state of the art task specific methods trained over 100 $\times$ more data.
+  We introduce \textsc{LLAMIA-Bench}, a suite of six collaborative chess tasks from prominent AI literature spanning three facets: behavioral imitation, state
+  assessment, and natural-language explanation of policies. These tasks cannot be solved by LLMs or subagents independently, making it a perfect testbed for studying collaboration. Our experiments reveal a consistent \emph{verbalization debt}:
+  the performance gap between verbalized and internalized integration \yaman{where was internalized integration introduced?} widens throughout training \yaman{why did we suddenly bring up training?} and persists as the LLM scales from 4B to 14B parameters. To close this gap, we introduce \emph{latent state internalization}, which
   projects the subagent's continuous representations directly into the LLM's token stream as learned
   state tokens, with dynamic re-encoding as actions advance the environment state \yaman{break it into 2 sentences}. A single 14B model,
   \textsc{LLAMIA}, trained under this paradigm matches or exceeds dedicated task specialists and
   frontier models including GPT-5.1 with tool access across all benchmark tasks \yaman{why this baseline suddenly? this baseline represents collaboration via verbalization}, and generalizes
-  out-of-distribution where task-specific finetunes collapse \yaman{why this baseline?}. In a human study with skilled chess players, LLAMIA passes as human \yaman{so what? what is the importance of this line?} in 61\% of gameplay trials and its commentary is preferred in 72.2\% of pairings. \yaman{so what?}
+out-of-distribution where task-specific finetunes collapse \yaman{why this baseline?}. 
+%In a human study with skilled chess players, LLAMIA passes as human \yaman{so what? what is the importance of this line?} in 61\% of gameplay trials and its commentary is preferred in 72.2\% of pairings. \yaman{so what?}
   \end{abstract}
 
 \input{pages/intro}
@@ -244,12 +269,11 @@
 \input{pages/methodology}
 \input{pages/experiment}
 \input{pages/related}
+\vspace{-2mm}
 \section{Conclusion}
 \label{sec:conclusion}
-
-We introduced latent state internalization, a method for LLM agent integration that replaces verbalized communication with direct projection of the agent's continuous representations into the LLM's embedding space. Through controlled experiments on \textsc{LLAMIA-Bench}---seven tasks spanning behavioral imitation, state assessment, explanation, and instruction-conditioned play---we established that verbalization acts as a structural bottleneck: the performance gap between internalized and verbalized integration widens with interaction depth and does not close by scaling the LLM or the RL budget within our evaluated range (up to 14B parameters).
-
-A single LLAMIA-14B model, trained via projector alignment followed by DAPO, matches or exceeds dedicated task finetunes in aggregate, with the exception of Allie-Adaptive-Search on its in-distribution Elo buckets. The verbalization debt---the performance gap between internalized and verbalized integration---widens on tasks requiring sustained multi-step collaboration and on tasks whose target signal resists text serialization (e.g., puzzle interest), confirming that learned invocation timing and latent-state reading are both essential for effective LLM--agent integration.
+\vspace{-2mm}
+We introduced latent state internalization, an LLM--agent integration method that replaces verbalized communication with direct projection of the agent's continuous representations into the LLM's embedding space. A single LLAMIA-14B, trained via projector alignment followed by DAPO, matches or exceeds dedicated task finetunes across \textsc{LLAMIA-Bench}. The verbalization debt widens with \somesh{Need to check this}interaction depth and on signals that resist text serialization (e.g., puzzle interest), and does not close with LLM scale or RL budget in our evaluated range, establishing verbalization as a structural bottleneck for LLM--agent collaboration.
 
 % \paragraph{Future work.}
 % The framework requires three components: a subagent with extractable representations, a lightweight projector, and a differentiable reward signal for end-to-end RL. Robotics policies (RT-2, Octo), game-playing agents, and scientific simulation controllers satisfy these requirements and are natural next instantiations. Two open questions are whether internalization scales to multiple heterogeneous agents within a single reasoning trace, and whether the structured capability emergence observed in instruction-conditioned play (\cref{sec:results_skill_discovery}) replicates across domains.
@@ -258,8 +282,10 @@ A single LLAMIA-14B model, trained via projector alignment followed by DAPO, mat
 %\bibliography{custom,anthology-overleaf-1,anthology-overleaf-2}
 
 % Custom bibliography entries only
-\bibliography{sample}
 
+\bibliography{sample}
+\clearpage
+\input{pages/appendix/limitations}
 \appendix
 
 \addtocontents{toc}{\protect\appendixmark}
