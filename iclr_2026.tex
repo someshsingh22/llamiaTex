@@ -34,6 +34,7 @@
 \usepackage{pifont}
 \usepackage{array}
 \usepackage{fontawesome5}
+\usepackage{fancyhdr}
 \usepackage{wrapfig}
 \usepackage[capitalize,noabbrev]{cleveref}
 \usepackage{etoc}
@@ -148,6 +149,21 @@
 \small\faEnvelope\ \texttt{\href{mailto:behavior-in-the-wild@googlegroups.com}{behavior-in-the-wild@googlegroups.com}}
 }%
 }
+
+% -----------------------------------------------------------------------
+% Page header
+% -----------------------------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\setlength{\headheight}{13pt}
+\fancyhead[L]{%
+  \raisebox{0.01\height}{%
+    \includegraphics[height=2ex]{images/adobe-logo.png}%
+  }\hspace{0.1em}%
+  Adobe Media and Data Science Research
+}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
 
 \iclrfinalcopy  % remove this line for anonymous submission
 
