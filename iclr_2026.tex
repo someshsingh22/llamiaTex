@@ -23,7 +23,7 @@
 \usepackage{multirow}
 \usepackage{inconsolata}
 \usepackage{tikz}
-\usetikzlibrary{positioning,calc,arrows.meta}
+\usetikzlibrary{positioning,calc,arrows.meta,shadows}
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{tabularx}
@@ -33,9 +33,11 @@
 \usepackage{placeins}
 \usepackage{pifont}
 \usepackage{array}
+\usepackage{fontawesome5}
 \usepackage{wrapfig}
 \usepackage[capitalize,noabbrev]{cleveref}
 \usepackage{etoc}
+\usepackage{titletoc}
 \usepackage[leftmargin=1em, rightmargin=1em, indentfirst=false]{quoting}
 
 % -----------------------------------------------------------------------
@@ -104,9 +106,17 @@
 \providecommand{\Description}[1]{}
 
 % -----------------------------------------------------------------------
-% Misc helpers
+% Institution logo macros
 % -----------------------------------------------------------------------
 \DeclareRobustCommand{\coauth}{$^*$}
+\DeclareRobustCommand{\adobelogo}{%
+  \raisebox{0.15\height}{\includegraphics[height=2ex]{images/adobe-logo.png}}}
+\DeclareRobustCommand{\iiitdlogo}{%
+  \raisebox{0.25\height}{\includegraphics[height=1.2ex]{images/iiitd-logo.png}}}
+\DeclareRobustCommand{\ublogo}{%
+  \raisebox{0.25\height}{\includegraphics[height=1.2ex]{images/ub-logo.png}}}
+\newcommand{\auth}[2]{\textbf{#1}~#2}
+
 \newcommand\blfootnote[1]{%
   \begingroup
   \renewcommand\thefootnote{}\footnote{#1}%
@@ -123,20 +133,19 @@
 \parbox{\textwidth}{\centering\vspace{4mm}
 \renewcommand{\arraystretch}{1.35}
 \setlength{\tabcolsep}{6pt}
-\begin{tabular}{@{}ccccc@{}}
-  \textbf{Harini S.I.\coauth} &
-  \textbf{Somesh Singh\coauth} &
-  \textbf{Yaman K Singla} &
-  \textbf{Rajiv Ratn Shah} &
-  \textbf{David Doermann} \\
-\end{tabular}\\[2mm]
-\begin{tabular}{@{}c@{}}
-  \textbf{Balaji Krishnamurthy}
-\end{tabular}\\[3mm]
-Adobe Media and Data Science Research (MDSR)$^1$,\quad
-IIIT-Delhi$^2$,\quad
-SUNY at Buffalo$^3$\\[1mm]
-\small\texttt{\href{mailto:someshs@adobe.com}{someshs@adobe.com}}
+\begin{tabular}{@{}ccc@{}}
+  \auth{Harini S I\coauth}{\adobelogo} &
+  \auth{Somesh Singh\coauth}{\adobelogo~\ublogo} &
+  \auth{Yaman K Singla}{\adobelogo} \\
+\end{tabular}\\[1.5mm]
+\begin{tabular}{@{}ccc@{}}
+  \auth{Rajiv Ratn Shah}{\iiitdlogo} &
+  \auth{David Doermann}{\ublogo} &
+  \auth{Balaji Krishnamurthy}{\adobelogo} \\[3mm]
+\end{tabular}\\
+{\adobelogo~Adobe Media and Data Science Research (MDSR)\\[0.5mm]
+ \iiitdlogo~IIIT-Delhi,\quad \ublogo~SUNY at Buffalo\\[1mm]}
+\small\faEnvelope\ \texttt{\href{mailto:behavior-in-the-wild@googlegroups.com}{behavior-in-the-wild@googlegroups.com}}
 }%
 }
 
