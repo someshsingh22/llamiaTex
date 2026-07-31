@@ -1,0 +1,165 @@
+% --------------- Appendix setup -----------------------------------------------
+% Allow page breaks after headings even when no content follows yet (skeleton).
+% Standard LaTeX sets \@nobreaktrue after every heading, preventing page breaks
+% until real content appears. With an empty skeleton this causes overflow.
+% We force \@nobreakfalse so LaTeX can break between consecutive headings.
+\makeatletter
+\def\@afterheading{%
+  \@nobreakfalse
+  \everypar{%
+    \if@nobreak
+      \@nobreakfalse
+      \clubpenalty \@M
+      \if@afterindent \else
+        {\setbox\z@\lastbox}%
+      \fi
+    \else
+      \clubpenalty \@clubpenalty
+      \everypar{}%
+    \fi}}
+\makeatother
+
+% Shared draft macros (used throughout the appendix)
+\providecommand{\tbd}{\textcolor{gray}{\texttt{[TBD]}}}
+\providecommand{\itwmark}{\textsuperscript{$\star$}}
+
+% Per-task-group row colours for LLAMIA-Bench table (xcolor + colortbl)
+\definecolor{clrGameplay}{RGB}{215,230,255}
+\definecolor{clrBC}{RGB}{210,245,210}
+\definecolor{clrStylo}{RGB}{238,218,255}
+\definecolor{clrPuzzle}{RGB}{255,245,200}
+\definecolor{clrAnnot}{RGB}{205,245,245}
+\definecolor{clrComm}{RGB}{255,218,232}
+\definecolor{clrICP}{RGB}{228,228,228}
+
+% --------------- Appendix TOC ------------------------------------------------
+% Sentinel mechanism: NeurIPS.tex writes \appendixmark into the .toc file
+% via \addtocontents before \input{appendix2}.  When etoc reads the .toc
+% file to render the TOC below, it executes \appendixmark, which flips
+% \ifinappendix true.  All styles are conditioned on that flag, so
+% main-body section entries (written to .toc before the sentinel) are
+% silently skipped; only appendix entries (A, B, C, ...) are displayed.
+% NOTE: requires two compilations on first run.
+% Define appendix sentinel (safe to call on every compilation)
+\expandafter\let\csname ifinappendix\endcsname\iffalse
+\expandafter\def\csname ifinappendixfalse\endcsname
+  {\expandafter\let\csname ifinappendix\endcsname\iffalse}
+\expandafter\def\csname inappendixtrue\endcsname
+  {\expandafter\let\csname ifinappendix\endcsname\iftrue}
+\providecommand{\appendixmark}{\inappendixtrue}
+
+
+\section*{Appendix Table of Contents}
+\label{sec:appendix_toc}
+
+\begingroup
+\small
+\setlength{\parskip}{0pt}%
+\etocsetnexttocdepth{subsubsection}%
+\etocsettocstyle{}{}%
+\etocsetstyle{section}%
+  {}%
+  {\ifinappendix\vspace{3pt}\fi}%
+  {\ifinappendix
+     \noindent\bfseries\makebox[1.8em][l]{\etocnumber}\etocname\dotfill\,\etocpage\par
+   \fi}%
+  {}%
+\etocsetstyle{subsection}%
+  {}{}%
+  {\ifinappendix
+     \noindent\hspace{1.8em}\makebox[2.4em][l]{\etocnumber}\etocname\dotfill\,\etocpage\par
+   \fi}%
+  {}%
+\etocsetstyle{subsubsection}%
+  {}{}%
+  {\ifinappendix
+     \noindent\hspace{4.2em}\makebox[2.8em][l]{\etocnumber}\etocname\dotfill\,\etocpage\par
+   \fi}%
+  {}%
+\tableofcontents
+\endgroup
+
+\vspace{1em}
+\hrule
+\vspace{1em}
+
+% --------------- Sections ----------------------------------------------------
+
+% ── Appendix-local style presets ─────────────────────────────────────────────
+\definecolor{agentslate}{HTML}{2d3748}
+\definecolor{agentteal}{HTML}{234e52}
+\definecolor{agentmint}{HTML}{edf7f5}
+\definecolor{agentlav}{HTML}{f3eeff}
+\definecolor{agentrose}{HTML}{fff0f0}
+\definecolor{agentgold}{HTML}{7c5c00}
+\definecolor{agentgoldbg}{HTML}{fffbec}
+
+\tcbset{
+  agentbase/.style={
+    enhanced, breakable,
+    arc=4pt, outer arc=4pt,
+    left=9pt, right=9pt, top=9pt, bottom=9pt,
+    before skip=11pt, after skip=11pt,
+    attach boxed title to top left={xshift=10pt, yshift=-\tcboxedtitleheight/2},
+    boxed title style={arc=3pt, outer arc=3pt, size=small, left=5pt, right=5pt},
+    drop shadow={color=black!18, opacity=0.55, shadow xshift=1.5pt, shadow yshift=-1.5pt},
+  },
+  promptbox/.style={
+    agentbase,
+    colback=agentlav, colframe=themepurple!80,
+    fonttitle=\bfseries\sffamily\small\color{white},
+    fontupper=\small,
+    boxed title style={colback=themepurple, colframe=themepurple, arc=3pt, size=small, left=5pt, right=5pt},
+  },
+  toolbox/.style={
+    agentbase,
+    colback=agentmint, colframe=agentteal,
+    fonttitle=\bfseries\ttfamily\small\color{white},
+    fontupper=\small,
+    boxed title style={colback=agentteal, colframe=agentteal, arc=3pt, size=small, left=5pt, right=5pt},
+  },
+  statebox/.style={
+    agentbase,
+    colback=black!3, colframe=agentslate!70,
+    fonttitle=\bfseries\sffamily\small\color{white},
+    fontupper=\small,
+    boxed title style={colback=agentslate, colframe=agentslate, arc=3pt, size=small, left=5pt, right=5pt},
+  },
+  warnbox/.style={
+    agentbase,
+    colback=agentrose, colframe=themered!80,
+    fonttitle=\bfseries\sffamily\small\color{white},
+    fontupper=\small,
+    boxed title style={colback=themered, colframe=themered, arc=3pt, size=small, left=5pt, right=5pt},
+  },
+  notebox/.style={
+    agentbase,
+    colback=agentgoldbg, colframe=agentgold!80,
+    fonttitle=\bfseries\sffamily\small\color{agentgold},
+    fontupper=\small,
+    boxed title style={colback=agentgoldbg, colframe=agentgold, arc=3pt, size=small, left=5pt, right=5pt},
+  },
+}
+\providecommand{\toolparam}[2]{%
+  \hspace*{4pt}{\ttfamily\bfseries #1}\,\texttt{:}\;\textit{#2}\\[1pt]}
+\providecommand{\toolret}[1]{%
+  \smallskip\noindent{\color{agentslate}\textbf{Returns:}}\;\textit{#1}}
+\providecommand{\tooldesc}[1]{%
+  \noindent{\color{agentslate}\textbf{Description:}}\;#1\smallskip}
+
+
+\newpage
+
+\input{pages/appendix/implementation}
+\input{pages/appendix/bench}
+\input{pages/appendix/baselines}
+\input{pages/appendix/results}
+% \input{pages/appendix/poker}
+\input{pages/appendix/ablations}
+% \input{pages/appendix/interpretability}
+\input{pages/appendix/human_eval}
+% \input{pages/appendix/failure}
+\input{pages/appendix/data}
+\input{pages/appendix/prompts}
+\input{pages/appendix/limitations}
+\input{pages/appendix/examples}

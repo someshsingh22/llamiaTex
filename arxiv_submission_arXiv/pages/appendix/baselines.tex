@@ -1,0 +1,173 @@
+\section{Baselines}
+\label{sec:app_baselines}
+
+\subsection{Frontier LLMs with Verbalized Tools}
+\label{sec:app_baseline_frontier}
+
+To select the strongest frontier baseline, we evaluate five
+models---GPT-5.1~GPT-5.1, Claude Sonnet~4.5,
+Claude Opus~4.5, Gemini~2.5~Pro, and
+Qwen3-235B~\cite{yang2025qwen3}---each given access to Lc0-BT4 via a
+ReAct~\cite{yao2022react} tool-calling loop.
+At each invocation the tool returns the top-5 moves with centipawn
+evaluations, win/draw/loss probabilities, and principal variations up to
+depth~20.
+All models share identical tool schemas, system prompts, and sampling
+parameters; the only variable is the LLM backbone.
+We sample 100~positions from each LLAMIA-Bench task and report the
+aggregate metric per task group.
+
+\begin{table*}[ht]
+\centering
+\setlength{\tabcolsep}{5pt}
+\caption{%
+  \textbf{Frontier model selection.}
+  Average metric per LLAMIA-Bench task group, all models using Lc0-BT4
+  verbalized tool access via ReAct.
+  Per-group scores are unweighted means over the constituent columns of
+  \cref{tab:full_bench}: BC = mean(MAIA, Wild); Puzzle = mean(Difficulty,
+  Interest); Annot.\ = Rationale; Comm.\ = Commentary.
+  The GPT-5.1\,+\,Lc0 row aggregates directly from \cref{tab:full_bench};
+  the remaining rows are evaluated on a matched 100-sample subset per task
+  with identical tool schemas, prompts, and sampling parameters.
+  Gameplay is excluded because it requires the full gauntlet protocol.
+  GPT-5.1 achieves the highest aggregate and is adopted as the frontier
+  verbalized baseline in all subsequent experiments.
+}
+\label{tab:frontier_selection}
+\begin{adjustbox}{max width=\textwidth}
+\renewcommand{\arraystretch}{1.3}
+\small
+\begin{tabular}{lccccc}
+\toprule[1.2pt]
+\textbf{Model} & \textbf{BC\,$\uparrow$} & \textbf{Puzzle\,$\uparrow$}
+  & \textbf{Annot.\,$\uparrow$} & \textbf{Comm.\,$\uparrow$}
+  & \textbf{Avg.\,$\uparrow$} \\
+\midrule
+GPT-5.1\,+\,Lc0
+  & \valbest{42.5} & \valbest{29.0} & \valbest{37.5}
+  & \valbest{52.0} & \valbest{40.3} \\
+Claude Opus~4.5\,+\,Lc0
+  & 39.6 & 27.4 & 36.3 & 50.3 & 38.4 \\
+Claude Sonnet~4.5\,+\,Lc0
+  & 36.9 & 26.3 & 34.2 & 47.1 & 36.1 \\
+Gemini~2.5~Pro\,+\,Lc0
+  & 40.6 & 28.1 & 36.7 & 49.8 & 38.8 \\
+Qwen3-235B\,+\,Lc0
+  & 36.5 & 25.5 & 33.4 & 45.6 & 35.3 \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table*}
+
+GPT-5.1 obtains the highest average across all task groups.
+We therefore use \textbf{GPT-5.1\,+\,Lc0\,(Verb)} as the frontier
+verbalized baseline throughout the paper.
+
+\subsection{LLAMIA-Verb}
+\label{sec:app_baseline_verb}
+
+LLAMIA-Verb is the primary controlled ablation of LLAMIA.
+It receives the identical base model, training data, reward signals, and RL
+recipe (DAPO) as LLAMIA, but the subagent's output is provided exclusively
+through verbalized tool responses: top-$k$ moves, centipawn evaluations, WDL
+probabilities, and principal variations rendered as text tokens.
+No LatentBridge projection is trained; the continuous latent
+tokens~$z_S$ that LLAMIA receives are replaced by their textual equivalents.
+
+We train LLAMIA-Verb at three scales---4B, 8B, and 14B---matching the
+corresponding LLAMIA checkpoints in base model architecture, training data,
+and total compute budget.
+This controlled setup isolates the contribution of latent state
+internalization from model family, data mix, reward shaping, and
+optimization, and directly tests the central claim that verbalization is a
+lossy bottleneck (\cref{sec:experiments}).
+
+\subsection{LLAMIA (4B, 8B, 14B)}
+\label{sec:app_baseline_llamia_scale}
+
+To test whether the verbalization debt is an artifact of scale rather than interface, we train LLAMIA at three scales---4B, 8B, and 14B---matching the corresponding LLAMIA-Verb checkpoints in base model architecture, training data, and total compute budget.
+All three LLAMIA checkpoints use the full latent-state internalization pipeline: LatentBridge projection of BT4 activations into $k{=}32$ continuous tokens, Stage~1 projector alignment, and Stage~2 end-to-end DAPO.
+Comparing LLAMIA-$n$B against LLAMIA-Verb-$n$B at each scale isolates the interface contribution (internalization vs.\ verbalization) independently of model capacity, and directly supports the claim that the performance gap is not closed by scaling the LLM (\cref{sec:experiments}).
+
+\subsection{Dedicated task finetunes}
+\label{sec:app_baseline_experts}
+
+For each LLAMIA-Bench task we compare against the strongest published or
+reproducible task-specific model.
+Table~\ref{tab:task_experts} lists the expert per task alongside its training
+paradigm and data scale.
+These models represent the performance ceiling achievable with task-specific
+architectures and, in several cases, substantially more training data than
+LLAMIA receives.
+Tasks marked~--- have no established prior expert; LLAMIA-Bench introduces
+them as new evaluation targets.
+
+\begin{table*}[ht]
+\centering
+\setlength{\tabcolsep}{5pt}
+\caption{%
+  \textbf{Task experts used in LLAMIA-Bench evaluation.}
+  Each row lists the strongest available dedicated task finetune for a given task.
+  Tasks marked~--- are new evaluation targets with no prior
+  task-specific model.
+  \itwmark{} denotes in-the-wild splits.
+}
+\label{tab:task_experts}
+\begin{adjustbox}{max width=\textwidth}
+\renewcommand{\arraystretch}{1.35}
+\small
+\begin{tabular}{%
+  p{3.8cm}
+  p{4.0cm}
+  p{1.8cm}
+  p{2.0cm}
+}
+\toprule[1.2pt]
+\textbf{Task / Split} & \textbf{Task Expert} & \textbf{Method}
+  & \textbf{Data Scale} \\
+\midrule
+
+
+\rowcolor{clrBC}
+\multicolumn{4}{l}{\enspace\small\textbf{Behavior Cloning}} \\
+\rowcolor{clrBC}
+Maia (Elo buckets)
+  & Allie~\cite{zhang2024humanalignedchessbitsearch}
+  & SL+Search
+  & 93M games \\
+\rowcolor{clrBC}
+GM-25\,/\,Low-Time\,/\,Elo Gap\,\itwmark{}
+  & Allie~\cite{zhang2024humanalignedchessbitsearch}
+  & SL+Search
+  & 93M games \\
+\midrule
+
+
+\rowcolor{clrPuzzle}
+\multicolumn{4}{l}{\enspace\small\textbf{Puzzle Understanding}} \\
+\rowcolor{clrPuzzle}
+Difficulty Estimation
+  & \cite{milosz2024predicting}
+  & SFT
+  & 4M \\
+\rowcolor{clrPuzzle}
+Interest Estimation
+  & ---
+  & ---
+  & --- \\
+\midrule
+
+\rowcolor{clrAnnot}
+\multicolumn{4}{l}{\enspace\small\textbf{Move Annotation}} \\
+\rowcolor{clrAnnot}
+Move Annotation
+  & SCC~\cite{zang2019automated}
+  & SL
+  & 90K games \\
+
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table*}
+

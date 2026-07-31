@@ -1,0 +1,210 @@
+\PassOptionsToPackage{table}{xcolor}
+\documentclass{article}
+\usepackage{iclr2026_conference,times}
+
+% to avoid loading the natbib package, add option nonatbib:
+%    \usepackage[nonatbib]{iclr2026_conference}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[pagebackref,breaklinks,colorlinks]{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{makecell}
+\usepackage{enumitem}
+\usepackage{amsmath,amssymb,amsfonts,mathtools}
+\usepackage{amsthm}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{colortbl}
+\usepackage{latexsym}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{multirow}
+\usepackage{inconsolata}
+\usepackage{tikz}
+\usetikzlibrary{positioning,calc,arrows.meta,shadows}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{tabularx}
+\usepackage[most]{tcolorbox}
+\tcbuselibrary{raster,skins,listings,breakable}
+\usepackage{adjustbox}
+\usepackage{placeins}
+\usepackage{pifont}
+\usepackage{array}
+\usepackage{fontawesome5}
+\usepackage{fancyhdr}
+\usepackage{wrapfig}
+\usepackage[capitalize,noabbrev]{cleveref}
+\usepackage{etoc}
+\usepackage{titletoc}
+\usepackage[leftmargin=1em, rightmargin=1em, indentfirst=false]{quoting}
+
+% -----------------------------------------------------------------------
+% Theorem environments
+% -----------------------------------------------------------------------
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% -----------------------------------------------------------------------
+% Math commands
+% -----------------------------------------------------------------------
+\input{math_commands.tex}
+
+% -----------------------------------------------------------------------
+% Color definitions
+% -----------------------------------------------------------------------
+\definecolor{valbest}{HTML}{d9ead3}
+\newcommand{\valbest}[1]{\colorbox{valbest}{#1}}
+\definecolor{valgood}{HTML}{cfe6ec}
+\newcommand{\valgood}[1]{\colorbox{valgood}{#1}}
+\definecolor{valmid}{HTML}{fce5cd}
+\newcommand{\valmid}[1]{\colorbox{valmid}{#1}}
+\definecolor{valbad}{HTML}{ead1dc}
+\newcommand{\valbad}[1]{\colorbox{valbad}{#1}}
+\definecolor{llamiabench}{HTML}{D8D4F2}
+\newcommand{\llamiabench}[1]{\colorbox{llamiabench}{#1}}
+
+\definecolor{themegreen}{HTML}{365956}
+\definecolor{themepurple}{HTML}{3c1b48}
+\definecolor{themered}{HTML}{b43748}
+
+% -----------------------------------------------------------------------
+% State / Language / Action macros
+% -----------------------------------------------------------------------
+\definecolor{StateColor}{HTML}{F94892}
+\definecolor{LanguageColor}{HTML}{FF7F3F}
+\definecolor{ActionColor}{HTML}{02B9F1}
+
+\newcommand{\state}[1]{\textcolor{StateColor}{\textbf{#1}}}
+\newcommand{\lang}[1]{\textcolor{LanguageColor}{\textbf{#1}}}
+\newcommand{\action}[1]{\textcolor{ActionColor}{\textbf{#1}}}
+\newcommand{\mstate}[1]{{\color{StateColor}#1}}
+\newcommand{\mlang}[1]{{\color{LanguageColor}#1}}
+\newcommand{\maction}[1]{{\color{ActionColor}#1}}
+\newcommand*\circled[1]{\tikz[baseline=(char.base)]{
+            \node[shape=circle,draw,inner sep=0.8pt] (char) {#1};}}
+
+% -----------------------------------------------------------------------
+% Collaborative annotation macros (suppress in submission)
+% -----------------------------------------------------------------------
+\newcommand{\somesh}[1]{}
+\newcommand{\yaman}[1]{}
+\newcommand{\harini}[1]{}
+
+% -----------------------------------------------------------------------
+% Suppress ACM \Description{} — not defined in ICLR template
+% -----------------------------------------------------------------------
+\providecommand{\Description}[1]{}
+
+% -----------------------------------------------------------------------
+% Institution logo macros
+% -----------------------------------------------------------------------
+\DeclareRobustCommand{\coauth}{$^*$}
+\DeclareRobustCommand{\adobelogo}{%
+  \raisebox{0.15\height}{\includegraphics[height=2ex]{images/adobe-logo.png}}}
+\DeclareRobustCommand{\iiitdlogo}{%
+  \raisebox{0.25\height}{\includegraphics[height=1.2ex]{images/iiitd-logo.png}}}
+\DeclareRobustCommand{\ublogo}{%
+  \raisebox{0.25\height}{\includegraphics[height=1.2ex]{images/ub-logo.png}}}
+\newcommand{\auth}[2]{\textbf{#1}~#2}
+
+\newcommand\blfootnote[1]{%
+  \begingroup
+  \renewcommand\thefootnote{}\footnote{#1}%
+  \addtocounter{footnote}{-1}%
+  \endgroup
+}
+\newcommand{\cmark}{\textcolor{green!60!black}{$\checkmark$}}
+\newcommand{\xmark}{\textcolor{red!70!black}{\texttimes}}
+
+% -----------------------------------------------------------------------
+\title{Exploring Collaboration between a language and a non-language agent}
+
+\author{%
+\parbox{\textwidth}{\centering\vspace{4mm}
+\renewcommand{\arraystretch}{1.35}
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{@{}ccc@{}}
+  \auth{Harini S I\coauth}{\adobelogo} &
+  \auth{Somesh Singh\coauth}{\adobelogo~\iiitdlogo~\ublogo} &
+  \auth{Yaman K Singla}{\adobelogo} \\
+\end{tabular}\\[1.5mm]
+\begin{tabular}{@{}ccc@{}}
+  \auth{Rajiv Ratn Shah}{\iiitdlogo} &
+  \auth{David Doermann}{\ublogo} &
+  \auth{Balaji Krishnamurthy}{\adobelogo} \\[3mm]
+\end{tabular}\\
+{\adobelogo~Adobe Media and Data Science Research (MDSR)\\[0.5mm]
+ \iiitdlogo~IIIT-Delhi,\quad \ublogo~SUNY at Buffalo\\[1mm]}
+\small\faEnvelope\ \texttt{\href{mailto:behavior-in-the-wild@googlegroups.com}{behavior-in-the-wild@googlegroups.com}}
+}%
+}
+
+% -----------------------------------------------------------------------
+% Page header
+% -----------------------------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\setlength{\headheight}{13pt}
+\fancyhead[L]{%
+  \raisebox{0.01\height}{%
+    \includegraphics[height=2ex]{images/adobe-logo.png}%
+  }\hspace{0.1em}%
+  Adobe Media and Data Science Research
+}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\iclrfinalcopy  % remove this line for anonymous submission
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  LLMs are increasingly deployed as orchestrators that coordinate specialized subagents
+  to solve complex tasks through natural language. However, in many important domains like game playing and robotics
+  the strongest available agents are not language models. Integrating non language agents with LLMs would require \emph{verbalization} or compressing their rich continuous representations into sparse textual summaries at each interaction step.
+  In this work we introduce the concept of \textit{internalization}, where we embed the non language agent's internal latent state directly into the LLM's chain of thought instead of verbalizing it. We show that training LLMs and subagents through internalization and reinforcement learning can solve previously unsolvable tasks, and a single model can outperform existing state of the art task specific methods trained over 100 $\times$ more data.
+  To evaluate these collaborative abilities, we introduce \textsc{LLAMIA-Bench}, a suite of six collaborative chess tasks from prominent AI literature spanning: behavior cloning, state understanding, and natural-language explanation of actions and policies. These tasks cannot be solved by LLMs or subagents independently, making them a perfect testbed for studying collaboration. Our experiments reveal a consistent \emph{debt} introduce:
+  the performance gap between verbalized and internalized integration  widens throughout training \yaman{why did we suddenly bring up training?} and persists as the LLM scales from 4B to 14B parameters. To close this gap, we introduce \emph{latent state internalization}, which
+  projects the subagent's continuous representations directly into the LLM's token stream as learned
+  state tokens, with dynamic re-encoding as actions advance the environment state \yaman{break it into 2 sentences}. A single 14B model,
+  \textsc{LLAMIA}, trained under this paradigm matches or exceeds dedicated task specialists and
+  frontier models including GPT-5.1 with tool access across all benchmark tasks \yaman{why this baseline suddenly? this baseline represents collaboration via verbalization}, and generalizes
+out-of-distribution where task-specific finetunes collapse. \yaman{why this baseline?}
+\end{abstract}
+
+\begin{NoHyper}
+    \blfootnote{\coauth \small Equal Contribution.}
+\end{NoHyper}
+
+\input{pages/intro}
+% \input{pages/bg}  % Formulation is in §3.1 of methodology
+\input{pages/methodology}
+\input{pages/experiment}
+\input{pages/related}
+
+\bibliographystyle{iclr2026_conference}
+\bibliography{sample}
+
+\clearpage
+\appendix
+
+\startcontents[appendices]
+\printcontents[appendices]{}{1}{}
+\clearpage
+
+\input{pages/appendix2}
+\input{pages/appendix/limitations}
+\end{document}

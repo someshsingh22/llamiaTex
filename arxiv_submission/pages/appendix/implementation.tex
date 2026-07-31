@@ -1,0 +1,190 @@
+\section{Implementation Details}
+\label{sec:app_implementation}
+
+\subsection{Libraries and Software}
+\label{sec:app_libraries}
+
+\begin{table}[h]
+\centering
+\small
+\begin{adjustbox}{max width=\columnwidth}
+\begin{tabular}{lll}
+\toprule
+\textbf{Package} & \textbf{Version} & \textbf{Role} \\
+\midrule
+PyTorch           & 2.8             & Training backend \\
+MegatronLM        & 0.15.0              & Tensor-parallel training \\
+VERL              & 0.7.1           & RL training framework \\
+vLLM              & 0.10.2          & Rollout inference engine \\
+Ray               & 2.55.1          & Distributed orchestration \\
+Transformers      & 4.56.2          & Model loading \& tokenization \\
+lc0               & 0.32.1          & Chess specialist engine (UCI) \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\vspace{2mm}\caption{Key software dependencies.}
+\label{tab:libraries}
+\end{table}
+
+\subsection{Model Architecture and LatentBridge}
+\label{sec:app_architecture}
+
+\subsubsection{Backbone LLM}
+\label{sec:app_backbone}
+
+\begin{table}[h]
+\centering
+\small
+\begin{adjustbox}{max width=\columnwidth}
+\begin{tabular}{llllll}
+\toprule
+\textbf{Model} & \textbf{Params} & \textbf{Hidden} & \textbf{Layers} & \textbf{Heads (KV)} & \textbf{Context} \\
+\midrule
+Qwen3-4B  & 4B  & 2{,}560 & 36 & 32 (8) & 32{,}768 \\
+Qwen3-8B  & 8B  & 4{,}096 & 36 & 32 (8) & 32{,}768 \\
+Qwen3-14B & 14B & 5{,}120 & 40 & 40 (8) & 32{,}768 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\vspace{2mm}\caption{Backbone LLM architectures. All variants use GQA with 8 KV heads. Chain-of-thought reasoning is disabled (\texttt{enable\_thinking=False}) following~\cite{yang2025qwen3}.
+\texttt{max\_model\_len} is set to 32{,}768 tokens shared across system prompt, history, tool I/O, and response; \texttt{MAX\_ROUNDS=20} caps LLM calls per query.}
+\label{tab:backbone}
+\end{table}
+
+
+
+\subsubsection{LatentBridge Projector}
+\label{sec:app_projector}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{ll}
+\toprule
+\textbf{Parameter}       & \textbf{Chess (Lc0-BT4)} \\
+\midrule
+Input dimension $d$      & 1024      \\
+Output tokens $k$        & 32        \\
+MLP layers               & 3         \\
+Activation               & GeLU      \\
+Source layer             & 14 of 15 (penultimate)  \\
+\bottomrule
+\end{tabular}
+\vspace{2mm}\caption{LatentBridge projector $H_\varphi$ configuration. $H_\varphi$ is a three-layer MLP with GeLU activations mapping the subagent's
+residual stream into $k{=}32$ tokens of dimension $e$ matching the LLM's hidden size
+(see \cref{sec:token_ablation} for the $k$ ablation).
+A special \texttt{<state>} token anchors each injection site; $k$ contiguous positions
+immediately following it are overwritten with $\vz_t = H_\varphi(\vh_{s_t})$ before the
+LLM forward pass.}
+\label{tab:projector}
+\end{table}
+
+
+
+\subsection{Training Configuration}
+\label{sec:app_training}
+\label{sec:hyperparams}
+Model parameters and optimizer state are partitioned across 4 nodes of 8xA100 GPUs using PyTorch FSDP,
+coordinated via Ray.
+The rollout vLLM instance and lc0 server fleet co-reside on the same GPUs,
+with 3\,GiB per GPU reserved for the BT4 network.
+
+\subsubsection{Stage~1: Projector Alignment}
+\label{sec:app_stage1}
+
+Stage~1 trains $H_\varphi$ alone with $F_\theta$ frozen on 5\,M state--policy pairs
+drawn from lc0's forward pass over the Lichess evaluation database.
+Each example pairs a FEN with lc0's top moves and pawn evaluations; the model minimizes
+cross-entropy over verbalized policy output conditioned on
+$\vz_s = H_\varphi(\vh_s)$ and a fixed prompt template (\cref{sec:app_prompts}).
+Skipping Stage~1 causes training instability during the first 40\% of Stage~2
+(\cref{sec:app_ablations}).
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{ll}
+\toprule
+\textbf{Hyperparameter}        & \textbf{Value} \\
+\midrule
+LR ($H_\varphi$)               & 2e-4 \\
+Batch size                     & 256 \\
+Steps                          & 2 epochs (${\approx}$39K steps) \\
+$k$ (state tokens)             & 32 \\
+Max sequence length            & 32{,}768 \\
+\bottomrule
+\end{tabular}
+\vspace{2mm}\caption{Stage~1 (projector alignment) hyperparameters. $F_\theta$ is frozen.}
+\label{tab:hparams_stage1}
+\end{table}
+
+\subsubsection{Stage~2: Reinforcement Learning (DAPO)}
+\label{sec:app_stage2}
+
+Stage~2 fine-tunes both $F_\theta$ and $H_\varphi$ jointly with DAPO~\cite{yu2025dapo}.
+The reward is a scalar outcome signal
+$\mathcal{R}(\tau) = R_{\mathrm{outcome}}$
+defined per task (Appendix~\ref{sec:app_reward}).
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{ll}
+\toprule
+\textbf{Hyperparameter}        & \textbf{Value} \\
+\midrule
+LR ($H_\varphi$)               & 1e-5 \\
+LR ($F_\theta$)                & 1e-6 \\
+Batch size                     & 128 \\
+Steps                          & 3{,}000 \\
+KL coefficient $\beta$         & 0.01 \\
+Clip $\varepsilon_l / \varepsilon_h$ & 0.2\,/\,0.28 \\
+Group size $G$                 & 8 \\
+$k$ (state tokens)             & 32 \\
+Max sequence length            & 32{,}768 \\
+Rollout temperature            & 1.0 \\
+Eval temperature               & 0.0 \\
+\bottomrule
+\end{tabular}
+\vspace{2mm}\caption{Stage~2 (DAPO) hyperparameters.}
+\label{tab:hparams_stage2}
+\end{table}
+
+\subsection{Chess Specialist: Lc0-BT4}
+\label{sec:app_lc0}
+
+With \texttt{ScoreType=WDL\_mu}, lc0 reports scores as $100\!\cdot\!Q$ where
+$Q\in[-1,+1]$ is the WDL-mean utility from the side to move's perspective~\cite{monroe2024mastering}.
+
+\subsubsection{Engine Configuration}
+\label{sec:app_lc0_config}
+\label{sec:app_lc0_latent}
+
+\paragraph{Network.}
+\texttt{BT4-1024x15x32h-swa-6147500}\footnote{\url{https://storage.lczero.org/files/networks-contrib/BT4-1024x15x32h-swa-6147500-policytune-332.pb.gz}}:
+a 1024-dim, 15-layer, 32-head BT4 transformer saved at step 6{,}147{,}500 after SWA and policy-tuning.
+GPU footprint: ${\sim}\,2.9$\,GB in fp16 on A100.
+
+\begin{table*}[h]
+\centering
+\small
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{llll}
+\toprule
+\textbf{Parameter} & \textbf{Upstream default} & \textbf{Our value} & \textbf{Rationale} \\
+\midrule
+\texttt{Backend}          & \texttt{cuda-auto}      & \texttt{cuda-fp16}  & Explicit fp16 on Ampere \\
+\texttt{WeightsFile}      & \texttt{<autodiscover>} & BT4 path            & Pinned network \\
+\texttt{Threads}          & \texttt{0} (backend)    & \texttt{2}          & Two CPU workers per GPU \\
+\texttt{MinibatchSize}    & \texttt{0} (backend)    & \texttt{128}        & Throughput sweet spot on A100 \\
+\texttt{NNCacheSize}      & \texttt{2{,}000{,}000}  & \texttt{200{,}000}  & Cap host RAM \\
+\texttt{VerboseMoveStats} & \texttt{false}          & \texttt{true}       & Required for \texttt{/policy} parser \\
+\texttt{PolicyTemperature}& \texttt{1.36}           & \texttt{1.36}       & Policy softmax (upstream default retained) \\
+\texttt{ScoreType}        & \texttt{WDL\_mu}        & \texttt{WDL\_mu}    & Score = $100\!\cdot\!Q$ \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\vspace{2mm}\caption{lc0 configuration. All search-behaviour flags (\texttt{CPuct}, \texttt{FpuValue},
+\texttt{OutOfOrderEval}, etc.) are at upstream defaults so results match unmodified Leela.}
+\label{tab:lc0-flags}
+\end{table*}
