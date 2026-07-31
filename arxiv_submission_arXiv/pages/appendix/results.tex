@@ -8,7 +8,7 @@ The five tasks in LLAMIA-Bench probe different regimes of LLM–agent collaborat
 \label{sec:app_results_bc}
 Behavior Cloning asks the system to predict the move a human at a given skill level would play rather than the optimal move, given the position and the target Elo rating.
 
-We report two splits. The first is the \textbf{MAIA Test split}: five Elo buckets ($1100$, $1300$, $1500$, $1700$, $1900$) drawn from Lichess blitz, matching the protocol of \citet{mcilroy2022aligning} and the in-distribution setting for the published BC experts.
+We report two splits. The first is the \textbf{MAIA Test split}: five Elo buckets ($1100$, $1300$, $1500$, $1700$, $1900$) drawn from Lichess blitz, matching the protocol of \citet{mcilroy2020aligning} and the in-distribution setting for the published BC experts.
 The second is \textbf{Wild}, three out-of-distribution splits we introduce.
 \circled{\textbf{1}} \textit{GM-25}: contains top-grandmaster games \circled{\textbf{2}}
 \textit{Low-Time}: contains positions played with under 30 seconds remaining, players often play different move when they or opponents are under time pressure. \circled{\textbf{3}}
@@ -22,7 +22,7 @@ The MAIA panel reports five Elo buckets ($1100$--$1900$) drawn from Lichess blit
 The Wild panel reports three OOD splits introduced here: GM-25 (top-grandmaster slow play, where the conditioning Elo lies outside the published experts' training range), Low-Time (under $30$\,s on the clock, exposing forcing-line behavior), and $\Delta$Elo (large rating gaps between the players, exposing complication and simplification dynamics).
 Avg.\ columns are unweighted means within each panel and feed the BC summary columns of \cref{tab:full_bench}.
 \emph{\#Train games} is the BC supervised-training corpus; ``--'' marks engines and untrained LLMs, and ``$12$\,M/bkt'' denotes Maia's nine separate per-Elo CNNs.
-Maia, Allie-Policy, and Allie-Adaptive-Search per-bucket Maia numbers are quoted from \citet{mcilroy2022aligning, zhang2024humanalignedchessbitsearch}; Stockfish-d15 is run as a non-skill-conditioned reference (its move-match score reflects how human play overlaps with engine-optimal play and rises monotonically with player rating on Maia, but does not adapt to Low-Time or $\Delta$Elo conditioning). Frontier models use 5-shot in-context prompting; GPT-5\,+\,Lc0 and Qwen3-14B\,+\,Lc0 additionally call Lc0 as a verbalized tool at each position.
+Maia, Allie-Policy, and Allie-Adaptive-Search per-bucket Maia numbers are quoted from \citet{mcilroy2020aligning, zhang2024humanalignedchessbitsearch}; Stockfish-d15 is run as a non-skill-conditioned reference (its move-match score reflects how human play overlaps with engine-optimal play and rises monotonically with player rating on Maia, but does not adapt to Low-Time or $\Delta$Elo conditioning). Frontier models use 5-shot in-context prompting; GPT-5\,+\,Lc0 and Qwen3-14B\,+\,Lc0 additionally call Lc0 as a verbalized tool at each position.
 \valbest{green}: best overall in the column.
 \valgood{cyan}: second-best overall.
 \underline{underline}: best non-LLAMIA.
@@ -40,9 +40,9 @@ $\pm$ on the LLAMIA Avg.\ columns is a bootstrap $95\%$ CI over $\sim$1K positio
 \textbf{GM-25} & \textbf{Low-Time} & \textbf{$\Delta$Elo} & \textbf{Avg.} \\
 \midrule
 \rowcolor{gray!15} \multicolumn{12}{l}{\small\textit{Task-Specific Expert}} \\
-Stockfish (d15)~\cite{mcilroy2022aligning}     & --
+Stockfish (d15)~\cite{mcilroy2020aligning}     & --
   & 36 & 38 & 39 & 40 & 41 & 39 & 53 & 27 & 32 & 37 \\
-Maia~\cite{mcilroy2022aligning}                & 12\,M/bkt
+Maia~\cite{mcilroy2020aligning}                & 12\,M/bkt
   & 51 & 52 & 53 & 53 & 52 & 52 & 38 & 45 & 44 & 42 \\
 Allie-Policy~\cite{zhang2024humanalignedchessbitsearch}          & 93\,M
   & 51 & \valgood{53} & \valgood{54} & \valgood{56} & \valgood{57} & \valgood{54} & 43 & 45 & 44 & 44 \\
@@ -254,11 +254,27 @@ LLAMIA-14B           & 91.5 & \valbest{$0.67\,{\scriptstyle\pm 0.02}$} & \valbes
 \end{table*}
 
 \somesh{TODO GAMEPLAY METRICS}
+% \subsection{Gameplay (Parity Metric)}
+% \label{sec:app_results_gameplay}
 
+% Playing strength is reported as a parity check rather than a headline result.
+% Any system that can call Lc0 and pass through its top move reaches the same Elo band, so gameplay does not separate the systems we care about separating.
+% We include it to confirm that the LLAMIA-Bench tasks above are not measuring a system that can no longer play chess.
 
+% \subsubsection{Action Ranking (Kendall's $\tau$)}
+% \label{sec:app_results_gameplay_kt}
 
+% LLAMIA's policy alignment with the search-augmented agent (Lc0-BT4 with $800$-node search) is measured via Kendall's $\tau$ over the top-$10$ move ranking.
+% Alignment increases during training and stabilises around $30$--$50$M training positions;
+% the full curve appears in the training-dynamics figure.
 
+% \subsubsection{Playing Strength (Elo)}
+% \label{sec:app_results_gameplay_elo}
 
+% All search-free systems with engine access cluster at $2200$--$2300$ Elo, confirming that gameplay is a parity metric once the agent's top-move recommendation is available.
+% LLAMIA-$14$B achieves $2279 \pm 45$ Elo, matching the 270M Transformer baseline of \citet{ruoss2024grandmaster}.
+% The gap to a system that does not have engine access (Qwen3-$14$B alone is well below 1500 Elo) is large;
+% the gap among systems that do is within noise.
 
 
 \subsection{Full LLAMIA-Bench Results Table}
