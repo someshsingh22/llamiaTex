@@ -6,12 +6,9 @@ Today, this collaboration is mediated entirely through natural language: the LLM
 Verbal collaboration is natural when both agents are language models as they share a vocabulary and can express their state in words.
 However, in many important domains such as game playing, robotics, and autonomous driving the strongest available agents are not language models; their expertise is encoded in internal representations: latent states capturing policy, value estimates, and learned features like AlphaZero~\citep{silver2017mastering} and RT-1 \citep{brohan2022rt}.
 This mismatch between LLMs and non-language agents' input space raises a fundamental question: 
-
-\vspace{-2mm}
 \begin{quoting}
 \centering\emph{How can LLMs effectively collaborate and jointly reason with non-language subagents?}
 \end{quoting}
-\vspace{-2mm}
 
 The depth of collaboration between LLMs and subagents can solve many useful tasks that neither can solve alone.
 Consider chess: LLMs have been trained on more chess literature than most experts will study in a lifetime, yet they cannot leverage it to play the game competently, trailing far behind modern engines and experts.
@@ -38,26 +35,23 @@ Moreover, this error compounds across interactions, in multi-step settings, each
 \begin{figure}
 \centering
 \includegraphics[width=0.95\linewidth]{plots/panel_c_no_verb.pdf}
-    \caption{\textbf{LLAMIA-Bench performance across collaborative tasks.}
-    Scores on six chess--LLM tasks requiring collaboration (normalized to $0$--$100$ for comparison)
-    We compare LLAMIA's latent collaboration with \textbf{(A)~Task-Finetunes:} strongest existing per-task trained models and \textbf{(B)~Verbalized
-    collaboration:} Open (OS, Qwen3-14B) and Closed source (CS, GPT-5) LLMs collaborating with domain subagent, Leela Chess Zero (Lc0), using tool calls and
-    verbalizing its outputs.
-    A single LLAMIA-14B model scores higher on every task than both its open-source
-    backbone (Qwen3-14B) and the larger frontier model (GPT-5), and matches or
-    exceeds the per-task specialists on all four of their tasks despite their
-    training on $6$--$100\times$ more task-specific data. It is also the only
-    method that scores on Puzzle Interest, which requires jointly modeling human
-    interest and engine-level positional understanding. Latent internalization lets one model collaborate
-    with a non-language agent more effectively than verbalized frontier models or
-    per-task trained specialists. Task definitions, per-task metrics, the task-finetune baselines, and the unnormalized scores under each task's native metric are detailed in \cref{sec:app_bench_tasks,tab:bench_metrics,tab:task_experts,tab:full_bench}. ``Avg.\ Performance'' averages each method over its reported tasks.}
-    \vspace{-5mm}
+    \caption{\textbf{LLAMIA-Bench performance across collaboration interfaces.}
+    Scores ($\times 100$) on six chess--LLM tasks. Methods are labeled by
+    access type and backbone (OS = open-source, CS = closed-source):
+    verbalized tool use (Qwen3-14B+Lc0, GPT-5+Lc0), per-task finetuned
+    experts (Task-Finetune), and LLAMIA's latent integration. LLAMIA
+    matches or exceeds every baseline on every task and is the only system
+    to score on Puzzle Interest, where the engine signal has no text
+    surrogate. ``Avg.\ Performance'' averages each method over its
+    reported tasks.}
+    \vspace{-3mm}
     \label{fig:radar_intro}
 \end{figure}
 
-\textbf{Results.} A single LLAMIA-14B model matches or exceeds every task-specific specialist and frontier model across all six \textsc{LLAMIA-Bench} tasks (\cref{fig:radar_intro}). The verbalization debt is sharpest on tasks requiring multi-step state tracking or non-verbalizable signals: LLAMIA-Verb's reward stays flat on commentary and puzzle interest despite identical compute. Internalization also shapes the \emph{kind} of collaboration that emerges: LLAMIA develops counterfactual queries and multi-step lookahead strategies absent from LLAMIA-Verb, which collapses to engine-follow regardless of task, suggesting that access to the full latent state is what makes richer collaboration learnable. Beyond benchmark numbers, LLAMIA reproduces human behavioral signatures: under time pressure it commits the same blunders humans do, and at different skill levels its attention concentrates on the same pieces human players prioritize. A human study confirms this: LLAMIA's gameplay passes as human in the majority of trials, and its commentary is preferred on both strategic insight and explanatory depth compared to the verbalized baseline. Our contributions are fourfold:
+\textbf{Results.} A single LLAMIA-14B model matches or exceeds every task-specific specialist and frontier model across all six \textsc{LLAMIA-Bench} tasks (\cref{fig:radar_intro}). The verbalization debt is sharpest on tasks requiring multi-step state tracking or non-verbalizable signals: LLAMIA-Verb's reward stays flat on commentary and puzzle interest despite identical compute. Internalization also shapes the \emph{kind} of collaboration that emerges: LLAMIA develops counterfactual queries and multi-step lookahead strategies absent from LLAMIA-Verb, which collapses to engine-follow regardless of task, suggesting that access to the full latent state is what makes richer collaboration learnable. Beyond benchmark numbers, LLAMIA reproduces human behavioral signatures: under time pressure it commits the same blunders humans do, and at different skill levels its attention concentrates on the same pieces human players prioritize. A human study confirms this: LLAMIA's gameplay passes as human in the majority of trials, and its commentary is preferred on both strategic insight and explanatory depth compared to the verbalized baseline. 
 
 
+Our contributions are fourfold:
 \begin{enumerate}[leftmargin=*, labelsep=0.5em, topsep=2pt, itemsep=2pt]
 \item \textbf{Latent state internalization} (Section~\ref{sec:methodology}): A paradigm for LLM non language agent collaboration, enabling LLMs to reason over interleaved chain of $\langle
 \lang{language}, \action{action}, \state{latent state}\rangle$ tokens.
