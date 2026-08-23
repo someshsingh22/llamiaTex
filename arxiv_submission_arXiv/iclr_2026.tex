@@ -148,14 +148,9 @@
   LLMs are increasingly deployed as orchestrators that coordinate specialized subagents
   to solve complex tasks through natural language. However, in many important domains like game playing and robotics
   the strongest available agents are not language models. Integrating non language agents with LLMs would require \emph{verbalization} or compressing their rich continuous representations into sparse textual summaries at each interaction step.
-  In this work we introduce the concept of \textit{internalization}, where we embed the non language agent's internal latent state directly into the LLM's chain of thought instead of verbalizing it. We show that training LLMs and subagents through internalization and reinforcement learning can solve previously unsolvable tasks, and a single model can outperform existing state of the art task specific methods trained over 100 $\times$ more data.
-  To evaluate these collaborative abilities, we introduce \textsc{LLAMIA-Bench}, a suite of six collaborative chess tasks from prominent AI literature spanning: behavior cloning, state understanding, and natural-language explanation of actions and policies. These tasks cannot be solved by LLMs or subagents independently, making them a perfect testbed for studying collaboration. Our experiments reveal a consistent \emph{debt} introduce:
-  the performance gap between verbalized and internalized integration  widens throughout training \yaman{why did we suddenly bring up training?} and persists as the LLM scales from 4B to 14B parameters. To close this gap, we introduce \emph{latent state internalization}, which
-  projects the subagent's continuous representations directly into the LLM's token stream as learned
-  state tokens, with dynamic re-encoding as actions advance the environment state \yaman{break it into 2 sentences}. A single 14B model,
-  \textsc{LLAMIA}, trained under this paradigm matches or exceeds dedicated task specialists and
-  frontier models including GPT-5.1 with tool access across all benchmark tasks \yaman{why this baseline suddenly? this baseline represents collaboration via verbalization}, and generalizes
-out-of-distribution where task-specific finetunes collapse. \yaman{why this baseline?}
+  To study whether verbalization constitutes a bottleneck, we introduce \textsc{LLAMIA-Bench}, a suite of six collaborative chess tasks spanning three facets: behavioral imitation, state assessment, and natural-language explanation. Tasks are drawn from prominent problems in chess literature and industry, each unsolvable by either component alone, and selected to vary in how much relevant signal survives verbalization.
+  Our experiments reveal a consistent \emph{verbalization debt}: the performance gap between verbalized and internalized integration widens throughout training and persists as the LLM scales from 4B to 14B parameters. To close this gap, we introduce \emph{latent state internalization}, which projects the subagent's continuous representations directly into the LLM's token stream as learned state tokens, with dynamic re-encoding as actions advance the environment state. A single 14B model,
+  \textsc{LLAMIA}, trained under this paradigm matches or exceeds dedicated task specialists and frontier models including GPT-5.1 with tool access across all benchmark tasks, and generalizes out-of-distribution where task-specific finetunes collapse.
 \end{abstract}
 
 \begin{NoHyper}
