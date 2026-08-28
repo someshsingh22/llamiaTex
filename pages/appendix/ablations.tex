@@ -25,6 +25,8 @@ Verbalization gives the model \emph{answers}: ``best move: e4, eval: +0.3.'' Int
 
 Figure~\ref{fig:agency_heatmaps} decomposes this difference. Five collaboration patterns are identified---\emph{engine-follow} (adopt the top recommendation), \emph{consult-then-override} (query then diverge), \emph{counterfactual query} (play a hypothetical move, invoke, undo), \emph{multi-step lookahead} (chain 2--3 counterfactual sequences), and \emph{abstention} (act from language knowledge alone)---and the figure shows how each system allocates across them per task. The internalized model reads the engine differently depending on purpose; the verbalized model treats it as an answering machine. Figure~\ref{fig:agency_task_specificity} traces how both metrics evolve during training.
 
+\paragraph{LLAMIA and LLAMIA-Verb have identical harness} LLAMIA and LLAMIA-Verb share the same system prompt, tool catalogue, reward function, backbone, and DAPO hyperparameters (\cref{sec:app_prompts_stage2}); no term in the reward and no curriculum stage targets counterfactual querying, lookahead, or any other pattern. The only instruction present in both prompts is to make selective, strategic use of the expensive \texttt{get\_policy} call. The divergence in \cref{fig:agency_heatmaps} is therefore attributable to the integration interface, not to prompting or reward shaping.
+
 \begin{figure}[t]
     \centering
     \includegraphics[width=\linewidth]{pages/figures/agency_diversity_training.pdf}
