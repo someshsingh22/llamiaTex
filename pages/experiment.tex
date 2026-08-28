@@ -101,6 +101,35 @@ Increasing the LLM from 4B to 14B improves both systems, but the debt persists a
 \paragraph{The debt widens throughout training.}
 The debt grows throughout DAPO, reaching $2$--$3\times$ by the end of training (\cref{fig:combined}a). Per-task reward curves (\cref{fig:combined}b) reveal where the verbal channel saturates: LLAMIA-Verb gains partial signal on behavior cloning and difficulty, where the verbalized output carries a useful proxy (top-$k$ moves, solution length), but stays near-flat on interest and commentary, where no such proxy exists.
 
+\subsection{Ablations}
+\label{sec:results_ablations}
+To further understand the verbalization debt and isolate the contribution of internalization and reinforcement learning we conduct the following ablations and compare in \cref{tab:ablation_main}. \textbf{LLM-Only} trains with RL but no engine, so any gain has to come from the weights. \textbf{LLM-ChessCLIP} trains with RL and the same $32$ latent slots as LLAMIA, but filled by a raw board encoder (ChessCLIP, a PaLM-E-style injection) rather than Lc0's state, so any gain has to come from capacity rather than content. \textbf{Qwen3+Lc0 (untr.)} is untrained tool use. \textbf{LLAMIA-Verb} is RL on top of verbalized text. \textbf{LLAMIA-SFT (latent)} removes RL, the reasoning trace, and the invocation policy, leaving only the latent channel. \textbf{LLAMIA} is the full system. Extended controls, latent-only, shuffled tokens, per-task probes, and templates, are in \cref{sec:abl_interface,sec:app_baselines_probe}.
+
+\begin{table}[t]
+\centering
+\caption{\textbf{Interface controls} (14B). BC in \% move-match; Difficulty and Interest in Spearman $\rho$; Rationale in BLEU-2; Commentary in G-eval. All trained systems share backbone, data, and recipe; only the interface differs.}
+\label{tab:ablation_main}
+\begin{adjustbox}{max width=\columnwidth}
+\renewcommand{\arraystretch}{1.15}
+\small
+\begin{tabular}{lcccccc}
+\toprule[1.2pt]
+\textbf{System} & \textbf{BC-M} & \textbf{BC-W} & \textbf{Diff.} & \textbf{Int.} & \textbf{Rat.} & \textbf{Comm.} \\
+\midrule
+LLM-Only (RL, no engine)          & $34$ & $19$ & $0.22$ & $0.07$ & $16.1$ & $0.13$ \\
+LLM-ChessCLIP (RL, raw encoder)   & $39$ & $28$ & $0.24$ & $0.08$ & $23.1$ & $0.29$ \\
+Qwen3\,+\,Lc0 (untr.\ tool use)   & $39$ & $33$ & $0.28$ & $0.05$ & $18.8$ & $0.15$ \\
+LLAMIA-Verb (RL, text only)       & $45$ & $39$ & $0.45$ & $0.08$ & $33.2$ & $0.40$ \\
+LLAMIA-SFT (latent, no RL)        & $51$ & $46$ & $0.66$ & $0.48$ & $38.5$ & $0.58$ \\
+LLAMIA (latent, RL)               & \valbest{$53$} & \valbest{$49$} & \valbest{$0.71$} & \valbest{$0.52$} & \valbest{$45.8$} & \valbest{$0.75$} \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\vspace{-3mm}
+\end{table}
+
+\paragraph{The gain comes from Lc0's latent state, not from weights or capacity.}
+LLM-Only and LLM-ChessCLIP get the same RL recipe as LLAMIA and still land near or below untrained tool use, so DAPO cannot manufacture the missing expertise on its own, whether it is asked to bake it into the weights or to make sense of $32$ slots filled with the wrong content. Shuffling LLAMIA's own latent tokens produces the same collapse toward LLAMIA-Verb even though the token count never changes (\cref{sec:abl_interface}). The pattern only breaks when those slots carry Lc0's own policy and value representations. Further, LLAMIA-SFT, with no RL recovers most of the verbalization debt. However, it compounds the effect of internalization by bringing the improvements in multi step strategies, where the model has to plan across latent states i.e. Game Commentary and Rationale generation. We further show this through the emergent latent collaboration strategies in \cref{sec:results_agency}.
 
 \subsection{Collaboration Strategies}
 \label{sec:results_agency}
@@ -128,21 +157,8 @@ The five strategies are \emph{engine-follow} (adopt the top recommendation), \em
 \paragraph{Internalization produces task-specific collaboration; verbalization collapses it.}
 LLAMIA adapts its strategy to the task: engine-follow dominates gameplay (65\%), consult-then-override dominates behavior cloning (48\%), and counterfactual query dominates commentary (40\%). LLAMIA-Verb collapses to engine-follow on every task (62--76\%), regardless of what the task requires (\cref{fig:agency_heatmaps}). The verbalized channel returns the same compressed summary no matter how the model queries it, so RL converges on a single use pattern.
 
-% \subsection{Ablations}
-% \label{sec:results_ablations}
-% \somesh{This section needs a more motivating and signposting opening in a few sentences what abltions are we doing and why, and instead of bluntly referring to appendix section go result by result and refer to the results there.}
-
-% The gains above could stem from the latent channel, the RL procedure, or properties of the specific subagent. We isolate each and vary the projection bandwidth; full factorial tables appear in \cref{sec:app_ablations}.
-
-% \paragraph{Training method: SFT vs.\ DAPO.}
-% Latent SFT alone matches or exceeds verbal DAPO on four of six tasks (Commentary: $0.58$ vs.\ $0.40$ G-eval; Annotation: $38.5$ vs.\ $33.2$ BLEU-2; Interest: $\rho{=}0.48$ vs.\ $0.08$; BC: $51$ vs.\ $45$; per-task tables in \cref{sec:app_results}), so the latent channel improves performance regardless of the optimization method. DAPO then amplifies the latent advantage, but unevenly: Commentary gains $+0.17$ G-eval and Annotation Comparative gains $+10.3$\,pp under latent access, vs.\ $+0.08$ and $+2.6$\,pp under verbalization (\cref{tab:commentary_extended,tab:rationale_extended}). On single-step tasks the latent tokens already carry the discriminative signal and RL adds little (BC: $+2$\,pp; Interest: $+0.04\,\rho$). RL's contribution concentrates on multi-step tasks (\cref{sec:results_agency}), where counterfactual queries and lookahead chains require the agent's full state to produce useful gradient signal.
-
-% \paragraph{Agent architecture and strength.}
-% To confirm the gain is not tied to BT4, we replace it with five weaker networks spanning 2000--2500 Elo across SE-ResNet and Transformer families (\cref{tab:abl_agent_size}). Performance increases monotonically with agent strength on all tasks. Transformer agents show larger gains from LLM backbone scaling, though architecture and scale are confounded; we discuss this interaction in \cref{sec:app_abl_scaling_both_axes}.
-
-% \paragraph{Projection token count.}
-% We vary the number of state tokens per invocation, $k \in \{4, 8, 16, 32, 64\}$. Performance saturates at $k{=}32$; $k{=}16$ already reaches 97\% of the $k{=}32$ average (\cref{tab:abl_tokens}). Doubling to $k{=}64$ adds no gain but increases context length by 28\%. We use $k{=}32$ throughout.
-
+\paragraph{The learned strategy makes internalization inference-cost neutral.}
+Because it reasons over the full latent state, LLAMIA learns to invoke the subagent less often than LLAMIA-Verb ($1.9$ vs.\ $2.9$ calls per query at 14B). Each latent invocation adds a fixed $32$ tokens ($182$ vs.\ $150$), but the lower call count offsets this, so average tokens-per-query and wall-clock latency are comparable or lower than the verbalized interface; training cost stays within ${\sim}6\%$ of the verbalized pipeline at every scale (\cref{sec:app_cost}). Latent internalization therefore does not trade accuracy for inference cost.
 
 \subsection{Human Evaluation}
 \label{sec:results_human}
