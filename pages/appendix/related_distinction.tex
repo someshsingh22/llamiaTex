@@ -1,0 +1,29 @@
+% =============================================================================
+\section{Positioning vs.\ Latent-Space Work}
+\label{sec:app_related_distinction}
+
+\Cref{tab:related_distinction} expands the Related Work discussion. The closest prior work either studies communication among homogeneous language models (LLM-to-LLM) or converts a non-language agent's output back into text before the LLM consumes it. LLAMIA differs in internalizing a \emph{heterogeneous}, non-language agent's processed latent state directly into the LLM's reasoning trace.
+
+\begin{table}[h]
+\centering
+\caption{\textbf{LLAMIA vs.\ related latent-space approaches.} Only LLAMIA forms a latent link to a pretrained non-language agent.}
+\label{tab:related_distinction}
+\begin{adjustbox}{max width=\columnwidth}
+\renewcommand{\arraystretch}{1.25}
+\small
+\begin{tabular}{p{2.4cm}p{3.0cm}c}
+\toprule[1.2pt]
+\textbf{Prior work} & \textbf{Communication medium} & \textbf{Latent link to non-lang.\ agent?} \\
+\midrule
+Latent reasoning survey~\cite{zhu2025surveylatentreasoning} & Latent reasoning within one model's hidden state & \xmark \\
+CoCoNut~\cite{hao2025traininglargelanguagemodels} & Latent recurrence (same LLM) & \xmark \\
+Token Assorted~\cite{su2025tokenassorted} & Latent tokens interleaved with text (same LLM) & \xmark \\
+Latent Tokens~\cite{sun2025latenttokens} & Extra latent tokens (same LLM) & \xmark \\
+LatentMAS~\cite{latentmas2025} & Latent hidden-state comms among homogeneous LLMs & \xmark \\
+PaLM-E~\cite{driess2023palmeembodiedmultimodallanguage}, RT-2~\cite{brohan2023rt2visionlanguageactionmodelstransfer} & Raw-observation embeddings & \xmark \\
+\midrule
+\textbf{LLAMIA (ours)} & Pretrained agent's latent state internalized into the LLM trace & \cmark \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table}

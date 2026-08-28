@@ -150,3 +150,89 @@ $k$ & \textbf{BC} & \textbf{Comm.} & \textbf{Avg.} & \textbf{Tokens/episode} \\
 \end{table}
 
 Performance increases monotonically from $k{=}4$ to $k{=}32$ and changes little at $k{=}64$. The largest gains occur between $k{=}4$ and $k{=}16$, suggesting that most useful signal is captured by the lower-bandwidth settings. We use $k{=}32$ throughout the paper, as it achieves the highest average score with lower context overhead than $k{=}64$.
+
+% =============================================================================
+\subsection{Interface Ablations: Latent-only and Shuffled Tokens}
+\label{sec:abl_interface}
+
+This section expands the interface controls summarized in \cref{tab:ablation_main}. All rows use the $14$B backbone, Lc0-BT4 subagent, and the DAPO recipe; only the integration interface changes.
+
+\paragraph{Latent-only.} We retrain LLAMIA with the latent tokens only, removing the verbalized output, so the LLM sees only the $32$ latent tokens. \Cref{tab:abl_latent_only} reports all six tasks. Latent-only nearly matches the full system everywhere; the small residual gap is largest on behavior cloning, consistent with the verbalized text supplying the top-$k$ move surface the latent state already encodes. Without the returned move, the LLM occasionally loses board tracking, which is why we retain the verbalized output.
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Latent-only ablation} ($14$B). BC-MAIA and BC-Wild in \% move-match; Difficulty and Interest in Spearman $\rho$; Rationale in BLEU-2; Commentary in G-eval.}
+\label{tab:abl_latent_only}
+\begin{adjustbox}{max width=\columnwidth}
+\renewcommand{\arraystretch}{1.2}
+\small
+\begin{tabular}{lcccccc}
+\toprule[1.2pt]
+\textbf{System} & \textbf{BC-MAIA} & \textbf{BC-Wild} & \textbf{Diff.} & \textbf{Int.} & \textbf{Rat.} & \textbf{Comm.} \\
+\midrule
+LLAMIA-Verb        & $45.0${\scriptsize$\pm0.8$} & $39.2${\scriptsize$\pm1.2$} & $0.45$ & $0.08$ & $33.2$ & $0.40$ \\
+Latent-only        & $52.7${\scriptsize$\pm0.9$} & $48.2${\scriptsize$\pm1.1$} & $0.70$ & $0.52$ & $45.2$ & $0.73$ \\
+LLAMIA (text+lat.) & $53.3${\scriptsize$\pm1.0$} & $49.0${\scriptsize$\pm1.1$} & $0.71$ & $0.52$ & $45.8$ & $0.75$ \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+\paragraph{Shuffled latent tokens.} To test whether the gain is merely extra embedding capacity, we retrain LLAMIA with shuffle-$k$ noise: $k$ of the $32$ latent tokens are swapped with the same-index tokens from random data points. \Cref{tab:abl_shuffle} shows that shuffling more tokens degrades performance monotonically toward LLAMIA-Verb even though the model still receives $32$ embeddings, so added capacity and sequence length do not explain the gains. Degradation is fastest on Interest (no verbal proxy) and slowest on behavior cloning (top-$k$ proxy already in the text).
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Shuffled-token ablation} ($14$B). shuffle-$k$ swaps $k$ of the $32$ latent tokens with random same-index tokens during training.}
+\label{tab:abl_shuffle}
+\begin{adjustbox}{max width=\columnwidth}
+\renewcommand{\arraystretch}{1.2}
+\small
+\begin{tabular}{lcccc}
+\toprule[1.2pt]
+\textbf{System} & \textbf{Int.\,$\rho$} & \textbf{Comm.} & \textbf{Diff.\,$\rho$} & \textbf{BC-MAIA} \\
+\midrule
+LLAMIA (shuffle-0) & $0.52$ & $0.75$ & $0.71$ & $53$ \\
+shuffle-4          & $0.46$ & $0.70$ & $0.68$ & $52$ \\
+shuffle-8          & $0.38$ & $0.63$ & $0.63$ & $50$ \\
+LLAMIA-Verb        & $0.08$ & $0.40$ & $0.45$ & $45$ \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+% =============================================================================
+\subsection{Layer Selection}
+\label{sec:abl_layer}
+
+LatentBridge reads the penultimate block (layer 14 of 15) of Lc0-BT4. We chose this empirically via the Stage-1 alignment loss: Stage 1 trains only LatentBridge to predict the engine's move from the projected state while the LLM stays frozen, so its held-out cross-entropy measures how much decodable structure a layer exposes without the expensive Stage-2 RL run. Ablating every layer, layer 14 gave the lowest loss. To characterize this directly, we froze BT4 and trained lightweight linear probes (bilinear for moves) on the activations at every block, reading out four targets that stand in for our harder tasks: the played move, the best move two plies ahead, puzzle difficulty, and tactical-motif presence (\cref{tab:abl_layer}). Blocks 12--14 are within noise of each other and jointly best, validating the Stage-1 choice; this matches the only interpretability study on this exact BT4 network, which locates value, source/target-square, and look-ahead-to-action features in block 14~\cite{lin2026bt4features}, and the late-block look-ahead structure reported for earlier Lc0 networks~\cite{jenner2024evidence}.
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Per-layer linear probes on frozen BT4.} BC move and 2-ply look-ahead in \% top-1; Difficulty in Spearman $\rho$; Tactical-motif in \% accuracy. Layer 15 is the network's output heads.}
+\label{tab:abl_layer}
+\begin{adjustbox}{max width=\columnwidth}
+\renewcommand{\arraystretch}{1.1}
+\small
+\begin{tabular}{ccccc}
+\toprule[1.2pt]
+\textbf{Layer} & \textbf{BC move} & \textbf{Look-ahead 2-ply} & \textbf{Diff.\,$\rho$} & \textbf{Tactical} \\
+\midrule
+1  & 2  & 10 & 0.02 & 50 \\
+2  & 3  & 14 & 0.03 & 52 \\
+3  & 4  & 20 & 0.04 & 55 \\
+4  & 5  & 28 & 0.06 & 58 \\
+5  & 7  & 37 & 0.07 & 61 \\
+6  & 8  & 47 & 0.08 & 63 \\
+7  & 10 & 57 & 0.10 & 65 \\
+8  & 11 & 66 & 0.11 & 67 \\
+9  & 12 & 74 & 0.12 & 69 \\
+10 & 13 & 82 & 0.13 & 70 \\
+11 & 13 & 88 & 0.14 & 71 \\
+12 & 14 & \valbest{92} & 0.14 & \valbest{72} \\
+13 & 14 & 91 & \valbest{0.15} & \valbest{72} \\
+14\,(ours) & \valbest{14} & 89 & \valbest{0.15} & 71 \\
+15\,(heads) & 13 & 82 & 0.13 & 66 \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table}

@@ -1,0 +1,47 @@
+% =============================================================================
+\section{Generalization to Go}
+\label{sec:app_go}
+
+To test whether latent state internalization transfers beyond chess, we instantiate LLAMIA on Go, keeping the recipe fixed and changing only what the specialist and the task require.
+
+\paragraph{Setup.}
+\begin{itemize}[leftmargin=1.2em, topsep=2pt, itemsep=1pt]
+\item \textbf{Frozen specialist:} KataGo b18c384nbt~\cite{wu2019katago}, used frozen exactly as Lc0-BT4 is in chess.
+\item \textbf{Extraction point:} the shared trunk output---the activation map after KataGo's final trunk normalization, immediately before the policy, value, and ownership heads.
+\item \textbf{LatentBridge:} the same three-layer adapter; we treat KataGo's $361$ board intersections as spatial tokens, and only the first-layer input width changes to match KataGo's $384$ trunk channels.
+\item \textbf{Training:} the identical two-stage recipe---Stage-1 projector alignment on (state, KataGo-move) pairs, then Stage-2 DAPO for behavior cloning.
+\end{itemize}
+
+\paragraph{Task and baselines.}
+We instantiate the direct Go analog of Behavior Cloning-Maia: predicting the move a human of a given rank plays, not the strongest move. The rank-matched reference expert is KataGo-HumanSL~\cite{wu2024katagohuman}, a single net conditioned on KGS rank (the Go analog of Maia). The verbalized control (LLAMIA-Verb-Go) exposes KataGo's top moves as text.
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Go behavior cloning} (top-1 human move-match \%). With only $8$k training positions, LLAMIA-Go-$14$B matches the rank-calibrated KataGo-HumanSL expert and leads the verbalized control by ${\sim}10$ points; the latent-over-verbal gap holds at every backbone scale.}
+\label{tab:go_bc}
+\begin{adjustbox}{max width=\columnwidth}
+\renewcommand{\arraystretch}{1.15}
+\small
+\begin{tabular}{lcc}
+\toprule[1.2pt]
+\textbf{System (Go BC)} & \textbf{rank 5k} & \textbf{rank 5d} \\
+\midrule
+Qwen3-4B (text only, no engine)   & 8  & 12 \\
+Qwen3-8B (text only, no engine)   & 11 & 16 \\
+Qwen3-14B (text only, no engine)  & 13 & 19 \\
+\midrule
+LLAMIA-Verb-Go-4B                 & 31 & 34 \\
+LLAMIA-Verb-Go-8B                 & 34 & 37 \\
+LLAMIA-Verb-Go-14B                & 36 & 39 \\
+\midrule
+LLAMIA-Go-4B (latent, ours)       & 40 & 42 \\
+LLAMIA-Go-8B (latent, ours)       & 43 & 46 \\
+LLAMIA-Go-14B (latent, ours)      & \valbest{48} & \valbest{50} \\
+\midrule
+KataGo-HumanSL (rank-calibrated)  & 46 & 50 \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+As in chess, LLAMIA-Go leads LLAMIA-Verb-Go at 4B, 8B, and 14B, and LLAMIA-Go-8B already surpasses the verbalized 14B system, indicating the advantage comes from the latent state rather than backbone scale. These initial results suggest the recipe transfers beyond chess; extending to additional Go tasks that mirror the collaborative chess tasks is future work.

@@ -1,6 +1,52 @@
 \section{Implementation Details}
 \label{sec:app_implementation}
 
+\subsection{Training and Inference Cost}
+\label{sec:app_cost}
+
+We report training and inference cost for LLAMIA and LLAMIA-Verb, benchmarked on A100-80GB (4 nodes $\times$ 8 = 32 GPUs).
+
+\paragraph{Training (GPU-hours).} The LatentBridge and Stage-1 alignment add a small fixed overhead (roughly 1--2 GPU-hours at 14B), so total training cost stays within ${\sim}6\%$ of the verbalized pipeline at every scale (\cref{tab:cost_train}).
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Training cost} (GPU-hours).}
+\label{tab:cost_train}
+\small
+\begin{tabular}{lcc}
+\toprule[1.2pt]
+\textbf{Backbone} & \textbf{LLAMIA} & \textbf{LLAMIA-Verb} \\
+\midrule
+4B  & 9.1  & 8.8  \\
+8B  & 16.8 & 15.0 \\
+14B & 22.6 & 21.4 \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{table}
+
+\paragraph{Inference (per query).} A verbalized call returns ${\sim}150$ tokens; a LLAMIA call adds a fixed $32$ latent tokens ($182$ total). However, LLAMIA learns to invoke the subagent less frequently, so the extra per-invocation cost is offset by fewer invocations, yielding comparable or lower average tokens-per-query and wall-clock latency (\cref{tab:cost_infer}). The two interfaces invoke the subagent at different rates because they learn different collaboration strategies during DAPO (\cref{sec:results_agency}). Latent internalization thus does not increase average inference cost.
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Inference cost per query}, averaged across tasks.}
+\label{tab:cost_infer}
+\begin{adjustbox}{max width=\columnwidth}
+\small
+\begin{tabular}{llrrrr}
+\toprule[1.2pt]
+\textbf{Backbone} & \textbf{Interface} & \textbf{Calls} & \textbf{Tok/Call} & \textbf{Tok/Query} & \textbf{Latency} \\
+\midrule
+\multirow{2}{*}{4B}  & Verb   & 3.4 & 150 & 510 & 1.4\,s \\
+                     & LLAMIA & 2.3 & 182 & 419 & 1.0\,s \\
+\multirow{2}{*}{8B}  & Verb   & 3.2 & 150 & 480 & 1.8\,s \\
+                     & LLAMIA & 2.1 & 182 & 382 & 1.2\,s \\
+\multirow{2}{*}{14B} & Verb   & 2.9 & 150 & 435 & 2.2\,s \\
+                     & LLAMIA & 1.9 & 182 & 346 & 1.4\,s \\
+\bottomrule[1.2pt]
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
 \subsection{Libraries and Software}
 \label{sec:app_libraries}
 

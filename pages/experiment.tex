@@ -93,7 +93,7 @@ Verbalization has zero useful signal for this task, while latent tokens give the
 LLAMIA and LLAMIA-Verb share the same 14B backbone, Lc0-BT4 subagent, and DAPO recipe; the only difference is whether the subagent's state reaches the LLM as latent tokens or as verbalized text. We define the resulting performance gap as the \textbf{verbalization debt}.
 
 \paragraph{Verbalization debt is significant across all tasks}
-Figure \ref{fig:combined} shows that the verbalization debt is consistent across all tasks. The debt varies across tasks, it is largest on tasks whose target signal lives in the engine's full policy distribution or value landscape (Interest, Commentary), which have no faithful text equivalent. It is smallest on in-distribution behavior cloning, where the engine's top-$k$ moves already approximate the answer and the verbal summary loses little.
+Figure \ref{fig:combined} shows that the verbalization debt is consistent across all six tasks. The gap is largest on Interest and Commentary, where the target signal lives in the engine's full policy distribution or value landscape and has no faithful text equivalent, and smallest on in-distribution behavior cloning, where the engine's top-$k$ moves already approximate the answer and the verbal summary loses little.
 
 \paragraph{The debt persists across backbone scale.}
 Increasing the LLM from 4B to 14B improves both systems, but the debt persists at every scale (\cref{tab:full_bench}). On Interest, LLAMIA-Verb-14B scores $8$ while LLAMIA-4B already reaches $38$.
@@ -190,3 +190,8 @@ Both systems achieve comparable factual accuracy: material balance, initiative a
 
 \paragraph{Latent tokens are instruction-modulated.}
 On a fixed back-rank mate position (\cref{fig:human_heatmap}), LLAMIA's attention over the latent tokens shifts with the target Elo: at 2000 it concentrates on the mating geometry, at 1100 it disperses to material. The latent representation is identical in both cases; what changes is the LLM's reading, conditioned on the natural-language Elo instruction. The projected state functions as a perceptual input shaped by task context, not a static feature vector.
+
+\subsection{Generalization Beyond Chess}
+\label{sec:results_go}
+
+To provide initial evidence that LLAMIA can transfer beyond chess, we instantiate it on Go. We use KataGo-b18~\cite{wu2019katago}, a state-of-the-art Go neural engine, as the non-language subagent. We train a three-layer LatentBridge, with the first-layer width matched to KataGo's $384$ trunk channels and the $361$ board intersections represented as spatial tokens, using the same two-stage DAPO procedure on rank-conditioned behavior cloning. LLAMIA-Go-$14$B achieves $48$/$50$ top-1 human move-match at ranks 5k/5d using only $8$k positions, matching the rank-calibrated KataGo-HumanSL expert~\cite{wu2024katagohuman} and outperforming the verbalized control by ${\sim}10$ points. The latent-over-verbal gap remains consistent across the 4B, 8B, and 14B model scales (\cref{sec:app_go}). These results provide strong evidence that latent collaboration is not specific to chess. Establishing broader generality across environments and task families remains an important direction for future work.

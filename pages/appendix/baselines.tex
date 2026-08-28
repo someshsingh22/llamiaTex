@@ -186,3 +186,23 @@ Move Annotation
 \end{table*}
 
 % =============================================================================
+\subsection{Lightweight Probes, Templates, and Alternative Injections}
+\label{sec:app_baselines_probe}
+
+To attribute LLAMIA's gains, we add four controls beyond the dedicated task experts above; headline numbers appear in \cref{tab:ablation_main}.
+
+\paragraph{Probe on frozen BT4.} A $2$-layer MLP ($1024$--$512$, ${\sim}0.7$M params) is trained end-to-end on frozen BT4 activations (layer 14/15 residual stream), one head per task, for behavior cloning, difficulty, and interest. It measures how much the latent state gives up when decoded by a lightweight predictor rather than an LLM: it scores below even text-only GPT-5 on every task (BC-MAIA $14$, Difficulty $\rho{=}0.15$, Interest $\rho{=}{-}0.07$), so the engine's penultimate state is not directly decodable into these human-aligned targets.
+
+\paragraph{Template baselines.} For move annotation and commentary we fill a fixed three-line template directly from the engine's output---move quality (centipawn loss vs.\ the engine's best), the engine's preferred line and evaluation, and the best alternative:
+\begin{quoting}\small\ttfamily
+Move quality: Nf3 loses 40cp vs.\ best (inaccuracy).\\
+Best line: engine prefers Nc3 Nf6 d4, +0.6 (W/D/L 48/40/12).\\
+Alternative: Bb5 slightly weaker, dropping to +0.3.
+\end{quoting}
+The deterministic template reaches only $29.4$ BLEU-2 / $0.31$ G-eval; rewriting it with GPT-5 improves marginally ($32.1$ / $0.39$) and remains below the verbalized tool ($37.5$ / $0.55$) and far below LLAMIA ($45.8$ / $0.75$). Presenting engine statistics in more natural language is not the source of LLAMIA's gains.
+
+\paragraph{LLM-ChessCLIP (PaLM-E-style injection).} Following the representation-injection paradigm of PaLM-E, we replace the engine's latent state with embeddings from ChessCLIP~\cite{feng2024chessgpt} while keeping the injection mechanism fixed, isolating \emph{what} is injected (a raw board encoder vs.\ a pretrained agent's processed policy/value state). It recovers only a fraction of LLAMIA's improvement, indicating the benefit is specific to the agent's internal state, not any learned board representation.
+
+\paragraph{LLM-Only.} The same backbone is post-trained (SFT\,+\,RL) on the identical chess and commentary data with no engine access, testing whether the expertise can be absorbed into weights. It trails even untrained tool use (per-scale numbers in \cref{sec:app_results}).
+
+% =============================================================================

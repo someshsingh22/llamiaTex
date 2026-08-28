@@ -1,0 +1,1019 @@
+\section{Performance Landscape Analysis}
+\label{sec:app_landscape}
+
+This section reasons through the expected performance landscape for each
+LLAMIA-Bench task, identifying what information each system type can and
+cannot access and predicting where the verb--latent gap, the SFT--DAPO gap,
+and the interface$\times$optimization interaction should be largest.
+The analysis is grounded in the task structure and the literature on each
+capability; it serves as a prior against which empirical results can be
+interpreted.
+
+Throughout, we consider six system types in a consistent order:
+
+\begin{enumerate}[leftmargin=*, itemsep=1pt, topsep=2pt]
+  \item \textbf{LLM Only}: Qwen3 backbone with no subagent access (FEN input, pretraining knowledge only).
+  \item \textbf{Frontier\,+\,Lc0 Verb}: GPT-5 with Lc0-BT4 via ReAct tool-calling (top-$k$ moves, evals, WDL, PVs as text).
+  \item \textbf{LLAMIA-Verb-SFT}: Verbalized subagent output, single-step SFT.
+  \item \textbf{LLAMIA-Verb}: Verbalized subagent output, DAPO.
+  \item \textbf{LLAMIA-SFT}: Latent tokens ($k{=}32$), single-step SFT.
+  \item \textbf{LLAMIA}: Latent tokens ($k{=}32$), DAPO.
+\end{enumerate}
+
+\noindent Dedicated task experts (Allie, Chessformer, SCC, etc.) are discussed
+where applicable.
+
+\paragraph{Two sources of verbalization debt.}
+Across all tasks, the verb--latent gap arises from two interacting sources.
+
+The first is \emph{non-verbalizable information}.
+The engine's internal representation encodes structures that have no faithful
+text equivalent: learned lookahead---compressed representations of tactical
+sequences three to eight moves deep, including threats that never materialize
+on the board because the opponent avoids them; attack geometry---which
+diagonals bear pressure, which squares around the king are weak, how piece
+coordination creates threats; strategic themes---that a pawn recapture
+permanently damages the dark-square complex, that an isolated pawn will become
+an endgame target, that the bishop pair grows in strength as the position
+opens; and distributional properties of the policy---which alternatives are
+genuinely competitive, how sharply the evaluation landscape changes across
+candidate moves.
+Verbalization collapses this representational state into a scalar evaluation,
+a ranked move list, and a principal variation in algebraic notation---a lossy
+projection that preserves \emph{what} and \emph{how much} but destroys
+\emph{why} and \emph{what distinguishes}.
+
+The second is \emph{collaboration agency}.
+Access to the non-verbalizable information enables productive collaboration
+strategies---counterfactual queries, consult-then-override, multi-step
+lookahead---that are structurally unproductive under verbalization
+(\cref{sec:abl_agency_strategies}).
+The debt is not merely perceptual (richer information per invocation) but
+agential (richer strategies for \emph{using} that information).
+The two sources interact: the information enables the agency, and the agency
+amplifies the information advantage across invocations.
+
+The per-task analyses below identify which non-verbalizable features and
+which collaboration strategies are load-bearing for each task, explaining
+both the magnitude and the ordering of the verb--latent gap across
+LLAMIA-Bench.
+
+% =============================================================================
+\subsection{Puzzle Interest Estimation}
+\label{sec:app_landscape_interest}
+% =============================================================================
+
+\paragraph{What the task requires.}
+The model predicts whether a puzzle position is \emph{interesting to a human
+player}: a subjective, aesthetic judgment that depends on sacrifices, quiet
+winning moves hiding deep tactics, stalemate traps, positions with
+counter-intuitive evaluations, and the presence of multiple competing
+strategic plans.
+No prior dedicated model exists for this task; LLAMIA-Bench introduces it as
+a new evaluation target.
+
+\paragraph{The information asymmetry.}
+Interest is fundamentally about the \emph{shape} of the engine's internal
+distribution, not any single number the engine outputs.
+A position is interesting when the engine's policy concentrates on a
+counter-intuitive move (sacrifice, quiet retreat), when the value function
+has a large gradient across similar-looking moves (one move wins, the obvious
+one loses), or when the distribution has unusual structure compared to
+typical positions.
+Verbalization collapses this distributional object into a handful of
+numbers---top-$k$ moves and their centipawn evaluations---destroying exactly
+the signal that defines interest.
+
+\paragraph{Per-system analysis.}
+
+\emph{LLM Only.}
+The model knows from pretraining that sacrifices and stalemate traps are
+interesting, but without positional evaluation it cannot \emph{detect} these
+features in a given FEN\@.
+Predictions reduce to surface heuristics (piece count, game phase), yielding
+near-random correlation.
+
+\emph{Frontier\,+\,Lc0 Verb.}
+The verbalized output surfaces some signals: a large evaluation gap between
+the top move and the second-best suggests a forcing combination; a PV
+containing material imbalance suggests a sacrifice.
+However, these heuristics cover only a fraction of what makes a position
+interesting.
+The frontier model falls back on piece count and game-phase reasoning,
+achieving only marginally above the residual guess.
+
+\emph{Verbalized baselines (SFT and DAPO).}
+Through training, verbalized baselines learn the same correlations the
+frontier model discovers (evaluation gaps, PV features).
+However, the mapping from verbalized features to interest has high
+irreducible noise because the distributional information that defines
+interest is absent.
+Both verb baselines regress toward predicting the dataset mean, reaching
+a local optimum in which a near-constant prediction minimizes training loss.
+The SFT--DAPO gap is small because interest estimation is a single-step
+perceptual judgment with no multi-step reasoning for RL to improve.
+
+\emph{LLAMIA-SFT (latent).}
+The latent tokens encode the engine's full policy distribution and
+positional feature activations---exactly the signal that distinguishes
+interesting from routine positions.
+A position where the engine's policy concentrates on a sacrifice has a
+characteristically different activation pattern from one with a standard
+best move.
+SFT can learn this mapping directly, yielding a substantial jump over
+verbalized baselines.
+
+\emph{LLAMIA (latent\,+\,DAPO).}
+Interest is a single-step judgment: one position, one scalar prediction.
+RL's comparative advantage (learning to sequence actions across steps) does
+not activate.
+The marginal gain from DAPO comes only from sharpening the latent-to-interest
+mapping under the correlation reward, which is noisy.
+The SFT--DAPO gap should therefore be the \emph{smallest} of any LLAMIA-Bench
+task.
+
+\paragraph{Expected signatures.}
+Verbalized baselines should produce near-constant predictions (low output
+variance); LLAMIA should produce high-variance predictions that correlate
+with actual interest.
+If predicted-vs.-actual interest is plotted, verbalized baselines form a
+horizontal band while LLAMIA shows a positive trend.
+The verb--latent gap on interest should be the \emph{largest} among all tasks
+(measured as relative improvement), because interest is the task where
+verbalization loses the most decision-relevant information.
+
+\paragraph{Predicted behavior summary.}
+\begin{itemize}[leftmargin=*, itemsep=2pt, topsep=2pt]
+\item \textbf{Scale (4B${\to}$14B):} Large under latent
+  ($3.1{\times}$ in \cref{fig:scaling_bars}); negligible under
+  verbalized---the discriminative signal is absent from the verbal
+  channel regardless of backbone capacity.
+\item \textbf{SFT vs.\ DAPO:} \emph{Smallest gap in the benchmark}.
+  Single-step perceptual judgment with no sequencing for RL to improve;
+  DAPO gain comes only from sharpening the latent-to-interest mapping
+  under a noisy correlation reward.
+\item \textbf{Verbalization debt:} \emph{Largest gap in the benchmark}.
+  Policy shape, value gradients, and structural asymmetries have no
+  verbal proxy; no collaboration strategy under verbalization can
+  recover them.
+\item \textbf{vs.\ Frontier\,+\,Lc0:} Marginally above residual guess.
+  Inference capacity cannot recover absent signal; the model falls back
+  on piece count and game-phase heuristics.
+\item \textbf{vs.\ task experts:} None---LLAMIA-Bench introduces
+  Interest as a new evaluation target.
+\end{itemize}
+
+% =============================================================================
+\subsection{Puzzle Difficulty Estimation}
+\label{sec:app_landscape_difficulty}
+% =============================================================================
+
+\paragraph{What the task requires.}
+The model predicts how hard a puzzle is for human solvers.
+Difficulty depends on: solution depth, whether the first move is forcing
+(checks, captures) or quiet, the number of plausible-looking distractors,
+required calculation depth, and pattern familiarity.
+
+\paragraph{Why the verb--latent gap is smaller than Interest.}
+Unlike interest, difficulty has a \emph{moderately informative verbal
+proxy}: solution length.
+The principal variation length is directly readable from the verbalized engine
+output, and solution length correlates substantially with human-perceived
+difficulty.
+Verbalization therefore loses less decision-relevant information for
+difficulty than for interest.
+
+\paragraph{Per-system analysis.}
+
+\emph{Frontier\,+\,Lc0 Verb.}
+The frontier model reads the PV length and adds heuristic adjustments:
+endgames are harder (more technique required), quiet first moves are harder
+than forcing ones.
+This first-order approximation achieves moderate rank correlation.
+
+\emph{Verbalized baselines (SFT and DAPO).}
+Training learns the PV-length correlation strongly.
+May additionally learn secondary features: the evaluation gap between the
+best move and the second-best as a proxy for ``distractor strength,'' and
+game-phase indicators.
+The ceiling is reached when two puzzles share the same solution length but
+differ in cognitive difficulty (e.g., a three-move forcing sequence of checks
+vs.\ a three-move quiet combination).
+The verbalized signal cannot distinguish these.
+
+\emph{LLAMIA-SFT (latent).}
+The engine's activations encode the \emph{nature} of the required
+computation, not merely its length.
+A position requiring deep quiet play produces different activation patterns
+from one with a forced tactical sequence.
+The policy distribution shape is informative: a sharply peaked distribution
+indicates an ``obvious'' first move (easier), while a flat distribution
+indicates genuine ambiguity (harder).
+Value gradients across candidate moves indicate how much calculation is
+needed to distinguish them.
+Concretely, latent reads recover patterns that humans recognize at a
+glance but that have no clean text proxy: back-rank mate motifs,
+trapped-piece geometries, forced-move sequences (each reply is the only
+legal response, collapsing search width), and ``mate-in-$N$ where the
+moves are obvious'' positions that share solution length with genuinely
+hard combinations but require far less calculation.
+These cues compress difficulty along an axis orthogonal to PV length,
+which is what the verb--latent residual on this task captures.
+
+\emph{LLAMIA (latent\,+\,DAPO).}
+RL helps more on difficulty than on interest.
+Difficulty estimation benefits from the model learning to ``simulate'' the
+solving process: how many steps of reasoning are required, and how
+uncertain is the intermediate evaluation at each step?
+DAPO rollouts expose the model to sequential position evaluation, which
+calibrates difficulty estimates.
+The SFT--DAPO gap should be slightly larger than for interest, but
+substantially smaller than for commentary or planning tasks.
+
+\paragraph{Expected signatures.}
+Both verbalized and latent systems should produce \emph{correlated}
+predictions, but the latent system should discriminate better among puzzles
+with equal solution length.
+A residual analysis conditioning on PV length should reveal that verbalized
+baselines explain negligible additional variance beyond length, while LLAMIA
+captures computational-complexity features orthogonal to length.
+
+\paragraph{Predicted behavior summary.}
+\begin{itemize}[leftmargin=*, itemsep=2pt, topsep=2pt]
+\item \textbf{Scale (4B${\to}$14B):} Small-to-moderate.
+  PV length proxy ceilings verb baselines regardless of LLM capacity;
+  latent residual is narrow enough that larger backbones add only
+  incremental gain.
+\item \textbf{SFT vs.\ DAPO:} Slightly larger than Interest,
+  substantially smaller than Annotation or Commentary.
+  DAPO rollouts expose the model to sequential position evaluation,
+  which calibrates difficulty estimates beyond single-example SFT.
+\item \textbf{Verbalization debt:} Moderate, slightly smaller than BC.
+  Solution depth absorbs most variance; the latent residual captures
+  computational-character features (forced-move sequences, back-rank
+  motifs, distractor sharpness) orthogonal to length.
+\item \textbf{vs.\ Frontier\,+\,Lc0:} Moderate rank correlation via
+  PV length plus heuristic adjustments (endgames harder, quiet first
+  moves harder than forcing ones).
+\item \textbf{vs.\ task experts:} None; closest reference is human
+  solve-rate calibration (Lichess puzzle rating), which uses
+  population-aggregate statistics rather than position-conditioned
+  prediction.
+\end{itemize}
+
+% =============================================================================
+\subsection{Behavior Cloning}
+\label{sec:app_landscape_bc}
+% =============================================================================
+
+\paragraph{What the task requires.}
+Given a position and a target Elo, predict the move a human at that skill
+level would play.
+The metric is move-matching accuracy.
+LLAMIA-Bench evaluates two splits: \emph{MAIA} (standard Elo-stratified
+buckets) and \emph{Wild} (GM-25 opening moves, Low-Time blitz positions,
+Elo-Gap games where players deviate from their rating).
+
+\paragraph{What the literature establishes.}
+\citet{mcilroy2022aligning} demonstrated that engine strength and human move
+prediction are orthogonal: Stockfish depth-15 achieves 33--41\% move-matching
+accuracy (monotonically increasing with target Elo, peaking on the 1900
+bucket), while Maia's per-Elo CNNs reach ${\sim}$52\% with unimodal accuracy
+curves that peak near each model's training Elo.
+Leela Zero caps at ${\sim}$46\% on the 1900 bucket and is flat across lower
+buckets, confirming that raw engine strength does not transfer to human
+prediction.
+\citet{zhang2024humanalignedchessbitsearch} (ALLIE) pushed this to 55.7\%
+(policy head alone) with a unified 355M-parameter decoder transformer and
+soft Elo conditioning that linearly interpolates between weak- and
+strong-player embeddings; adaptive MCTS at inference further achieves
+49~Elo MAE skill calibration.
+Critically, ALLIE's ablations show the model is \emph{data-constrained, not
+parameter-constrained}: halving parameters drops accuracy by only 1.2~pp,
+doubling them adds only 0.3~pp, while halving training data costs 1.0~pp.
+MAIA-3~\cite{XXX_chessformer} achieved 57.1\% at only 79M parameters through
+domain-aligned architecture (square tokenization, geometric attention bias,
+source-destination policy head), surpassing search-enabled ALLIE at
+$4.5{\times}$ fewer parameters---and GPT-3.5 (53.7\% at 175B) at
+$2000{\times}$ fewer parameters.
+The ${\sim}$57\% ceiling likely reflects genuine stochasticity in human move
+selection: in most positions multiple reasonable moves exist and the
+``correct'' human move depends on unobservable factors (time pressure,
+preparation, psychological state).
+
+\paragraph{Key factors from the literature.}
+Three factors dominate BC performance, in order of impact:
+(i)~\emph{domain-aligned architecture}---Chessformer's inductive biases
+(square tokens, geometric attention, from-to policy head) yield a larger
+gain than $2000{\times}$ more parameters in a generic architecture,
+establishing that integration interface dominates backbone scale;
+(ii)~\emph{skill conditioning}---continuous Elo conditioning (ALLIE's soft
+tokens) outperforms discrete binning (Maia's per-Elo models) by enabling
+interpolation and shared representations across the skill spectrum;
+(iii)~\emph{training objective}---RL over imitation
+(\cite{XXX_c1} shows +7~pp from SFT to DAPO on chess puzzles at 4B scale,
+demonstrating that RL provides gains beyond maximum-likelihood imitation,
+though the effect may be smaller on BC where the reward signal is noisier
+than puzzle correctness).
+
+\paragraph{Per-system analysis.}
+
+\emph{LLM Only.}
+Qwen3 has seen chess games in pretraining but lacks board-state tracking
+fidelity~\cite{XXX_chessqa}.
+\cite{XXX_c1} confirms that untrained Qwen3 at 4B scale produces near-zero
+accuracy on chess puzzles, and open-source models ${\leq}$14B without
+chess-specific distillation remain in the single-to-low-double digits.
+Without subagent access or task-specific training, the model produces
+``literary'' moves---plays it has encountered in chess commentary and
+book annotations.
+It has no Elo-conditioning mechanism and cannot distinguish 1200-level play
+from 2000-level play.
+Performance should be well below the Maia baseline, scaling with model size
+as more chess pretraining knowledge becomes available at 8B and 14B.
+
+\emph{Frontier\,+\,Lc0 Verb.}
+The engine's top-$k$ are all strong moves, but humans below ${\sim}1800$ Elo
+frequently play moves not in the engine's top-5.
+The frontier model must ``de-tune'' engine suggestions to match the target
+Elo---a task for which verbalized evaluations provide only coarse guidance.
+The model can apply heuristics (``at 1200, prefer the simpler-looking
+move'') but cannot access the distributional structure that indicates which
+alternative moves the engine considers ``close'' in its representation space.
+A lower bound is the engine pass-through ceiling: if the model simply copies
+Lc0's top move, it recovers Leela's ${\sim}$46\% on the 1900 bucket but
+collapses at lower Elos where engine-best diverges most from human play.
+Performance should exceed LLM-Only substantially but plateau below dedicated
+BC experts.
+
+\emph{Verbalized baselines (SFT and DAPO).}
+Training on the actual data distribution teaches the model which patterns in
+verbalized engine output correlate with human move choice at each Elo.
+The model learns that when the evaluation gap between move~1 and move~3 is
+small and move~3 involves a simpler piece interaction, lower-Elo players
+prefer move~3.
+However, the top-$k$ moves cover perhaps 60--70\% of what humans actually
+play; moves outside this set are invisible to the verbalized system.
+RL adds moderate value by directly optimizing move-matching accuracy rather
+than cross-entropy, but the information ceiling is the same.
+
+\emph{LLAMIA-SFT (latent).}
+The full policy distribution over all legal moves is present in the latent
+tokens---not just the top-5 but the shape of the distribution.
+For BC this matters: the distribution encodes which moves the engine
+considers ``similar'' in representation space.
+At low Elo, humans tend to play moves that are similar to good moves in the
+engine's feature space (conceptually nearby but tactically inferior), and
+this similarity structure is exactly what verbalization destroys.
+The latent tokens also encode positional features (king safety, pawn
+structure, piece activity) whose \emph{relative importance changes with
+skill level}: strong players weigh king safety more heavily while weaker
+players fixate on material.
+SFT learns the mapping from (latent state, Elo) $\to$ human move on
+single examples.
+
+\emph{LLAMIA (latent\,+\,DAPO).}
+RL adds meaningful value on BC because the reward signal (move match) is
+clear and non-noisy.
+DAPO can discover non-obvious mappings between latent features and human
+moves that SFT's maximum-likelihood objective misses---in particular, it
+can learn that for certain position types, the best prediction is the
+\emph{second} peak of the bimodal policy distribution, not the primary
+peak.
+Performance may approach but is unlikely to exceed the Chessformer ceiling
+(${\sim}$57\%): LLAMIA's adapter is shallow (3-layer MLP), its Stage-2
+training is multi-task (not BC-specific), and it lacks the domain-aligned
+inductive biases (square tokenization, geometric attention) that proved
+decisive in the Maia-3 results.
+
+\emph{Dedicated experts (Allie, Chessformer).}
+End-to-end optimization for exactly this objective, with domain-aligned
+architecture and vastly more training data (93M games for Allie).
+These represent the performance ceiling on standard MAIA buckets.
+ALLIE's published 55.9\% on Lichess blitz~\cite{zhang2024humanalignedchessbitsearch}
+and Chessformer's 57.1\%~\cite{XXX_chessformer} bound the in-distribution
+BC expert range.
+
+\paragraph{MAIA vs.\ Wild splits.}
+On standard MAIA buckets, dedicated experts should retain a slight edge
+because their architectural specialization is well-matched to the
+move-prediction objective.
+On Wild splits, the landscape shifts because each split introduces a distinct
+out-of-distribution challenge:
+
+\emph{GM-25.}
+LLAMIA-Bench provides ${\leq}$4.6K games per GM---well below the
+${\sim}$150K threshold that Maia-Individual~\cite{XXX_maia_individual}
+identifies as necessary for meaningful per-player adaptation.
+Allie and Chessformer, trained on aggregate Lichess blitz, collapse to their
+population predictor in this regime; elite GMs' primary games are not played
+on Lichess blitz, making this split doubly OOD (style + time control).
+LLAMIA's latent tokens may encode position-evaluation features that
+correlate with GM-specific style preferences, but the expected gain over
+verbal baselines is modest because per-player adaptation requires signal
+the engine does not carry.
+The LLM's pretraining knowledge of opening theory, named players, and
+their characteristic systems provides a partial advantage on this split
+that is orthogonal to both the latent channel and the BC experts'
+position-conditioned training; this is an LLM-backbone effect, not a
+latent-internalization effect, and the verb--latent gap on GM-25 should
+be close to constant across the Elo-bucket Lichess data.
+
+\emph{Low-Time.}
+Maia's original protocol discards all moves with ${<}$30\,s on the
+clock~\cite{mcilroy2022aligning}; ALLIE's training includes time pressure
+implicitly through Lichess blitz but not as explicit conditioning metadata.
+BT4's latent state does not encode clock information, so latent injection
+does \emph{not} provide a structural advantage here---the bottleneck is
+missing signal, not interface.
+Any Low-Time advantage LLAMIA shows over LLAMIA-Verb at fixed clock
+metadata is therefore an LLM-backbone effect---pretraining knowledge of
+time-management heuristics such as simplification under flag and a bias
+toward principled moves when short on time---not evidence that the
+latent channel carries clock information.
+Dedicated BC experts with blitz-heavy training data (ALLIE) retain most
+of their in-distribution accuracy.
+
+\emph{Elo-Gap.}
+ALLIE explicitly conditions on both player ratings as soft
+tokens~\cite{zhang2024humanalignedchessbitsearch}, so mismatched-strength
+games are inside its conditioning grammar, though underrepresented in
+training data.
+LLAMIA's latent tokens carry the full policy distribution, which can
+distinguish positions where the stronger player offers tactical
+complications from positions where the weaker player seeks simplification.
+This positional asymmetry is present in BT4's activations but not cleanly
+verbalizable; the latent advantage should be moderate.
+
+\paragraph{Expected qualitative behaviors and accuracy curves.}
+The per-Elo accuracy curve is a diagnostic:
+engines (Stockfish, Leela) show \emph{monotonically increasing} accuracy
+with target Elo (best at 1900, worst at 1100) because engine-best moves
+align with strong human play;
+Maia-style models show \emph{unimodal} curves peaking near their training
+Elo~\cite{mcilroy2022aligning};
+ALLIE and Chessformer show \emph{flat-to-slightly-decreasing} curves across
+Elos because they condition on skill level.
+
+\emph{LLM Only}: should mirror the engine-like monotonically increasing
+curve---produces book moves gravitating toward strong play, with no Elo
+sensitivity.
+\emph{Verb baselines}: DAPO Elo-conditioning should bend the curve toward
+Maia-style unimodal behavior, but verbalized PV cannot carry the
+skill-style features that ALLIE's soft Elo tokens encode; expect a flatter
+but still engine-skewed curve.
+Over-predicts engine-optimal moves for low-Elo targets---plays
+``engine-lite'' rather than characteristically human.
+Cannot reproduce skill-specific error patterns (e.g., the systematic
+material overvaluation of 1200-rated players).
+\emph{LLAMIA}: closest to ALLIE's flat profile because latent state carries
+skill-conditioning directly.
+Should reproduce Elo-specific behavioral signatures: does LLAMIA-1200 fall
+for opening traps that Maia-1200 falls for?
+Does LLAMIA-2000 exhibit the material indifference characteristic of strong
+positional players?
+\emph{Dedicated experts}: most faithful move-matching at each Elo, including
+error-pattern reproduction, but mute---cannot explain their predictions or
+transfer to adjacent tasks.
+
+\paragraph{$2{\times}2$ factorial prediction.}
+The interface and optimization effects should be roughly additive on BC\@.
+BC is a single-step task (predict one move per position), so the multi-step
+advantage of DAPO is limited; the RL gain is small under both
+representations, with no strong interaction effect.
+This contrasts with Commentary, where the interaction is super-additive.
+
+\paragraph{Predicted behavior summary.}
+\begin{itemize}[leftmargin=*, itemsep=2pt, topsep=2pt]
+\item \textbf{Scale (4B${\to}$14B):} Smallest relative effect among
+  representation-intensive tasks ($2.4{\times}$ in
+  \cref{fig:scaling_bars}); ALLIE's ablations establish that BC is
+  data-constrained, not parameter-constrained.
+\item \textbf{SFT vs.\ DAPO:} Small gap, additive
+  interface${\times}$optimization.
+  Single-step prediction with a clear non-noisy reward (move match);
+  RL sharpens without discovering new collaboration strategies.
+\item \textbf{Verbalization debt:} Moderate, slightly larger than
+  Difficulty.
+  Top-$k$ covers ${\sim}$60--70\% of human moves; the residual
+  distributional similarity structure carries skill conditioning and
+  is accessible only to the latent channel.
+\item \textbf{vs.\ Frontier\,+\,Lc0:} Above LLM-Only substantially;
+  plateaus below dedicated BC experts.
+  Engine pass-through recovers Leela's ${\sim}$46\% on the 1900 bucket
+  and collapses at lower Elos.
+\item \textbf{vs.\ task experts:} ALLIE (55.9\%) and Chessformer
+  (57.1\%) bound the in-distribution MAIA ceiling.
+  LLAMIA approaches but is unlikely to exceed them due to shallow
+  adapter, multi-task Stage-2 training, and absent domain-aligned
+  inductive biases.
+  Wild splits invert the comparison: GM-25 gives small latent gain
+  (per-player signal not in engine); Low-Time gives no latent gain
+  (BT4 carries no clock state---any LLAMIA advantage is LLM-side);
+  Elo-Gap gives moderate latent gain.
+\end{itemize}
+
+% =============================================================================
+\subsection{Move Annotation (Rationale)}
+\label{sec:app_landscape_annotation}
+% =============================================================================
+
+\paragraph{What the task requires.}
+Given a position and the played move, generate a natural-language
+explanation.
+The headline metric averages the \emph{Planning} and \emph{Comparative}
+subcategories---the two that require genuine strategic reasoning---excluding
+Description, Quality, and Context which are more surface-level.
+
+\paragraph{What verbalization cannot express.}
+The engine's internal state at any position encodes far more than a move
+ranking.
+Its activations represent learned lookahead---compressed representations
+of tactical sequences three to eight moves deep, including threats the
+opponent avoids and defensive resources the opponent fails to find.
+They encode attack geometry: which diagonals bear pressure on the king,
+which squares in the castled structure are weak, how coordinated pieces
+create mating threats.
+They encode strategic themes: that a pawn recapture on f6 permanently
+damages the dark-square complex, that an isolated d-pawn will become an
+endgame target, that the bishop pair grows in strength as exchanges open
+the position.
+
+Verbalization collapses all of this into three objects: a scalar evaluation
+($+0.5$), a ranked move list (Nxd5, Bg5, Re1), and a principal variation
+in algebraic notation (Nxd5 exd5 Bxf6 gxf6 Qh5).
+The PV shows \emph{what} happens after the move but not \emph{why} it
+works---that Nxd5 eliminates the dark-square defender, that gxf6 creates
+a permanent structural weakness, that Qh5 exploits the resulting geometry.
+The eval says \emph{how much} better the move is but not \emph{what
+changed}---whether the advantage stems from king safety, pawn structure,
+piece activity, or material.
+The same PV (Nxd5 exd5 Bxf6) could arise from exploiting dark-square
+weakness, targeting a backward pawn, or simply winning material, and
+neither the eval nor the move sequence disambiguates.
+
+This distinction---between what a position \emph{evaluates to} and what
+it \emph{means}---is the core of the verbalization debt on annotation.
+Both headline subcategories depend on meaning:
+
+\emph{Planning} requires explaining the move's strategic intent.
+``This sacrifice opens the g-file and destroys the dark-square shelter''
+is a reading of the engine's positional features---king-safety gradients,
+pawn-structure assessments, piece-activity patterns.
+The verbalized model must \emph{infer} intent from notation; the
+internalized model \emph{reads} it from the latent state.
+
+\emph{Comparative} requires explaining what distinguishes the played move
+from alternatives.
+``After Bg5 instead of Nxd5, the pawn structure remains intact and the
+king can castle---the dark-square weakness that makes Nxd5 decisive is
+absent.''
+This is a reading of the \emph{difference} between two latent states.
+Two eval numbers ($+0.5$ vs.\ $+0.2$) confirm one move is better but
+carry no information about the positional mechanism behind the gap.
+
+The excluded subcategories---Description (``the bishop moves to g5,
+pinning the knight''), Quality (``this move loses a pawn''), Context
+(``this is a well-known Sicilian Najdorf line'')---depend on surface
+features that verbalization captures adequately.
+The verb--latent gap on the headline metric should therefore be
+substantially larger than the gap on the full five-subcategory average.
+
+\paragraph{How non-verbalizable information enables collaboration agency.}
+The non-verbalizable signal does not merely improve passive perception---it
+enables productive collaboration strategies that verbalization structurally
+cannot support (\cref{sec:abl_agency_strategies}).
+
+The dominant strategy for Comparative annotation is the \emph{counterfactual
+query}: play the alternative move, invoke the agent on the resulting
+position, receive fresh latent tokens, and compare the two latent states.
+When the model plays Bg5 instead of Nxd5 and compares latent states, the
+difference encodes the positional mechanism directly: the dark-square
+features are deactivated in the Bg5 line, the king-safety gradient is
+flatter, the pawn-structure representation is intact.
+This is structurally what expert annotators do: play the alternative on the
+board, assess the resulting position, and articulate the contrast.
+Under verbalization, the same counterfactual query returns ``eval $+0.2$
+instead of $+0.5$''---the model knows the alternative is worse but has no
+access to \emph{why}.
+The collaboration strategy heatmap (\cref{fig:agency_heatmaps}) confirms
+the asymmetry: counterfactual
+query is a significant strategy on annotation under internalization, while
+engine-follow dominates under verbalization (62--76\%) because querying
+alternatives returns the same compressed summary regardless of the question.
+
+For Planning, the relevant strategy is \emph{feature reading}: the model
+attends to specific activations in the latent tokens---king-safety neurons,
+pawn-structure features, piece-coordination patterns---and grounds its
+explanation in what it observes.
+Under verbalization, the model has only the eval and PV; it must
+\emph{guess} which positional features justify the move, a lossy inference
+that is sometimes correct for powerful frontier LLMs but systematically
+limited for smaller trained models.
+
+The collaboration agency effect amplifies the perceptual debt: internalization
+provides richer information per invocation \emph{and} enables the model to
+use that information strategically---invoking the agent on counterfactual
+positions, comparing latent states across alternatives, reading different
+features for different annotation subcategories.
+The verb--latent gap on annotation is therefore large, close to Commentary
+rather than to BC\@.
+Commentary adds multi-step state tracking across 30+ moves, which pushes
+its gap slightly higher, but the per-position depth of annotation---the
+need to explain \emph{why} and \emph{what distinguishes}---activates the
+same non-verbalizable information and the same collaboration strategies.
+
+\paragraph{Per-system analysis.}
+
+\emph{LLM Only.}
+Produces fluent, plausible annotations that are generically true of many
+positions but not specific to the given one.
+Planning annotations reference common strategic ideas (``develops the bishop
+to an active diagonal'') without positional justification; Comparative
+annotations mention obvious alternatives (``could have castled'') without
+knowing which alternatives exist or their quality.
+
+\emph{Frontier\,+\,Lc0 Verb.}
+A powerful frontier LLM can \emph{infer} positional mechanisms from PV
+notation: seeing ``Nxd5 exd5 Bxf6 gxf6 Qh5'' it guesses ``dark-square
+destruction.''
+This inference is often correct, making Frontier competitive---but it
+remains inference, not observation, and fails on positions where the
+mechanism is non-obvious from the move sequence.
+The frontier model's strength is its reasoning capacity; its limitation is
+that reasoning over lossy input cannot recover what verbalization discarded.
+
+\emph{Verbalized baselines (SFT and DAPO).}
+Training learns efficient extraction of verbal features for annotation.
+DAPO teaches the model to make additional tool calls to explore
+alternatives, but the verbal returns from each exploration carry limited
+information---``eval went from $+0.3$ to $+0.25$ on the alternative line''
+does not reveal what changed positionally.
+The model becomes skilled at narrating eval numbers without access to the
+mechanisms behind them.
+
+\emph{LLAMIA-SFT (latent).}
+The latent tokens encode the positional features that justify the move:
+the adapter learns to read king-safety activations, pawn-structure
+features, and piece-coordination patterns and ground its annotations in
+them.
+For Comparative, the full policy distribution identifies which alternatives
+are genuinely competitive.
+However, single-step training does not teach counterfactual exploration---the
+model reads the current position's features but does not compare against
+alternative positions.
+
+\emph{LLAMIA (latent\,+\,DAPO).}
+RL teaches the counterfactual query strategy and sharpens feature reading
+for Planning.
+The combination of perceptual access (what the latent state contains) and
+collaboration agency (how the model uses it) yields a large verb--latent
+gap on both headline subcategories---not just Planning but also
+Comparative, where counterfactual discrimination is the primary mechanism.
+
+\emph{SCC (dedicated expert).}
+Small supervised model trained on 90K games~\cite{zang2019automated}.
+Competitive on Quality and Description but limited on Planning and
+Comparative due to no lookahead and no access to engine features.
+
+\paragraph{$2{\times}2$ factorial prediction.}
+The interaction effect should be strongly positive---close to Commentary.
+RL gain under latent substantially exceeds RL gain under verbalization
+because the counterfactual query strategy is discovered by RL and
+productive only under internalization.
+Both headline subcategories contribute: Planning benefits from RL-sharpened
+feature reading, Comparative benefits from RL-discovered counterfactual
+comparison.
+The verb--latent gap is large on both subcategories, not concentrated in
+Planning alone.
+
+\paragraph{Expected qualitative signatures.}
+Verbalized systems annotate from eval numbers: ``this move improves White's
+position from $+0.3$ to $+0.5$, while the alternative only reaches $+0.3$.''
+Accurate but shallow---explains the magnitude but not the mechanism.
+LLAMIA annotates from positional features: ``Nxd5 eliminates the key
+defender of the dark squares; the gxf6 recapture creates permanent
+structural damage---compare with Bg5 where Black's pawn structure remains
+intact and the king can castle to safety.''
+The Planning subcategory is the diagnostic for perceptual access (does the
+annotation explain \emph{what the move is trying to achieve}?); the
+Comparative subcategory is the diagnostic for counterfactual discrimination
+(does the annotation explain \emph{what distinguishes the played move from
+its alternatives}?).
+
+\paragraph{G-eval judge bias.}
+The G-eval judge (GPT-4o) introduces a systematic confound:
+LLM-as-judge evaluators exhibit family preference, scoring outputs from
+GPT-family models 5--15~pp higher than equally good non-GPT
+outputs~\cite{XXX_panickssery2024}.
+GPT-5's outputs are stylistically closer to GPT-4o's prior than
+Qwen3-based LLAMIA outputs are; the measured Frontier\,+\,Lc0 G-eval is
+therefore likely \emph{inflated} relative to LLAMIA by this bias.
+If LLAMIA-14B matches or exceeds Frontier\,+\,Lc0 in raw G-eval despite
+this headwind, the underlying quality gap is larger than the numbers
+suggest.
+Conversely, a per-subcategory decomposition is essential: if Planning and
+Comparative favor LLAMIA while Description and Quality favor Frontier, the
+aggregate may mask the integration-interface effect.
+
+\paragraph{Predicted behavior summary.}
+\begin{itemize}[leftmargin=*, itemsep=2pt, topsep=2pt]
+\item \textbf{Scale (4B${\to}$14B):} Large on Planning and Comparative.
+  Both require reading positional features from latent tokens and
+  grounding them in language; the 14B's reasoning and grounding
+  capacity meaningfully exceeds the 4B's.
+\item \textbf{SFT vs.\ DAPO:} Substantial under latent, small under
+  verbal.
+  RL discovers the counterfactual query strategy---play the alternative,
+  invoke the agent, compare latent states---productive only when the
+  latent tokens encode discriminative positional features.
+\item \textbf{Verbalization debt:} Large, close to Commentary on the
+  headline subcategories.
+  Planning and Comparative depend on \emph{why} and
+  \emph{what distinguishes}, which verbalization destroys; the gap on
+  the headline metric is substantially larger than on the full
+  five-subcategory average.
+\item \textbf{vs.\ Frontier\,+\,Lc0:} Competitive on Planning when the
+  mechanism is inferable from PV notation (e.g., recognizing
+  ``dark-square destruction'' from ``Nxd5\,exd5\,Bxf6\,gxf6''); fails
+  when the mechanism is non-obvious from the move sequence.
+  G-eval inflated 5--15~pp by GPT-family judge preference.
+\item \textbf{vs.\ task experts:} SCC~\cite{zang2019automated}, trained
+  on 90K games, is competitive on Quality and Description but limited
+  on Planning and Comparative due to no lookahead and no access to
+  engine features.
+\end{itemize}
+
+% =============================================================================
+\subsection{Game Commentary}
+\label{sec:app_landscape_commentary}
+% =============================================================================
+
+\paragraph{What the task requires.}
+The model produces a natural-language commentary across an entire game,
+evaluated by G-eval on relevance, completeness, clarity, and fluency.
+Commentary is the \emph{maximally multi-step task} in LLAMIA-Bench: the
+unit of evaluation is the game, not the position, and narrative coherence
+across 30+ moves is required.
+
+\paragraph{Three compounding factors.}
+First, \emph{error compounding}: misidentifying the strategic theme at
+move~10 (e.g., describing a kingside attack when the real story is a
+queenside pawn majority) corrupts all subsequent commentary.
+Under verbalization, each tool-call response is an isolated snapshot; the
+model must reconstruct the narrative from accumulated text fragments, and
+reconstruction errors accumulate.
+Under latent internalization, the re-encoded tokens after each state
+transition carry the evolving positional character directly.
+
+Second, \emph{state tracking}: the model must track how themes evolve---who
+holds the initiative, how the pawn structure transforms, whether a
+kingside attack is building or has been defused.
+The latent tokens encode the current positional character at each move;
+the verbalized eval numbers do not distinguish between a $+0.5$ arising
+from structural advantage, tactical initiative, or material compensation.
+
+Third, \emph{counterfactual reasoning}: analysis of LLAMIA's collaboration
+strategies shows that counterfactual queries account for the largest share
+of collaboration episodes on this task.
+The model plays hypothetical continuations, invokes the agent on the
+resulting position, and compares latent states to produce explanations
+like ``had Black recaptured \ldots{}Nxd5 instead of \ldots{}exd5, the position
+remains balanced; after \ldots{}exd5 the structural damage is permanent.''
+This pattern is unproductive under verbalization because comparing
+``eval $+0.30$'' to ``eval $+0.25$'' carries negligible information about
+what positionally changed.
+
+\paragraph{Importance calibration.}
+Expert commentary modulates depth by positional significance: critical
+moments receive paragraphs of analysis while routine moves get a single
+clause.
+Three failure modes prevent non-latent systems from reproducing this
+distribution.
+LLM-Only and Frontier\,+\,Lc0 Verb produce near-uniform explanation
+length across positions because neither has a reliable signal for which
+moves deserve elaboration; LLAMIA-Verb-DAPO partially corrects this by
+flagging large eval swings, but substitutes eval-magnitude pacing for
+the substantive significance pacing that human annotators use.
+Verbal systems also over-pivot on small eval drifts (0.1--0.3) that
+human commentators ignore as ``human moves'' which do not change the
+strategic narrative, while missing the distributional cues---sacrifices,
+quiet winners, counter-intuitive retreats---that signal an interesting
+moment.
+The latter is the same non-verbalizable signal that defines the
+Interest task; Commentary inherits that debt at every move and
+compounds it across the game.
+
+\paragraph{Per-system analysis.}
+
+\emph{LLM Only.}
+``Tour-guide'' commentary: describes what happens move by move without
+understanding strategic dynamics.
+Can identify opening names from pretraining (reliable for mainline
+openings), then degenerates into generic filler: ``an interesting
+continuation that creates tension.''
+Completely misses critical moments because it cannot assess evaluation
+shifts.
+
+\emph{Frontier\,+\,Lc0 Verb.}
+The frontier model compensates for the verbal limitation through aggressive
+tool use (10+ calls per move) and strong long-context reasoning.
+It detects critical moments via large eval swings and generates coherent
+narratives from eval trajectories: ``after 23\ldots{}Bd6?, the position
+shifts from roughly equal to clearly favoring White.''
+GPT-5's chess pretraining knowledge allows it to \emph{infer} positional
+mechanisms from eval changes: when it sees a 1.0-eval drop after
+\ldots{}gxf6, it can guess ``probably weakened the dark squares.''
+This inference is often correct, making the frontier baseline
+\emph{surprisingly strong}---potentially surpassing smaller trained verb
+models through sheer reasoning capacity.
+
+\emph{LLAMIA-Verb-SFT.}
+Trained on single-step (current verbal snapshot, prior commentary context)
+$\to$ next segment.
+Learns the mapping from verbal features to commentary language but not
+narrative planning.
+Produces locally coherent segments that may not connect into a global arc.
+Commentary is evaluation-driven: tracks numbers rather than positional themes.
+
+\emph{LLAMIA-Verb (DAPO).}
+RL over full-game rollouts teaches the model to maintain narrative coherence
+and to identify when to elaborate (critical moments) vs.\ summarize
+(routine play).
+The DAPO reward (G-eval on full-game commentary) directly optimizes for
+narrative quality.
+This yields the \emph{largest SFT--DAPO gap under verbalization} of any
+task, because multi-step narrative planning is exactly what RL teaches.
+But the information bottleneck persists: the model becomes a skilled narrator
+of evaluation curves without access to the positional mechanisms behind
+them.
+
+\emph{LLAMIA-SFT (latent).}
+Even under single-step SFT, the latent tokens carry substantially more
+information per move than verbalized text.
+The model can produce positionally grounded commentary: ``the bishop pair
+gains power as the position opens.''
+The fresh tokens at each state transition give the model a running
+``reading'' of the position's character that verbal systems lack entirely.
+We predict that \emph{latent SFT surpasses verbal DAPO on
+commentary}: if confirmed, this would demonstrate that on multi-step tasks
+the information channel matters more than the optimization procedure.
+
+\emph{LLAMIA (latent\,+\,DAPO).}
+The full pipeline: RL teaches counterfactual exploration, narrative pacing,
+and critical-moment detection from changes in latent-token patterns (not
+just eval swings).
+The counterfactual strategy produces commentary that connects causes to
+consequences across multiple moves: ``the dark-square weakness from
+12\ldots{}gxf6 becomes the defining feature---White's Nf5 exploits this
+directly, and the alternative \ldots{}gxf5 creates a passed pawn that
+becomes devastating with the bishop pair.''
+If RL discovers the counterfactual strategy during training, this
+combination of latent access and multi-step optimization should yield the
+highest G-eval of any system.
+
+\paragraph{$2{\times}2$ factorial prediction.}
+Commentary should exhibit the strongest super-additive interaction of any
+task.
+RL gain under latent should exceed RL gain under verbal because RL discovers
+the counterfactual query strategy, which is productive only when latent
+tokens provide discriminative signal between alternative positions.
+Latent gain under DAPO should exceed latent gain under SFT because RL
+teaches the model to \emph{exploit} the richer signal through multi-step
+narrative planning.
+Concretely:
+
+\begin{center}
+\small
+\begin{tabular}{lcc}
+\toprule
+& \textbf{SFT} & \textbf{DAPO} \\
+\midrule
+Verbalized & low & moderate \\
+Latent     & moderate--high & \textbf{highest} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent The interaction term---the extent to which the joint
+latent\,+\,DAPO gain exceeds the sum of individual gains---should be
+largest on Commentary among all tasks.
+
+\paragraph{Expected qualitative signatures.}
+\begin{itemize}[leftmargin=*, itemsep=1pt]
+\item \emph{LLM Only}: ``Kasparov plays Nc3, developing another piece.''
+  Board description without strategic dynamics.
+\item \emph{Verb (SFT)}: ``The eval is $+0.3$ here.
+  After Nf5 it becomes $+0.8$.''
+  Segment-to-segment incoherent, numbers without mechanism.
+\item \emph{Verb (DAPO)}: ``The turning point comes at move~23 where the
+  eval swings by 1.2.''
+  Correctly identifies turning points but explains them as eval events, not
+  positional changes.
+\item \emph{Frontier}: ``After gxf6, White seems to have a slight edge,
+  probably due to the weakened dark squares.''
+  Correct inference from eval + domain knowledge, but hedged because the
+  model infers rather than observes.
+\item \emph{LLAMIA (SFT)}: ``After the exchange on d5, the pawn structure
+  favors White---the isolated d5 pawn is a long-term target.''
+  Positionally grounded, reads features from latent tokens, but does not
+  explore alternatives.
+\item \emph{LLAMIA (DAPO)}: ``Had Black recaptured \ldots{}Nxd5 instead of
+  \ldots{}exd5, the position remains balanced---the knight on d5 is
+  powerful but White's bishop pair compensates.
+  After \ldots{}exd5, the structural damage is permanent.''
+  Counterfactual comparison, causal reasoning, narrative connecting past
+  decisions to future consequences.
+\end{itemize}
+
+\paragraph{Predicted behavior summary.}
+\begin{itemize}[leftmargin=*, itemsep=2pt, topsep=2pt]
+\item \textbf{Scale (4B${\to}$14B):} Large ($2.7{\times}$ in
+  \cref{fig:scaling_bars}); multi-step state tracking and narrative
+  pacing across 30+ moves benefit substantially from larger LLMs.
+\item \textbf{SFT vs.\ DAPO:} \emph{Largest gap in the benchmark}, under
+  both interfaces but especially under latent.
+  RL teaches narrative pacing, critical-moment detection from latent
+  changes (not just eval swings), and counterfactual exploration.
+\item \textbf{Verbalization debt:} Large, slightly above Annotation.
+  Per-move debt (positional mechanisms, attack geometry) compounds
+  with multi-step state-tracking error; the $2{\times}2$ interaction
+  is the \emph{strongest super-additive effect in the benchmark}.
+\item \textbf{vs.\ Frontier\,+\,Lc0:} Surprisingly strong via aggressive
+  tool use (10+ calls per move) and long-context reasoning over eval
+  trajectories.
+  Inflated by GPT-family G-eval bias; matching or exceeding Frontier
+  in raw G-eval indicates a larger underlying quality gap.
+\item \textbf{vs.\ task experts:} No prior model covers full-game
+  commentary; SCC and other single-move annotation models address
+  isolated positions only.
+  The competitive surface is set by Frontier\,+\,Lc0 alone.
+\end{itemize}
+
+% =============================================================================
+\subsection{Cross-Task Patterns}
+\label{sec:app_landscape_cross}
+% =============================================================================
+
+Three structural patterns emerge across tasks:
+
+\paragraph{The verb--latent gap scales with non-verbalizable information
+and collaboration agency.}
+Interest shows the largest relative gap: the engine's distributional
+features (policy shape, value gradients) that define interest have no
+verbal equivalent, and no collaboration strategy under verbalization can
+recover them.
+Commentary and Annotation show large gaps driven by both sources of debt.
+The engine's lookahead, attack geometry, and strategic themes cannot be
+verbalized, and the counterfactual query strategy that exploits these
+features is productive only under internalization.
+Commentary additionally accumulates debt through multi-step state tracking
+across 30+ moves, placing it slightly above Annotation.
+BC shows a moderate gap: top-$k$ covers ${\sim}$60--70\% of human moves,
+leaving the residual distributional structure---which moves are
+``conceptually nearby but tactically inferior'' in the engine's
+representation space---accessible only to the latent channel and
+load-bearing for skill-conditioned prediction.
+Difficulty shows a slightly smaller gap than BC: solution depth is a
+strong verbal proxy that absorbs most of the variance, and the latent
+residual captures computational-character features (forced-move
+sequences, back-rank motifs, distractor sharpness) orthogonal to length.
+Both are limited by single-step prediction, which caps the
+collaboration-agency contribution.
+
+\paragraph{The SFT--DAPO gap scales with task horizon and collaboration
+agency.}
+Interest (single-step perceptual judgment): minimal RL benefit.
+Difficulty (single-step, benefits from simulated solving): small benefit.
+BC (single-step move prediction): small benefit.
+Annotation (single-step per position, but counterfactual exploration and
+feature reading are load-bearing): substantial benefit---RL discovers the
+counterfactual query strategy that is productive only under internalization.
+Commentary (full-game narrative, 30+ step horizon): largest benefit---RL
+teaches narrative pacing, counterfactual exploration, and critical-moment
+detection from latent-token changes.
+The interaction between interface and optimization is super-additive
+on tasks where RL discovers collaboration strategies (counterfactual
+queries, feature reading) that are productive under latent but not under
+verbalization---primarily Annotation and Commentary.
+
+\paragraph{Integration interface dominates backbone scale.}
+Across the BC literature, domain-aligned representation and conditioning
+yield larger gains than parameter scaling: Chessformer-79M surpasses
+GPT-3.5-175B by 3.4~pp on move-matching despite being $2000{\times}$
+smaller~\cite{XXX_chessformer,zhang2024humanalignedchessbitsearch}.
+ALLIE's ablations confirm the model is data-constrained, not
+parameter-constrained.
+In our setting, the same Qwen3 backbone sits inside three tiers (no
+subagent, verbalized, latent); only the Lc0 signal varies.
+The predicted ordering---Verb ${<}$ Latent at fixed backbone by a larger
+margin than 4B ${<}$ 14B at fixed interface---would extend the literature's
+finding to the case where the ``architecture'' is held constant and only the
+information channel changes.
+For G-eval--based tasks (Annotation, Commentary), the GPT-4o judge's
+documented family preference~\cite{XXX_panickssery2024} inflates
+Frontier\,+\,Lc0 scores by an estimated 5--15~pp relative to Qwen3-based
+LLAMIA outputs, so raw G-eval comparisons between Frontier and LLAMIA
+should be interpreted with this confound in mind.
+Per-subcategory decomposition and secondary metrics (BLEU-2, perplexity)
+provide partial mitigation.

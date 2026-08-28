@@ -82,6 +82,8 @@ difficulty rating.
   \item \texttt{analyze(nodes, multipv)} --- lc0 MCTS search.
   \item \texttt{get\_policy(nodes)} --- raw NN priors and per-move values.
 \end{itemize}
+\smallskip
+The tool description additionally instructs the model to \emph{analyze the task carefully and make strategic, efficient use of the expensive \texttt{get\_policy} call}, encouraging selective invocation rather than any particular reasoning pattern. This line is identical for LLAMIA and LLAMIA-Verb.
 
 \smallskip
 \textbf{You must always provide a numeric answer.}
