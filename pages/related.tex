@@ -2,16 +2,5 @@
 \vspace{-2mm}
 The dominant paradigm for LLM-agent integration is text-mediated: ReAct~\cite{yao2022react}, Toolformer~\cite{schick2023toolformerlanguagemodelsteach}, and multi-agent orchestrators like AutoGen~\cite{wu2023autogen} and HuggingGPT~\cite{shen2024hugginggpt} all route communication through natural language. This is lossless when both parties are language models, but compresses the policy and value representations of pretrained neural agents into a few tokens. Latent communication channels exist in multi-agent RL~\cite{sukhbaatar2016learningmultiagentcommunicationbackpropagation,das2019tarmac,foerster2016learning}, but assume homogeneous populations trained jointly from scratch, not a frozen LLM paired with a frozen specialist. Cross-modal injection (PaLM-E~\cite{driess2023palmeembodiedmultimodallanguage}, RT-2~\cite{brohan2023rt2visionlanguageactionmodelstransfer}) and latent recurrence within a single model (CoCoNut~\cite{hao2025traininglargelanguagemodels}) are architecturally closer but project raw sensory observations rather than the processed internal representations of a pretrained agent.  On the domain side, neural chess engines encode rich positional structure in their activations~\cite{silver2017mastering,monroe2024mastering}, as interpretability work confirms~\cite{jenner2024evidence}, yet prior LLM-chess work either trains task-specific models~\cite{jhamtani-etal-2018-learning} or conditions on verbalized outputs~\cite{feng2024chessgpt}; none exposes the engine's latent state to the LLM.
 
-\vspace{-2mm}
-\section{Conclusion}
-\label{sec:conclusion}
-\vspace{-2mm}
-We introduced latent state internalization, an LLM--agent integration method that
-replaces verbalized communication with direct projection of the agent's continuous
-representations into the LLM's embedding space. A single LLAMIA-14B, trained via
-projector alignment followed by DAPO, matches or exceeds dedicated task finetunes across
-\textsc{LLAMIA-Bench}. The verbalization debt widens with interaction depth and on
-signals that resist text serialization, and does not close with LLM scale or RL budget in
-our evaluated range, establishing verbalization as a structural bottleneck for LLM--agent
-collaboration.
+
 

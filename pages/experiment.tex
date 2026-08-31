@@ -105,7 +105,7 @@ The debt grows throughout DAPO, reaching $2$--$3\times$ by the end of training (
 \subsection{Collaboration Strategies}
 \label{sec:results_agency}
 \somesh{The signposting or motivation of why we are discussing Collaboration strategies is missing. `apart from quantitative comparison in agent performance we now analyze the learnt collaboration strategies through internalization and RL over multi-step planning. We qualitatively analyze and identify the following dominant patterns of subagent invokation and actions as shown in figure 2. We describe these patterns and their definitions in appendix ... Then key headlines, training for strategic collaboration with non language agent collapses with verbalization, whereas with internalization LLAMIA exhibits better agency with task specific strategies learnt during training. Defer to dynamics from figure only.}
-Does the integration interface determine how the model learns to use the subagent, or only how well it performs? We classify subagent invocations during evaluation into five recurring strategies and trace their evolution during DAPO training (\cref{fig:agency_task_specificity}; strategy definitions and per-task heatmaps in \cref{fig:agency_heatmaps}).
+Does the integration interface determine how the model learns to use the subagent, or only how well it performs? We classify subagent invocations during evaluation into five recurring strategies and trace their evolution during DAPO training (\cref{fig:agency_task_specificity}; strategy definitions and per-task heatmaps in \cref{fig:agency_heatmaps}). The five strategies are \emph{engine-follow} (adopt the top recommendation), \emph{consult-then-override} (query then diverge), \emph{counterfactual query} (play a hypothetical move, re-invoke, compare states), \emph{multi-step lookahead} (chain two or three counterfactual sequences), and \emph{abstention} (act from language knowledge alone). A GPT-4o judge classifies 500 episodes per task per system ($\kappa{=}0.78$ vs.\ human raters).
 
 \begin{figure}[t]
     \centering
@@ -122,8 +122,6 @@ Does the integration interface determine how the model learns to use the subagen
     \vspace{-2mm}
 \end{figure}
 
-
-The five strategies are \emph{engine-follow} (adopt the top recommendation), \emph{consult-then-override} (query then diverge), \emph{counterfactual query} (play a hypothetical move, re-invoke, compare states), \emph{multi-step lookahead} (chain two or three counterfactual sequences), and \emph{abstention} (act from language knowledge alone). A GPT-4o judge classifies 500 episodes per task per system ($\kappa{=}0.78$ vs.\ human raters).
 
 \paragraph{Internalization produces task-specific collaboration; verbalization collapses it.}
 LLAMIA adapts its strategy to the task: engine-follow dominates gameplay (65\%), consult-then-override dominates behavior cloning (48\%), and counterfactual query dominates commentary (40\%). LLAMIA-Verb collapses to engine-follow on every task (62--76\%), regardless of what the task requires (\cref{fig:agency_heatmaps}). The verbalized channel returns the same compressed summary no matter how the model queries it, so RL converges on a single use pattern.
