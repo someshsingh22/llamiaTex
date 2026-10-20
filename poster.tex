@@ -219,7 +219,7 @@
   \node[fill=#2!14, text=#2!70!black, rounded corners=4pt, inner sep=4pt,
     font=\scriptsize\bfseries] at #1 {#3};}
 \tikzposterlatexaffectionproofoff
-\newcommand{\subhead}[1]{{\LARGE\bfseries\color{slate}#1}\par\vspace{0.3em}{\color{slate!40}\hrule height 1.5pt}\vspace{0.5em}}
+\newcommand{\subhead}[1]{{\LARGE\bfseries\color{slate}#1}\par\vspace{0.4em}}
 
 \begin{document}
 \maketitle[width=\paperwidth, titletoblockverticalspace=2mm]
@@ -431,8 +431,8 @@ non-language agents?}
       ${\sim}10$ points above the text-based control.
   \end{itemize}
   \vspace{0.6em}
-  \subhead{Emergent Collaboration Strategies}
   \begin{minipage}[c]{0.61\linewidth}
+    \subhead{Emergent Collaboration Strategies}
     \begin{itemize}
       \item We annotate LLM--subagent collaboration patterns using GPT-4o, e.g., \emph{Follow}, where the LLM simply follows the engine.
       \item \llamia{} \textbf{adapts its strategy to the task}: engine-follow for
