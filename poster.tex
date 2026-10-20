@@ -435,23 +435,26 @@ non-language agents?}
     \includegraphics[width=\linewidth]{plots/panel_c_no_verb.pdf}
   \end{center}
   \begin{itemize}
-    \item A single \llamia-14B model is best on all six tasks, across all tasks and sizes, ahead of
-      GPT-5 with the same engine as a tool, and even existing state of the art task-specific
-      finetuned models.
-    \item \textbf{Joint reasoning needs latent state.} On harder tasks that require reasoning
-      jointly over human behavior and the position, such as Puzzle Interest, only \llamia{} scores
-      well; verbalization catches up only on tasks a text summary can approximate, such as Puzzle Difficulty.
+    \item A single \llamia-14B model is best on all six tasks, ahead of GPT-5 with the same
+  engine as a tool, and even task-specific finetuned models. Holds at 4B and 8B too.
+      engine as a tool, and even task-specific finetuned models.
+    \item \textbf{Joint reasoning needs latent state.} On tasks that require reasoning jointly
+      over human behavior and the position, such as Puzzle Interest, only \llamia{} scores well;
+      verbalization catches up only where a text summary suffices, such as Puzzle Difficulty.
+    \item \textbf{Verbalization debt persists.} \llamia-Verb trails by ${\sim}23$ points on average
+  (up to 44 on Puzzle Interest), widens during training, and does not close with a larger backbone.
     \item \textbf{Beyond chess.} On Go with KataGo, the same method is
       ${\sim}10$ points above the text-based control.
   \end{itemize}
   \vspace{0.6em}
   {\large\bfseries\color{slate} Human study}\par\vspace{0.4em}
   \noindent\hfill
-  \includegraphics[height=18cm]{pages/figures/llamia_survey_vert.pdf}\hfill
-  \includegraphics[height=18cm]{pages/figures/llamia_human_commentary_compact.pdf}\hfill\null
+  \includegraphics[height=16cm]{pages/figures/llamia_survey_vert.pdf}\hfill
+  \includegraphics[height=16cm]{pages/figures/llamia_human_commentary_compact.pdf}\hfill\null
   \begin{itemize}
-    \item \textbf{Human study} ($n{=}12$ players rated ${\geq}1700$): post-game ratings put \llamia{} on
-      par with Maia* for human-likeness; 72\% of commentary judgments prefer \llamia.
+    \item \textbf{Human study} ($n{=}12$ players rated ${\geq}1700$): post-game ratings put
+      \llamia{} on par with Maia* for human-likeness; 72\% of commentary judgments prefer
+      \llamia, mainly for strategic insight.
   \end{itemize}
 }
 \end{columns}
