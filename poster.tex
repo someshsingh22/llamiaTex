@@ -58,18 +58,21 @@
 % Rounded slate title bar + separate rounded white body, both with soft shadow
 \defineblockstyle{llamiaBlock}{
   titlewidthscale=1, bodywidthscale=1, titleleft,
-  titleoffsetx=0pt, titleoffsety=0pt, bodyoffsetx=0mm, bodyoffsety=-8mm,
-  bodyverticalshift=8mm, roundedcorners=14, linewidth=1.5pt,
-  titleinnersep=9mm, bodyinnersep=0.8cm
+  titleoffsetx=0pt, titleoffsety=0pt, bodyoffsetx=0mm, bodyoffsety=0mm,
+  bodyverticalshift=0mm, roundedcorners=14, linewidth=1.5pt,
+  titleinnersep=4mm, bodyinnersep=0.8cm
 }{
   \draw[color=framecolor, line width=\blocklinewidth, fill=blockbodybgcolor,
-    rounded corners=\blockroundedcorners,
     drop shadow={shadow xshift=3mm, shadow yshift=-3mm, opacity=0.18}]
-    (blockbody.south west) rectangle (blockbody.north east);
+    (blockbody.north west) [rounded corners=\blockroundedcorners]
+    -- (blockbody.south west) -- (blockbody.south east)
+    [sharp corners] -- (blockbody.north east) -- cycle;
   \ifBlockHasTitle
-    \fill[blocktitlebgcolor, rounded corners=\blockroundedcorners,
-      drop shadow={shadow xshift=3mm, shadow yshift=-3mm, opacity=0.25}]
-      (blocktitle.south west) rectangle (blocktitle.north east);
+    \fill[blocktitlebgcolor]
+      (blocktitle.south west) -- (blocktitle.south east)
+      [rounded corners=\blockroundedcorners]
+      -- (blocktitle.north east) -- (blocktitle.north west)
+      [sharp corners] -- cycle;
   \fi
 }
 \useblockstyle{llamiaBlock}
