@@ -380,6 +380,24 @@ non-language agents?}
   \vspace{0.8em}
 }
 
+\block{Emergent Collaboration Strategies}{
+  \begin{minipage}[c]{0.6\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{pages/figures/agency_strategy_heatmaps.pdf}
+    \figcap{Strategy share (\%) over 500 episodes per task (GPT-4o judge,
+      $\kappa{=}0.78$). Left: \llamia{}. Right: \llamiaverb{}.}
+  \end{minipage}\hfill
+  \begin{minipage}[c]{0.37\linewidth}
+    \begin{itemize}
+      \item \llamia{} \textbf{adapts its strategy to the task}: engine-follow for
+        gameplay, consult-then-override for behavior cloning,
+        counterfactual queries for commentary.
+      \item \llamiaverb{} \textbf{collapses to engine-follow} on every task (62--76\%).
+      \item \textbf{Cost neutral:} fewer engine calls (1.9 vs.\ 2.9 per query).
+    \end{itemize}
+  \end{minipage}
+}
+
 % =========================================================================
 \column{0.33}
 % =========================================================================
@@ -438,17 +456,20 @@ non-language agents?}
     \item A single \llamia-14B model is best on all six tasks, across all tasks and sizes, ahead of
       GPT-5 with the same engine as a tool, and even existing state of the art task-specific
       finetuned models.
-    \item \textbf{Emergent collaboration strategies} \llamiaverb{} mostly copies the
-      engine's top move (62--76\%). \llamia{} uses different strategies
-      per task, e.g.\ querying hypothetical moves for commentary.
-    \item \textbf{Cost.} \llamia{} makes fewer engine calls (1.9 vs.\ 2.9
-      per query); inference cost is about the same.
-    \item \textbf{Human study} ($n{=}12$, rated ${\geq}1700$). Players
-      spotted \llamia{} as a bot in 39\% of games (\llamiaverb: 72\%);
-      72\% of commentary judgments preferred \llamia.
     \item \textbf{Beyond chess.} On Go with KataGo, the same method is
       ${\sim}10$ points above the text-based control.
   \end{itemize}
+}
+
+\block{Human Study}{
+  \noindent\hfill
+  \includegraphics[height=14.5cm]{pages/figures/llamia_human_gameplay_compact.pdf}\hfill
+  \includegraphics[height=14.5cm]{pages/figures/llamia_survey_vert.pdf}\hfill
+  \includegraphics[height=14.5cm]{pages/figures/llamia_human_commentary_compact.pdf}\hfill\null
+  \figcap{$n{=}12$ skilled players (all rated ${\geq}1700$).
+    Left: players spot \llamia{} as a bot in only 39\% of games (below chance;
+    \llamiaverb: 72\%). Middle: post-game ratings put \llamia{} on par with Maia*
+    for human-likeness. Right: 72\% of commentary judgments prefer \llamia.}
 }
 \end{columns}
 
