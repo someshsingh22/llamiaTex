@@ -438,9 +438,6 @@ non-language agents?}
     \item A single \llamia-14B model is best on all six tasks, ahead of GPT-5 with the same
   engine as a tool, and even task-specific finetuned models. Holds at 4B and 8B too.
       engine as a tool, and even task-specific finetuned models.
-    \item \textbf{Joint reasoning needs latent state.} On tasks that require reasoning jointly
-      over human behavior and the position, such as Puzzle Interest, only \llamia{} scores well;
-      verbalization catches up only where a text summary suffices, such as Puzzle Difficulty.
     \item \textbf{Verbalization debt persists.} \llamia-Verb trails by ${\sim}23$ points on average
   (up to 44 on Puzzle Interest), widens during training, and does not close with a larger backbone.
     \item \textbf{Beyond chess.} On Go with KataGo, the same method is
