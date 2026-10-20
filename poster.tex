@@ -373,11 +373,11 @@ non-language agents?}
   {\large\bfseries\color{slate} Emergent collaboration strategies}\par\vspace{0.1em}
   \begin{minipage}[c]{0.44\linewidth}
     \begin{itemize}
+    \item We annotate the LLM and Subagent collaboration patterns using GPT-4o e.g. Follow, where the LLM simply follows the engine.
       \item \llamia{} \textbf{adapts its strategy to the task}: engine-follow for
         gameplay, consult-then-override for behavior cloning,
         counterfactual queries for commentary.
       \item \llamiaverb{} \textbf{collapses to engine-follow} on every task (62--76\%).
-      \item \textbf{Cost neutral:} fewer engine calls (1.9 vs.\ 2.9 per query).
     \end{itemize}
   \end{minipage}\hfill
   \begin{minipage}[c]{0.54\linewidth}
