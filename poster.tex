@@ -244,50 +244,50 @@ non-language agents?}
   \vspace{0.2em}
   \begin{center}
   \resizebox{\linewidth}{!}{%
-  \begin{tikzpicture}[
+  \begin{tikzpicture}[y=1.6cm,
       every node/.style={align=center},
       arr/.style={-{Latex[length=6mm,width=5mm]}, line width=2.6pt, color=slate},
-      stepnum/.style={circle, fill=slate, text=white, font=\normalsize\bfseries,
-        inner sep=0pt, minimum size=1.05cm}]
+      stepnum/.style={circle, fill=slate, text=white, font=\large\bfseries,
+        inner sep=0pt, minimum size=1.3cm}]
     % --- Language agent: question -> tool call ... answer ------------------
     \draw[panel] (0,0) rectangle (14,13.6);
-    \node[font=\large\bfseries, text=slate] at (7,12.65) {Language Agent};
-    \node[font=\normalsize, text=inkgray] at (7,11.6) {\faComments\; LLM};
+    \node[font=\Large\bfseries, text=slate] at (7,12.65) {Language Agent};
+    \node[font=\large, text=inkgray] at (7,11.6) {\faComments\; LLM};
     \node[stepnum] at (0.95,9.2) {1};
     \node[draw=slate!60, line width=1.2pt, rounded corners=10pt, fill=slate!8,
-      font=\large, text=inkdark, inner sep=9pt, text width=10.9cm]
+      font=\Large, text=inkdark, inner sep=9pt, text width=10.9cm]
       at (7.45,9.2) {\faUser\; Best move here, and why?};
     \foreach \i/\o in {0/0.3,1/0.3,2/0.3,3/1,4/1,5/0.3,6/0.3} {
       \fill[LanguageColor, fill opacity=\o, rounded corners=1.5pt]
-        (3.6+\i*1.0,6.3) rectangle ++(0.85,0.9);
+        (3.6+\i*1.0,6.4) rectangle ++(0.85,0.65);
     }
-    \node[font=\normalsize, text=inkgray] at (7,5.7) {receives only a few text tokens};
+    \node[font=\normalsize, text=inkgray] at (7,5.8) {receives only a few text tokens};
     \node[stepnum] at (0.95,2.45) {4};
     \node[draw=slate!60, line width=1.2pt, rounded corners=10pt,
-      fill=LanguageColor!8, font=\large, text=inkdark, inner sep=9pt,
+      fill=LanguageColor!8, font=\Large, text=inkdark, inner sep=9pt,
       text width=10.9cm] (ans) at (7.45,2.6)
       {\hyphenpenalty=10000 Nf3: as it gives a good advantage and develops.\par\vspace{0.55cm}};
-    \node[fill=adobered, text=white, font=\small\bfseries, rounded corners=4pt,
+    \node[fill=adobered, text=white, font=\normalsize\bfseries, rounded corners=4pt,
       inner sep=5pt, anchor=east] at ([xshift=-0.4cm]ans.south east)
-      {\faExclamationTriangle\; generic, not the engine's reason};
+      {\faExclamationTriangle\; not the engine's reason};
     % --- Tool call ----------------------------------------------------------
-    \draw[arr, rounded corners=18pt] (7,13.6) -- (7,15.3) -- (31.8,15.3) -- (31.8,13.6);
-    \node[fill=white, inner sep=6pt, font=\normalsize] at (19.4,15.3)
+    \draw[arr, rounded corners=18pt] (7,13.6) -- (7,15.0) -- (32.55,15.0) -- (32.55,13.6);
+    \node[fill=white, inner sep=6pt, font=\large] at (19.8,15.0)
       {\tikz[baseline=-0.6ex]\node[stepnum]{2};\; tool call \texttt{get\_policy(board)}
        \quad \textcolor{adobered}{\faRedo\; lossy at every step}};
     % --- Non-language agent with its rich internal state -------------------
-    \draw[panel] (26.3,0) rectangle (37.3,13.6);
-    \node[font=\large\bfseries, text=slate] at (31.8,12.65) {Non-Language Agent};
-    \node[font=\normalsize, text=inkgray] at (31.8,11.6) {\faChessKnight\; Lc0 chess engine};
-    \pic at (27.1,3.6) {state board=0.8};
-    \node[font=\small, text=inkgray] at (30.3,3.1) {latent state $\mathbf{h}_s$};
+    \draw[panel] (26.3,0) rectangle (38.8,13.6);
+    \node[font=\Large\bfseries, text=slate] at (32.55,12.65) {Non-Language Agent};
+    \node[font=\large, text=inkgray] at (32.55,11.6) {\faChessKnight\; Lc0 chess engine};
+    \pic[y=1cm] at (27.2,6.0) {state board=1.05};
+    \node[font=\normalsize, text=inkgray] at (31.4,3.25) {latent state $\mathbf{h}_s$};
     \shade[bottom color=slate!8, top color=slate!70,
-      rounded corners=2pt] (34.6,3.6) rectangle (35.5,10.0);
-    \draw[slate, line width=1.2pt, rounded corners=2pt] (34.6,3.6) rectangle (35.5,10.0);
-    \draw[inkdark, line width=2.6pt] (34.25,7.8) -- (35.85,7.8);
-    \node[font=\small, text=inkgray] at (35.05,3.1) {value};
-    \pic at (27.1,0.6) {policy bars};
-    \node[font=\small, text=inkgray, anchor=west, align=left] at (31.7,1.3)
+      rounded corners=2pt] (36.0,3.75) rectangle (37.0,9.0);
+    \draw[slate, line width=1.2pt, rounded corners=2pt] (36.0,3.75) rectangle (37.0,9.0);
+    \draw[inkdark, line width=2.6pt] (35.6,7.8) -- (37.4,7.8);
+    \node[font=\normalsize, text=inkgray] at (36.5,3.25) {value};
+    \pic[y=1cm] at (27.4,1.0) {policy bars};
+    \node[font=\normalsize, text=inkgray, anchor=west, align=left] at (32.0,1.15)
       {policy over\\ all moves};
     % --- Verbalization bottleneck (engine -> LLM) ---------------------------
     \shade[left color=LanguageColor!55, right color=StateColor!35]
@@ -295,22 +295,22 @@ non-language agents?}
     \foreach \x/\y/\o in {25.5/9.6/0.8, 25.4/3.0/0.7, 24.6/7.8/0.6,
         24.1/4.6/0.5, 23.0/6.8/0.4, 22.0/6.5/0.3} {
       \fill[StateColor, fill opacity=\o, rounded corners=1.5pt]
-        (\x,\y) rectangle ++(0.55,0.55);
+        (\x,\y) rectangle ++(0.55,0.34);
     }
-    \node[font=\large\bfseries, text=slate] at (21.2,11.4)
+    \node[font=\Large\bfseries, text=slate] at (21.2,11.4)
       {\tikz[baseline=-0.6ex]\node[stepnum]{3};\; verbalization};
     % Fragments of the state that fall out of the funnel
     \foreach \x/\y/\o/\s in {23.8/2.6/0.7/0.6, 24.7/1.8/0.5/0.55,
         24.1/0.9/0.35/0.5, 25.1/0.35/0.2/0.45} {
       \fill[StateColor, fill opacity=\o, rounded corners=1.5pt,
-        rotate around={25*\x:(\x+0.25,\y+0.25)}] (\x,\y) rectangle ++(\s,\s);
+        rotate around={25*\x:(\x+0.25,\y+0.25)}] (\x,\y) rectangle ++(\s,\s/1.6);
     }
-    \node[font=\normalsize, text=adobered, anchor=east, align=right]
+    \node[font=\large, text=adobered, anchor=east, align=right]
       at (23.5,2.0) {\faTimesCircle\; discarded: other\\ moves, other lines,\\ positional features};
     % --- Text string that crosses the bottleneck --------------------------
     \fill[LanguageColor!22] (14,6.3) rectangle (21.3,7.2);
     \node[draw=LanguageColor, line width=1.8pt, fill=white, rounded corners=6pt,
-      font=\large\ttfamily\bfseries, inner sep=9pt] (txt) at (18.2,6.75) {Nf3 (+0.3)};
+      font=\Large\ttfamily\bfseries, inner sep=9pt] (txt) at (18.2,6.75) {Nf3 (+0.3)};
     \draw[arr] (txt.west) -- (14,6.75);
   \end{tikzpicture}}
   \end{center}
@@ -324,8 +324,9 @@ non-language agents?}
       non-language agent's latent state into its chain of thought, trained with RL.
     \item \textbf{\bench:} six chess tasks over human behavior and positions,
       including three new datasets.
-    \item A single \llamia-14B is \textbf{best on all six tasks}, learns
-      \textbf{task-adaptive collaboration strategies}, and is preferred by skilled human players.
+    \item A single \llamia-14B is \textbf{best on all six tasks} and is preferred by skilled human players.
+    \item Internalizing the state and training with RL leads \llamia{} to develop
+      \textbf{novel multi-agent collaboration strategies}, absent under verbalization.
   \end{itemize}
 }
 % =========================================================================
