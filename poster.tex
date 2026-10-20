@@ -320,7 +320,7 @@
 }
 
 \block{Training}{
-  \begin{minipage}[t]{0.50\linewidth}
+  \begin{minipage}[c]{0.52\linewidth}
     \begin{itemize}
       \item \textbf{Stage 1: projector alignment.} Only the LatentBridge
         is trained, with the LLM frozen, on engine state--policy pairs
@@ -328,30 +328,36 @@
       \item \textbf{Stage 2: reinforcement learning.} The LLM and
         LatentBridge are trained jointly with \textbf{DAPO}. The reward is
         each task's metric. \state{State tokens} are masked from the
-        policy gradient.
-      \item The engine stays frozen throughout.
+        policy gradient. The engine stays frozen throughout.
       \item \textbf{Control:} \llamiaverb{} uses the same LLM, engine,
         data and RL recipe, but receives the engine's output only as
         text.
+      \item The method works at \textbf{4B, 8B and 14B}. At every size,
+        \llamia{} trains well above \llamiaverb{} (solid vs.\ dashed),
+        and the gap grows to \textbf{2--3$\times$}. \llamia-4B ends
+        above \llamiaverb-14B.
     \end{itemize}
   \end{minipage}\hfill
-  \begin{minipage}[t]{0.46\linewidth}
-    \vspace{0pt}\centering
-    \includegraphics[width=0.92\linewidth, trim=0 0 742 0, clip]
-      {plots/combined_training_bench_verb_vs_llamia.pdf}
-    \figcap{Aggregate reward during DAPO training at three LLM sizes.
-      Solid: \llamia{} (latent); dashed: \llamiaverb{} (text).}
+  \begin{minipage}[c]{0.45\linewidth}
+    \centering
+    % panel (a) only; white patch hides an axis label from panel (c)
+    \begin{tikzpicture}
+      \node[anchor=south west, inner sep=0] (img) {%
+        \includegraphics[width=\linewidth, height=18cm, trim=0 0 736 0, clip]
+          {plots/combined_training_bench_verb_vs_llamia.pdf}};
+      \begin{scope}[x={(img.south east)}, y={(img.north west)}]
+        \fill[white] (0.982,0.16) rectangle (1.001,0.47);
+      \end{scope}
+    \end{tikzpicture}
   \end{minipage}
-  \vspace{0.6em}
-  \begin{itemize}
-    \item The method works at \textbf{4B, 8B and 14B}; larger LLMs reach
-      higher reward.
-    \item At every size, \llamia{} trains well above \llamiaverb{}, and
-      the gap grows during training, reaching \textbf{2--3$\times$} at
-      the end.
-    \item Scaling the LLM does not close the gap: \llamia-4B ends above
-      \llamiaverb-14B.
-  \end{itemize}
+  \vspace{0.8em}
+
+  \includegraphics[width=\linewidth, height=8.5cm, trim=253 158 0 0, clip]
+    {plots/combined_training_bench_verb_vs_llamia.pdf}
+  \figcap{(a) Aggregate reward at three LLM sizes. (b) Per-task reward at
+    14B: \llamiaverb{} (dashed) gains some reward on behavior cloning and
+    difficulty, where the text has a useful proxy (top moves), but stays
+    nearly flat on interest and commentary.}
 }
 
 % =========================================================================
