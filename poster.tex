@@ -134,6 +134,31 @@
 \newcommand{\llamiaverb}{\textsc{Llamia-Verb}}
 \newcommand{\bench}{\textsc{Llamia-Bench}}
 
+% Schematic building blocks (verbalization / internalization figures)
+\usetikzlibrary{arrows.meta}
+\pgfmathdeclarerandomlist{latentcols}{{slate}{StateColor}{ActionColor}}
+\tikzset{
+  panel/.style={draw=slate, line width=1.8pt, rounded corners=14pt,
+    fill=slate!3, drop shadow={shadow xshift=1.5mm, shadow yshift=-1.5mm,
+    opacity=0.18}},
+  % {cols}{rows}{cell pitch}{seed}: the engine's dense latent state
+  pics/latent grid/.style n args={4}{code={
+    \pgfmathsetseed{#4}
+    \foreach \i in {1,...,#1} {\foreach \j in {1,...,#2} {
+      \pgfmathrandomitem{\c}{latentcols}
+      \pgfmathsetmacro{\o}{0.15+0.85*rnd}
+      \fill[\c, fill opacity=\o, rounded corners=1.5pt]
+        ({(\i-1)*#3},{(\j-1)*#3}) rectangle ++({0.85*#3},{0.85*#3});
+    }}
+  }},
+  pics/policy bars/.style={code={
+    \foreach \h [count=\i] in {1.55,1.15,0.95,0.75,0.6,0.48,0.38,0.3,0.24,0.18,0.14,0.1} {
+      \fill[ActionColor, fill opacity={1-0.06*\i}] ({(\i-1)*0.36},0) rectangle ++(0.27,\h);
+    }
+    \draw[inkgray, line width=1pt] (-0.1,0) -- (4.3,0);
+  }},
+}
+
 % Centered question / statement line
 \newcommand{\keyline}[1]{%
   \begin{center}\color{slate}\large\bfseries #1\end{center}}
@@ -170,61 +195,126 @@
 
 \block{Verbalization Is Lossy}{
   \begin{itemize}
-    \item Current methods ground the agent's inputs and outputs in
-      language: the agent is called as a tool and its output is
-      \textbf{verbalized} into text.
-    \item This keeps a short summary and discards the rest of the
-      agent's internal representation: the full move distribution, the
-      value of other lines, and positional features.
-    \item The loss repeats at every interaction step.
+    \item Current methods call the agent as a tool and \textbf{verbalize}
+      its output into text. Only a short summary survives; the rest of
+      its internal representation is lost, at every interaction step.
   \end{itemize}
   \vspace{0.2em}
   \begin{center}
   \resizebox{\linewidth}{!}{%
   \begin{tikzpicture}[
-      every node/.style={font=\normalsize, align=center},
-      box/.style={draw=slate, line width=1.5pt, rounded corners=6pt,
-        inner sep=8pt, fill=white},
-      arr/.style={-latex, line width=2pt, color=slate}]
-    % Verbalization
-    \node[anchor=west, font=\small\bfseries, text=inkgray] at (-0.6,5.3)
-      {Verbalization};
-    \node[box] (a1) at (1.4,3.4) {Agent\\(Lc0)};
-    \node[box, fill=LanguageColor!12, text width=10.5cm] (t1) at (9.8,3.4)
-      {\ttfamily Nc2: P=0.34, +0.12;\\ e4: P=0.21, +0.08; \ldots};
-    \node[box] (l1) at (18.2,3.4) {LLM};
-    \draw[arr] (a1) -- (t1);
-    \draw[arr] (t1) -- (l1);
-    % Internalization
-    \node[anchor=west, font=\small\bfseries, text=inkgray] at (-0.6,1.6)
-      {Internalization (ours)};
-    \node[box] (a2) at (1.4,-0.1) {Agent\\(Lc0)};
-    \node[box, fill=slate!8] (h2) at (6.0,-0.1) {internal\\state $\mathbf{h}_s$};
-    \node[box, fill=StateColor!10] (p2) at (10.6,-0.1) {projector};
-    \foreach \i in {0,...,3} {
-      \node[fill=StateColor, minimum size=0.7cm, inner sep=0pt]
-        at (13.6+\i*0.9,-0.1) {};
+      every node/.style={align=center},
+      arr/.style={-{Latex[length=5mm,width=4mm]}, line width=2.2pt, color=slate}]
+    % --- Non-language agent with its rich internal state -------------------
+    \draw[panel] (0,0) rectangle (9,9.4);
+    \node[font=\small\bfseries, text=slate] at (4.5,8.6) {Non-Language Agent};
+    \node[font=\footnotesize, text=inkgray] at (4.5,7.85)
+      {\faChessKnight\; Lc0 chess engine};
+    \pic at (0.75,3.35) {latent grid={6}{5}{0.8}{11}};
+    \node[font=\footnotesize, text=inkgray] at (3.1,2.85) {latent state $\mathbf{h}_s$};
+    \shade[bottom color=StateColor!10, top color=StateColor!85,
+      rounded corners=2pt] (6.85,3.35) rectangle (7.6,7.2);
+    \draw[slate, line width=1.2pt, rounded corners=2pt] (6.85,3.35) rectangle (7.6,7.2);
+    \draw[inkdark, line width=2.4pt] (6.6,5.7) -- (7.85,5.7);
+    \node[font=\footnotesize, text=inkgray] at (7.22,2.85) {value};
+    \pic at (0.75,0.6) {policy bars};
+    \node[font=\footnotesize, text=inkgray, anchor=west] at (5.3,1.2)
+      {policy over\\ all moves};
+    % --- Verbalization bottleneck -------------------------------------------
+    \shade[left color=slate!30, right color=LanguageColor!55]
+      (9,1.5) -- (15.2,4.3) -- (15.2,5.1) -- (9,7.9) -- cycle;
+    \foreach \x/\y/\c/\o in {9.45/6.4/StateColor/0.75, 9.55/2.6/ActionColor/0.65,
+        10.4/5.2/slate/0.6, 10.9/3.6/StateColor/0.5, 12.0/4.75/ActionColor/0.4,
+        13.3/4.45/slate/0.3} {
+      \fill[\c, fill opacity=\o, rounded corners=1.5pt]
+        (\x,\y) rectangle ++(0.5,0.5);
     }
-    \node[box] (l2) at (18.2,-0.1) {LLM};
-    \draw[arr] (a2) -- (h2);
-    \draw[arr] (h2) -- (p2);
-    \draw[arr] (p2) -- (13.1,-0.1);
-    \draw[arr] (16.6,-0.1) -- (l2);
+    \node[font=\small\bfseries, text=slate] at (12.3,7.7) {verbalization};
+    % Fragments of the state that never reach the LLM
+    \foreach \x/\y/\c/\o/\s in {10.3/0.6/StateColor/0.65/0.55,
+        11.4/-0.05/ActionColor/0.5/0.5, 12.5/-0.5/slate/0.38/0.45,
+        13.5/-0.8/StateColor/0.26/0.4, 14.4/-1.0/ActionColor/0.16/0.35} {
+      \fill[\c, fill opacity=\o, rounded corners=1.5pt,
+        rotate around={18*\x:(\x+0.2,\y+0.2)}] (\x,\y) rectangle ++(\s,\s);
+    }
+    \node[font=\footnotesize, text=adobered, anchor=west, align=left]
+      at (15.0,0.1) {\faTimesCircle\; discarded:\\ other moves,\\ other lines,\\ positional features};
+    % --- Text string that crosses the bottleneck --------------------------
+    \fill[LanguageColor!22] (15.2,4.3) rectangle (20.6,5.1);
+    \node[draw=LanguageColor, line width=1.5pt, fill=white, rounded corners=5pt,
+      font=\footnotesize\ttfamily, inner sep=6pt] (txt) at (17.6,4.7) {Nf3 (+0.3)};
+    \draw[arr] (txt.east) -- (20.6,4.7);
+    % --- Language agent -----------------------------------------------------
+    \draw[panel] (20.6,0) rectangle (29.6,9.4);
+    \node[font=\small\bfseries, text=slate] at (25.1,8.6) {Language Agent};
+    \node[font=\footnotesize, text=inkgray] at (25.1,7.85) {\faComments\; LLM};
+    \foreach \i/\o in {0/0.3,1/0.3,2/0.3,3/1,4/1,5/0.3,6/0.3} {
+      \fill[LanguageColor, fill opacity=\o, rounded corners=1.5pt]
+        (21.85+\i*0.95,5.9) rectangle ++(0.75,0.75);
+    }
+    \node[font=\footnotesize, text=inkgray] at (25.1,5.25) {only a few text tokens};
+    \node[draw=inkgray, dashed, line width=1.2pt, rounded corners=14pt,
+      fill=white, font=\footnotesize\itshape, text=inkdark, inner sep=8pt,
+      text width=6.6cm] at (25.1,2.4)
+      {Why Nf3? What else\\ did the engine see?\\ I have to guess the rest.};
+    % --- Interaction loop ---------------------------------------------------
+    \draw[arr, rounded corners=18pt] (25.1,9.4) -- (25.1,10.9) -- (4.5,10.9) -- (4.5,9.4);
+    \node[font=\footnotesize, fill=white, inner sep=5pt] at (14.8,10.9)
+      {tool call \texttt{get\_policy(board)} \quad
+       \textcolor{adobered}{\faRedo\; lossy at every step}};
   \end{tikzpicture}}
   \end{center}
 }
 
 \block{Our Approach}{
   \begin{itemize}
-    \item A \textbf{language agent} (Qwen3 LLM) collaborates with a
-      frozen \textbf{non-language agent} (Lc0-BT4 chess engine).
+    \item A \textbf{language agent} (Qwen3) collaborates with a frozen
+      \textbf{non-language agent} (Lc0-BT4).
     \item \textbf{Latent state internalization:} the engine's internal
-      state is projected into the LLM's input as continuous
-      \state{state tokens}, instead of being described in text.
-    \item The LLM is trained with \textbf{reinforcement learning} to
-      reason over \lang{language}, \action{action} and \state{state}
-      tokens. We call the resulting model \textbf{\llamia}.
+      state enters the LLM as continuous \state{state tokens}, not text.
+    \item RL trains the LLM to reason over \lang{language},
+      \action{action} and \state{state} tokens: \textbf{\llamia}.
   \end{itemize}
+  \vspace{0.2em}
+  \begin{center}
+  \resizebox{\linewidth}{!}{%
+  \begin{tikzpicture}[
+      every node/.style={align=center},
+      arr/.style={-{Latex[length=5mm,width=4mm]}, line width=2.2pt, color=slate}]
+    % Engine
+    \draw[panel] (0,0) rectangle (8.2,6.2);
+    \node[font=\small\bfseries, text=slate] at (4.1,5.45) {Non-Language Agent};
+    \node[font=\footnotesize, text=inkgray] at (4.1,4.75) {\faChessKnight\; Lc0};
+    \pic at (1.35,0.55) {latent grid={8}{5}{0.7}{11}};
+    % Projector
+    \draw[arr] (8.2,3.1) -- node[above, font=\footnotesize, text=inkgray]
+      {$\mathbf{h}_s$} (9.4,3.1);
+    \shade[left color=StateColor!15, right color=StateColor!45]
+      (9.4,2.2) -- (12.2,1.3) -- (12.2,4.9) -- (9.4,4.0) -- cycle;
+    \draw[StateColor!80!black, line width=1.4pt, line join=round]
+      (9.4,2.2) -- (12.2,1.3) -- (12.2,4.9) -- (9.4,4.0) -- cycle;
+    \node[font=\footnotesize\bfseries, text=inkdark] at (10.8,3.1) {Latent\\Bridge};
+    % State tokens
+    \foreach \i in {0,...,6} {
+      \fill[StateColor, rounded corners=1.5pt] (12.7,1.0+\i*0.62) rectangle ++(0.75,0.5);
+    }
+    \node[font=\footnotesize, text=StateColor!80!black] at (13.1,0.45) {$k{=}32$};
+    \draw[arr] (13.55,3.1) -- (14.6,3.1);
+    % LLM with interleaved language / action / state tokens
+    \draw[panel] (14.6,0) rectangle (29.6,6.2);
+    \node[font=\small\bfseries, text=slate] at (22.1,5.45) {Language Agent};
+    \node[font=\footnotesize, text=inkgray] at (22.1,4.75) {\faComments\; LLM};
+    \foreach \c [count=\i] in {LanguageColor,LanguageColor,LanguageColor,ActionColor,
+        StateColor,StateColor,StateColor,StateColor,LanguageColor,LanguageColor,
+        ActionColor,StateColor,StateColor,StateColor,StateColor,LanguageColor} {
+      \fill[\c, rounded corners=1.5pt] ({15.4+(\i-1)*0.85},2.9) rectangle ++(0.68,0.95);
+    }
+    \node[font=\footnotesize, text=inkgray] at (22.1,1.9)
+      {reasons over \lang{language}, \action{action}, \state{state} tokens};
+    \node[font=\footnotesize\bfseries, text=slate] at (22.1,0.9)
+      {the full engine state reaches the LLM};
+  \end{tikzpicture}}
+  \end{center}
 }
 
 % =========================================================================
