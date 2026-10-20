@@ -140,6 +140,63 @@
 \newcommand{\figcap}[1]{%
   \par\vspace{0.3em}{\small\color{inkgray}#1\par}}
 
+% -------------------------------------------------------------------------
+% LLAMIA-Bench schematic helpers (all lengths in cm, block body ~35 cm wide)
+% -------------------------------------------------------------------------
+\definecolor{facetImitate}{HTML}{3D6FA8}
+\definecolor{facetAssess}{HTML}{2B8A82}
+\definecolor{facetExplain}{HTML}{7D5BA6}
+\newcommand{\benchbadge}[2]{{\setlength{\fboxsep}{4pt}%
+  \colorbox{#1}{\color{white}\scriptsize\bfseries\strut #2}}}
+\newcommand{\newbadge}{\benchbadge{adobered}{NEW}}
+\newcommand{\oodbadge}{\benchbadge{inkgray}{OOD}}
+% \miniboard{(center)}{size}{piece}{color}
+\newcommand{\miniboard}[4]{%
+  \begin{scope}[shift={#1}]
+    \pgfmathsetmacro{\mbs}{#2/8}
+    \fill[white] (-#2/2,-#2/2) rectangle (#2/2,#2/2);
+    \foreach \i in {0,...,7}{\foreach \j in {0,...,7}{%
+      \pgfmathtruncatemacro{\mbodd}{mod(\i+\j,2)}%
+      \ifnum\mbodd=1
+        \fill[#4!22] (-#2/2+\i*\mbs,-#2/2+\j*\mbs) rectangle ++(\mbs,\mbs);
+      \fi}}
+    \draw[#4, line width=1.2pt] (-#2/2,-#2/2) rectangle (#2/2,#2/2);
+    \node[text=#4!80!black, font=\huge] at (0,0) {#3};
+  \end{scope}}
+% \benchcard{(top-left)}{color}{title}{badges}{input tikz}{output}{metric}{data}
+\newcommand{\benchcard}[8]{%
+  \begin{scope}[shift={#1}]
+    \draw[#2, line width=1.5pt, rounded corners=8pt, fill=white,
+      drop shadow={shadow xshift=1.2mm, shadow yshift=-1.2mm, opacity=0.15}]
+      (0,0) rectangle (\benchcw,-5.0);
+    \node[anchor=north west, font=\small\bfseries, text=#2, inner sep=0]
+      at (0.3,-0.3) {#3};
+    \node[anchor=north east, inner sep=0] at (\benchcw-0.25,-0.25) {#4};
+    #5
+    \draw[-latex, #2, line width=2.5pt] (2.65,-2.3) -- (3.35,-2.3);
+    \node[anchor=west, fill=#2!8, rounded corners=6pt, inner sep=6pt,
+      text width=6.85cm, align=left, font=\footnotesize,
+      execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}] at (3.5,-2.3) {#6};
+    \draw[#2!30, line width=1pt] (0.3,-4.15) -- (\benchcw-0.3,-4.15);
+    \node[anchor=west, font=\footnotesize\bfseries, text=#2, inner sep=0]
+      at (0.3,-4.58) {\faBullseye\ #7};
+    \node[anchor=east, font=\scriptsize, text=inkgray, inner sep=0]
+      at (\benchcw-0.3,-4.58) {#8};
+  \end{scope}}
+\newcommand{\benchtag}[3]{% (pos) color text
+  \node[fill=#2!14, text=#2!70!black, rounded corners=4pt, inner sep=4pt,
+    font=\scriptsize\bfseries] at #1 {#3};}
+% \benchquality{x}{icon}{title}{text}
+\newcommand{\benchquality}[4]{%
+  \fill[slate!6, rounded corners=8pt] (#1,0) rectangle (#1+8.2,-2.3);
+  \fill[slate] (#1+0.9,-1.15) circle (0.6);
+  \node[text=white, font=\normalsize] at (#1+0.9,-1.15) {#2};
+  \node[anchor=west, text width=6.55cm, align=left, inner sep=0,
+    font=\scriptsize, text=inkgray,
+    execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}]
+    at (#1+1.7,-1.15)
+    {{\footnotesize\bfseries\color{slate}#3}\\#4};}
+
 \tikzposterlatexaffectionproofoff
 \begin{document}
 \maketitle[width=\paperwidth, titletoblockverticalspace=12mm]
@@ -291,25 +348,81 @@
 \column{0.33}
 % =========================================================================
 \block{\bench}{
-  A suite of six collaborative chess tasks. None can be solved well by
-  the LLM or the engine alone.
-  \vspace{0.4em}
-  \begin{center}
-  \small
-  \renewcommand{\arraystretch}{1.15}
-  \begin{tabular}{@{}lll@{}}
-    \toprule
-    \textbf{Task} & \textbf{Goal} & \textbf{Metric} \\
-    \midrule
-    Behavior cloning (Maia) & Predict a human's move at a given rating & Move match \\
-    Behavior cloning (Wild) & Same, on GM, low-time, rating-gap games & Move match \\
-    Puzzle difficulty & Rank puzzles by difficulty & Spearman $\rho$ \\
-    Puzzle interest & Rank puzzles by how interesting they are & Spearman $\rho$ \\
-    Move rationale & Explain why a move was played & BLEU-2 \\
-    Game commentary & Narrate a full game (Agadmator-2K, new) & G-Eval \\
-    \bottomrule
-  \end{tabular}
-  \end{center}
+  \vspace*{-0.6cm}\noindent\begin{tikzpicture}[x=1cm, y=1cm]
+    \def\benchcw{11.0}
+    % ---- Facet chevrons: Imitate -> Assess -> Explain ----
+    \foreach \k/\col/\icon/\name/\sub in {%
+        0/facetImitate/\faUserFriends/Imitate/play like a specific human,
+        1/facetAssess/\faSearch/Assess/judge a position as humans do,
+        2/facetExplain/\faCommentDots/Explain/put engine insight into words} {
+      \pgfmathsetmacro{\xl}{\k*(\benchcw+0.8)}
+      \pgfmathsetmacro{\xr}{\xl+\benchcw}
+      \ifnum\k=0
+        \fill[\col] (\xl,0) -- (\xr,0) -- (\xr+0.6,-0.85) -- (\xr,-1.7) -- (\xl,-1.7) -- cycle;
+      \else\ifnum\k=1
+        \fill[\col] (\xl,0) -- (\xr,0) -- (\xr+0.6,-0.85) -- (\xr,-1.7) -- (\xl,-1.7)
+          -- (\xl+0.6,-0.85) -- cycle;
+      \else
+        \fill[\col] (\xl,0) -- (\xr,0) -- (\xr,-1.7) -- (\xl,-1.7) -- (\xl+0.6,-0.85) -- cycle;
+      \fi\fi
+      \node[text=white, align=center, font=\footnotesize] at (\xl+\benchcw/2+0.3,-0.85)
+        {{\small\bfseries \icon\ \name}\\[-2pt]\sub};
+    }
+    % ---- Progression arrow ----
+    \draw[-latex, slate!45, line width=2pt] (0.05,-2.2) -- (34.55,-2.2);
+    \node[fill=white, font=\scriptsize\itshape, text=inkgray, inner sep=4pt]
+      at (17.3,-2.2) {growing demand on the LLM--engine channel};
+    \node[fill=white, font=\scriptsize\bfseries, text=inkgray, anchor=west,
+      inner sep=4pt] at (0.05,-2.2) {one position};
+    \node[fill=white, font=\scriptsize\bfseries, text=inkgray, anchor=east,
+      inner sep=4pt] at (34.0,-2.2) {a whole game};
+    % ---- Imitate ----
+    \benchcard{(0,-2.75)}{facetImitate}{Behavior Cloning}{}
+      {\miniboard{(1.35,-2.15)}{1.9}{\faChessKnight}{facetImitate}
+       \benchtag{(1.35,-3.55)}{facetImitate}{Elo 1500}}
+      {Move a 1500-rated human would play: \action{Nf3}}
+      {Move match}{12M games, 5 Elo bands}
+    \benchcard{(0,-8.2)}{facetImitate}{BC in the Wild}{\newbadge\,\oodbadge}
+      {\miniboard{(1.35,-2.15)}{1.9}{\faChessQueen}{facetImitate}
+       \benchtag{(1.35,-3.55)}{facetImitate}{+ context}}
+      {Move of a GM, a player low on time, or a big underdog: \action{Qxd5}}
+      {Move match}{3 splits unseen in training}
+    % ---- Assess ----
+    \benchcard{(\benchcw+0.8,-2.75)}{facetAssess}{Puzzle Difficulty}{}
+      {\miniboard{(1.35,-2.15)}{1.9}{\faChessRook}{facetAssess}
+       \benchtag{(1.35,-3.55)}{facetAssess}{+ solution}}
+      {How hard is it for humans?\\Rating \textbf{\color{facetAssess}1850}}
+      {Spearman $\rho$}{4M Lichess puzzles}
+    \benchcard{(\benchcw+0.8,-8.2)}{facetAssess}{Puzzle Interest}{\newbadge}
+      {\miniboard{(1.35,-2.15)}{1.9}{\faChessBishop}{facetAssess}
+       \benchtag{(1.35,-3.55)}{facetAssess}{+ solution}}
+      {How much do players enjoy it?\\Votes \textbf{\color{facetAssess}+72}}
+      {Spearman $\rho$}{no text proxy exists}
+    % ---- Explain ----
+    \benchcard{(2*\benchcw+1.6,-2.75)}{facetExplain}{Move Rationale}{}
+      {\miniboard{(1.35,-2.15)}{1.9}{\faChessBishop}{facetExplain}
+       \benchtag{(1.35,-3.55)}{facetExplain}{move \textcolor{ActionColor}{Bb5}}}
+      {\lang{``Pins the knight on c6 to the king.''}}
+      {BLEU-2}{90K annotated games}
+    \benchcard{(2*\benchcw+1.6,-8.2)}{facetExplain}{Game Commentary}{\newbadge}
+      {\miniboard{(0.95,-1.8)}{1.55}{}{facetExplain}
+       \miniboard{(1.35,-2.15)}{1.55}{}{facetExplain}
+       \miniboard{(1.75,-2.5)}{1.55}{\faChessKing}{facetExplain}
+       \benchtag{(1.35,-3.62)}{facetExplain}{full game}}
+      {\lang{``White gives up the rook, and the attack on h7 decides it.''}}
+      {G-Eval}{Agadmator-2K: 1.9K games}
+    % ---- Key qualities ----
+    \begin{scope}[shift={(0,-13.75)}]
+      \benchquality{0}{\faHandshake}{Needs both agents}
+        {neither the engine nor the LLM can solve it alone}
+      \benchquality{8.8}{\faCheckDouble}{Verifiable metrics}
+        {automatic scores that double as RL rewards}
+      \benchquality{17.6}{\faDatabase}{Large public data}
+        {Lichess games and puzzles at scale}
+      \benchquality{26.4}{\faStar}{Three new targets}
+        {Wild BC, Puzzle Interest, Agadmator-2K}
+    \end{scope}
+  \end{tikzpicture}
 }
 
 \block{Results}{
