@@ -339,17 +339,14 @@ non-language agents?}
   \begin{center}
     \includegraphics[width=\linewidth]{plots/llamia-fig (12).pdf}
   \end{center}
-  \figcap{Illustration of internalized CoT. The LLM reasons in \lang{language},
-    calls the engine on the current board state, plays an \action{action} that
-    changes the board. The LatentBridge projects Lc0 (subagent)'s internal board representations or \state{states} into the LLM's CoT at each invokation}
-  \vspace{0.6em}
+  \vspace{0.2em}
   \begin{itemize}
     \item \textbf{Projection.} Lc0's hidden state
       $\mathbf{h}_s$ (layer 14 of 15) is mapped by a
-      3-layer MLP, the \textbf{LatentBridge}, to $k{=}32$ \state{state
-      tokens} in the LLM's embedding space:
+      3-layer MLP, the \textbf{LatentBridge}, into the LLM's CoT at each invocation as $k{=}32$ \state{state
+      tokens}:
       $\;\mathbf{z}_s = H_\varphi(\mathbf{h}_s)$.
-    \item \textbf{Dynamic invocation.} Inside its chain of thought, the LLM can repeatedly decide \textbf{when} to call the subagent and execute \action{actions} that update the board to counterfactual states, and call \texttt{get\_policy} on any position. Each call
+    \item \textbf{Dynamic invocation.} Inside its \lang{language} chain of thought, the LLM can repeatedly decide \textbf{when} to call the subagent and execute \action{actions} that update the board to counterfactual states, and call \texttt{get\_policy} on any position. Each call
       re-encodes the current state, so the LLM always reasons over the
       position it is analyzing.
   \end{itemize}
