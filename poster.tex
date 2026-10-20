@@ -356,7 +356,7 @@ non-language agents?}
 }
 
 \block{Training with Reinforcement Learning}{
-  \begin{minipage}[c]{0.52\linewidth}
+  \begin{minipage}[c]{0.6\linewidth}
     \begin{itemize}
       \item \textbf{Stage 1: projector alignment.} We follow LLaVA style two stage training, training only the LatentBridge on large scale synthetic state--value pairs.
       \item \textbf{Stage 2: reinforcement learning.} We post-train the LLM and
@@ -365,14 +365,13 @@ non-language agents?}
       \item \textbf{Verbalization Baseline:} We also train \llamiaverb{} replacing the state tokens with verbalized summaries (best moves, evaluation, position)
     \end{itemize}
   \end{minipage}\hfill
-  \begin{minipage}[c]{0.45\linewidth}
+  \begin{minipage}[c]{0.38\linewidth}
     \centering
     \includegraphics[width=\linewidth]{plots/poster_training_reward.pdf}
   \end{minipage}
-  \vspace{0.8em}
-
-  {\large\bfseries\color{slate} Emergent collaboration strategies}\par\vspace{0.4em}
-  \begin{minipage}[c]{0.37\linewidth}
+  \par\vspace{0.2em}
+  {\large\bfseries\color{slate} Emergent collaboration strategies}\par\vspace{0.1em}
+  \begin{minipage}[c]{0.44\linewidth}
     \begin{itemize}
       \item \llamia{} \textbf{adapts its strategy to the task}: engine-follow for
         gameplay, consult-then-override for behavior cloning,
@@ -381,7 +380,7 @@ non-language agents?}
       \item \textbf{Cost neutral:} fewer engine calls (1.9 vs.\ 2.9 per query).
     \end{itemize}
   \end{minipage}\hfill
-  \begin{minipage}[c]{0.6\linewidth}
+  \begin{minipage}[c]{0.54\linewidth}
     \centering
     \includegraphics[width=\linewidth]{pages/figures/agency_strategy_heatmaps.pdf}
     \figcap{Strategy share (\%) over 500 episodes per task (GPT-4o judge,
@@ -447,6 +446,9 @@ non-language agents?}
     \item A single \llamia-14B model is best on all six tasks, across all tasks and sizes, ahead of
       GPT-5 with the same engine as a tool, and even existing state of the art task-specific
       finetuned models.
+    \item \textbf{Joint reasoning needs latent state.} On harder tasks that require reasoning
+      jointly over human behavior and the position, such as Puzzle Interest, only \llamia{} scores
+      well; verbalization catches up only on tasks a text summary can approximate, such as Puzzle Difficulty.
     \item \textbf{Beyond chess.} On Go with KataGo, the same method is
       ${\sim}10$ points above the text-based control.
   \end{itemize}
