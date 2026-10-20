@@ -185,7 +185,6 @@
 \newcommand{\benchbadge}[2]{{\setlength{\fboxsep}{4pt}%
   \colorbox{#1}{\color{white}\scriptsize\bfseries\strut #2}}}
 \newcommand{\newbadge}{\benchbadge{adobered}{NEW}}
-\newcommand{\oodbadge}{\benchbadge{inkgray}{OOD}}
 % \miniboard{(center)}{size}{piece}{color}
 \newcommand{\miniboard}[4]{%
   \begin{scope}[shift={#1}]
@@ -199,12 +198,12 @@
     \draw[#4, line width=1.2pt] (-#2/2,-#2/2) rectangle (#2/2,#2/2);
     \node[text=#4!80!black, font=\huge] at (0,0) {#3};
   \end{scope}}
-% \benchcard{(top-left)}{color}{title}{badges}{input tikz}{output}{metric}{data}
-\newcommand{\benchcard}[8]{%
+% \benchcard{(top-left)}{color}{title}{badges}{input tikz}{output}{data}
+\newcommand{\benchcard}[7]{%
   \begin{scope}[shift={#1}]
     \draw[#2, line width=1.5pt, rounded corners=8pt, fill=white,
       drop shadow={shadow xshift=1.2mm, shadow yshift=-1.2mm, opacity=0.15}]
-      (0,0) rectangle (\benchcw,-4.55);
+      (0,0) rectangle (\benchcw,-3.7);
     \node[anchor=north west, font=\small\bfseries, text=#2, inner sep=0]
       at (0.3,-0.3) {#3};
     \node[anchor=north east, inner sep=0] at (\benchcw-0.25,-0.25) {#4};
@@ -213,11 +212,8 @@
     \node[anchor=west, fill=#2!8, rounded corners=6pt, inner sep=6pt,
       text width=6.85cm, align=left, font=\footnotesize,
       execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}] at (3.5,-2.05) {#6};
-    \draw[#2!30, line width=1pt] (0.3,-3.72) -- (\benchcw-0.3,-3.72);
-    \node[anchor=west, font=\footnotesize\bfseries, text=#2, inner sep=0]
-      at (0.3,-4.14) {\faBullseye\ #7};
     \node[anchor=east, font=\scriptsize, text=inkgray, inner sep=0]
-      at (\benchcw-0.3,-4.14) {#8};
+      at (\benchcw-0.3,-3.2) {#7};
   \end{scope}}
 \newcommand{\benchtag}[3]{% (pos) color text
   \node[fill=#2!14, text=#2!70!black, rounded corners=4pt, inner sep=4pt,
@@ -405,36 +401,36 @@ non-language agents?}
       {\miniboard{(1.35,-1.9)}{1.75}{\faChessKnight}{facetImitate}
        \benchtag{(1.35,-3.18)}{facetImitate}{Elo 1500}}
       {Move a 1500-rated human would play: \action{Nf3}}
-      {Move match}{12M games, 5 Elo bands}
-    \benchcard{(0,-4.95)}{facetImitate}{BC in the Wild}{\newbadge\,\oodbadge}
+      {12M games, 5 Elo bands}
+    \benchcard{(0,-4.1)}{facetImitate}{BC in the Wild}{\newbadge}
       {\miniboard{(1.35,-1.9)}{1.75}{\faChessQueen}{facetImitate}
        \benchtag{(1.35,-3.18)}{facetImitate}{+ context}}
       {Same, for GMs, low clock, rating gaps: \action{Qxd5}}
-      {Move match}{3 splits unseen in training}
+      {GM, low-time, Elo-gap games}
     % ---- Assess ----
     \benchcard{(\benchcw+0.8,0)}{facetAssess}{Puzzle Difficulty}{}
       {\miniboard{(1.35,-1.9)}{1.75}{\faChessRook}{facetAssess}
        \benchtag{(1.35,-3.18)}{facetAssess}{+ solution}}
       {Difficulty for human solvers: \textbf{\color{facetAssess}1850}}
-      {Spearman $\rho$}{4M Lichess puzzles}
-    \benchcard{(\benchcw+0.8,-4.95)}{facetAssess}{Puzzle Interest}{\newbadge}
+      {4M Lichess puzzles}
+    \benchcard{(\benchcw+0.8,-4.1)}{facetAssess}{Puzzle Interest}{\newbadge}
       {\miniboard{(1.35,-1.9)}{1.75}{\faChessBishop}{facetAssess}
        \benchtag{(1.35,-3.18)}{facetAssess}{+ solution}}
       {How much players liked it: \textbf{\color{facetAssess}+72} votes}
-      {Spearman $\rho$}{no text proxy exists}
+      {no text proxy exists}
     % ---- Explain ----
     \benchcard{(2*\benchcw+1.6,0)}{facetExplain}{Move Rationale}{}
       {\miniboard{(1.35,-1.9)}{1.75}{\faChessBishop}{facetExplain}
        \benchtag{(1.35,-3.18)}{facetExplain}{move \textcolor{ActionColor}{Bb5}}}
       {Why did the player make this move}
-      {BLEU-2}{90K annotated games}
-    \benchcard{(2*\benchcw+1.6,-4.95)}{facetExplain}{Game Commentary}{\newbadge}
+      {90K annotated games}
+    \benchcard{(2*\benchcw+1.6,-4.1)}{facetExplain}{Game Commentary}{\newbadge}
       {\miniboard{(0.97,-1.6)}{1.4}{}{facetExplain}
        \miniboard{(1.35,-1.92)}{1.4}{}{facetExplain}
        \miniboard{(1.73,-2.24)}{1.4}{\faChessKing}{facetExplain}
        \benchtag{(1.35,-3.25)}{facetExplain}{full game}}
       {Commentate on this game}
-      {G-Eval}{Agadmator-2K: 1.9K games}
+      {Agadmator-2K: 1.9K games}
   \end{tikzpicture}
 }
 
