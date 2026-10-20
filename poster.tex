@@ -132,6 +132,39 @@
 \newcommand{\llamiaverb}{\textsc{Llamia-Verb}}
 \newcommand{\bench}{\textsc{Llamia-Bench}}
 
+% Schematic building blocks (verbalization figure)
+\usetikzlibrary{arrows.meta}
+\tikzset{
+  panel/.style={draw=slate, line width=1.8pt, rounded corners=14pt,
+    fill=slate!3, drop shadow={shadow xshift=1.5mm, shadow yshift=-1.5mm,
+    opacity=0.18}},
+  % Engine's latent state as a chessboard heatmap in state pink; #1 = square size
+  pics/state board/.style={code={
+    \pgfmathsetseed{7}
+    \foreach \i in {0,...,7} {\foreach \j in {0,...,7} {
+      \pgfmathsetmacro{\o}{min(0.95, 0.9*max(exp(-((\i-4.6)^2+(\j-3.2)^2)/3.5),
+        0.8*exp(-((\i-1.4)^2+(\j-5.8)^2)/2.5)) + 0.12*rnd)}
+      \pgfmathparse{int(mod(\i+\j,2))}
+      \ifnum\pgfmathresult=0 \fill[slate!14] (\i*#1,\j*#1) rectangle ++(#1,#1);
+      \else \fill[white] (\i*#1,\j*#1) rectangle ++(#1,#1); \fi
+      \fill[StateColor, fill opacity=\o] (\i*#1,\j*#1) rectangle ++(#1,#1);
+    }}
+    \foreach \x/\y/\p in {6/0/King,5/0/Rook,5/1/Pawn,6/1/Pawn,7/1/Pawn,5/2/Knight,
+        3/3/Queen,4/3/Pawn,2/2/Bishop,6/7/King,5/6/Pawn,6/6/Pawn,7/5/Pawn,
+        2/5/Bishop,3/4/Pawn,1/7/Rook} {
+      \node[text=inkdark, font=\small, inner sep=0pt]
+        at ({(\x+0.5)*#1},{(\y+0.5)*#1}) {\csname faChess\p\endcsname};
+    }
+    \draw[slate, line width=1.4pt] (0,0) rectangle (8*#1,8*#1);
+  }},
+  pics/policy bars/.style={code={
+    \foreach \h [count=\i] in {1.55,1.15,0.95,0.75,0.6,0.48,0.38,0.3,0.24,0.18,0.14,0.1} {
+      \fill[slate, fill opacity={1-0.06*\i}] ({(\i-1)*0.36},0) rectangle ++(0.27,\h);
+    }
+    \draw[inkgray, line width=1pt] (-0.1,0) -- (4.3,0);
+  }},
+}
+
 % Centered question / statement line
 \newcommand{\keyline}[1]{%
   \begin{center}\color{slate}\large\bfseries #1\end{center}}
@@ -168,46 +201,80 @@
 
 \block{Verbalization Is Lossy}{
   \begin{itemize}
-    \item Current methods ground the agent's inputs and outputs in
-      language: the agent is called as a tool and its output is
-      \textbf{verbalized} into text.
-    \item This keeps a short summary and discards the rest of the
-      agent's internal representation: the full move distribution, the
-      value of other lines, and positional features.
-    \item The loss repeats at every interaction step.
+    \item Current methods call the agent as a tool and \textbf{verbalize}
+      its output into text. Only a short summary survives; the rest of
+      its internal representation is lost, at every interaction step.
   \end{itemize}
   \vspace{0.2em}
   \begin{center}
   \resizebox{\linewidth}{!}{%
   \begin{tikzpicture}[
-      every node/.style={font=\normalsize, align=center},
-      box/.style={draw=slate, line width=1.5pt, rounded corners=6pt,
-        inner sep=8pt, fill=white},
-      arr/.style={-latex, line width=2pt, color=slate}]
-    % Verbalization
-    \node[anchor=west, font=\small\bfseries, text=inkgray] at (-0.6,5.3)
-      {Verbalization};
-    \node[box] (a1) at (1.4,3.4) {Agent\\(Lc0)};
-    \node[box, fill=LanguageColor!12, text width=10.5cm] (t1) at (9.8,3.4)
-      {\ttfamily Nc2: P=0.34, +0.12;\\ e4: P=0.21, +0.08; \ldots};
-    \node[box] (l1) at (18.2,3.4) {LLM};
-    \draw[arr] (a1) -- (t1);
-    \draw[arr] (t1) -- (l1);
-    % Internalization
-    \node[anchor=west, font=\small\bfseries, text=inkgray] at (-0.6,1.6)
-      {Internalization (ours)};
-    \node[box] (a2) at (1.4,-0.1) {Agent\\(Lc0)};
-    \node[box, fill=slate!8] (h2) at (6.0,-0.1) {internal\\state $\mathbf{h}_s$};
-    \node[box, fill=StateColor!10] (p2) at (10.6,-0.1) {projector};
-    \foreach \i in {0,...,3} {
-      \node[fill=StateColor, minimum size=0.7cm, inner sep=0pt]
-        at (13.6+\i*0.9,-0.1) {};
+      every node/.style={align=center},
+      arr/.style={-{Latex[length=6mm,width=5mm]}, line width=2.6pt, color=slate},
+      stepnum/.style={circle, fill=slate, text=white, font=\small\bfseries,
+        inner sep=0pt, minimum size=0.95cm}]
+    % --- Language agent: question -> tool call ... answer ------------------
+    \draw[panel] (0,0) rectangle (15,12);
+    \node[font=\large\bfseries, text=slate] at (7.5,11.0) {Language Agent};
+    \node[font=\normalsize, text=inkgray] at (7.5,9.95) {\faComments\; LLM};
+    \node[stepnum] at (1.0,8.0) {1};
+    \node[draw=slate!60, line width=1.2pt, rounded corners=10pt, fill=slate!8,
+      font=\small, text=inkdark, inner sep=8pt, text width=11.4cm]
+      at (8.05,8.0) {\faUser\; How should White continue here, and why?};
+    \foreach \i/\o in {0/0.3,1/0.3,2/0.3,3/1,4/1,5/0.3,6/0.3} {
+      \fill[LanguageColor, fill opacity=\o, rounded corners=1.5pt]
+        (3.75+\i*1.1,5.45) rectangle ++(0.9,0.9);
     }
-    \node[box] (l2) at (18.2,-0.1) {LLM};
-    \draw[arr] (a2) -- (h2);
-    \draw[arr] (h2) -- (p2);
-    \draw[arr] (p2) -- (13.1,-0.1);
-    \draw[arr] (16.6,-0.1) -- (l2);
+    \node[font=\small, text=inkgray] at (7.5,4.75) {receives only a few text tokens};
+    \node[stepnum] at (1.0,2.2) {4};
+    \node[draw=inkgray, dashed, line width=1.2pt, rounded corners=14pt,
+      fill=white, font=\small\itshape, text=inkdark, inner sep=10pt,
+      text width=11.4cm] at (8.05,2.2)
+      {Play Nf3, because\ldots{} what else did the engine see? I have to guess the rest.};
+    % --- Tool call ----------------------------------------------------------
+    \draw[arr, rounded corners=18pt] (7.5,12) -- (7.5,13.8) -- (33.3,13.8) -- (33.3,12);
+    \node[fill=white, inner sep=6pt, font=\normalsize] at (20.4,13.8)
+      {\tikz[baseline=-0.6ex]\node[stepnum]{2};\; tool call \texttt{get\_policy(board)}};
+    \begin{scope}[xshift=2.4cm]
+    % --- Non-language agent with its rich internal state -------------------
+    \draw[panel] (24.6,0) rectangle (37.2,12);
+    \node[font=\large\bfseries, text=slate] at (30.9,11.0) {Non-Language Agent};
+    \node[font=\normalsize, text=inkgray] at (30.9,9.95) {\faChessKnight\; Lc0 chess engine};
+    \pic at (25.8,3.3) {state board=0.75};
+    \node[font=\small, text=inkgray] at (28.8,2.8) {latent state $\mathbf{h}_s$};
+    \shade[bottom color=slate!8, top color=slate!70,
+      rounded corners=2pt] (34.0,3.3) rectangle (35.0,9.3);
+    \draw[slate, line width=1.2pt, rounded corners=2pt] (34.0,3.3) rectangle (35.0,9.3);
+    \draw[inkdark, line width=2.6pt] (33.65,7.1) -- (35.35,7.1);
+    \node[font=\small, text=inkgray] at (34.5,2.8) {value};
+    \pic at (25.8,0.6) {policy bars};
+    \node[font=\small, text=inkgray, anchor=west, align=left] at (30.9,1.25)
+      {policy over\\ all moves};
+    % --- Verbalization bottleneck (engine -> LLM) ---------------------------
+    \shade[left color=LanguageColor!55, right color=StateColor!35]
+      (24.6,1.8) -- (18.4,5.45) -- (18.4,6.35) -- (24.6,10.2) -- cycle;
+    \foreach \x/\y/\o in {23.6/8.3/0.8, 23.5/3.0/0.7, 22.55/6.9/0.6,
+        22.05/4.4/0.5, 20.85/6.1/0.4, 19.55/5.65/0.3} {
+      \fill[StateColor, fill opacity=\o, rounded corners=1.5pt]
+        (\x,\y) rectangle ++(0.55,0.55);
+    }
+    \node[font=\large\bfseries, text=slate] at (19.6,10.6)
+      {\tikz[baseline=-0.6ex]\node[stepnum]{3};\; verbalization};
+    % Fragments of the state that never reach the LLM
+    \foreach \x/\y/\o/\s in {22.75/0.75/0.7/0.6, 21.65/0.05/0.55/0.55,
+        20.55/-0.45/0.4/0.5, 19.55/-0.8/0.28/0.45, 18.65/-1.0/0.16/0.4} {
+      \fill[StateColor, fill opacity=\o, rounded corners=1.5pt,
+        rotate around={18*\x:(\x+0.2,\y+0.2)}] (\x,\y) rectangle ++(\s,\s);
+    }
+    \node[font=\normalsize, text=adobered, anchor=north, align=center]
+      at (21.5,-1.4) {\faTimesCircle\; discarded: other moves,\\ other lines, positional features
+      \quad \faRedo\; at every step};
+    % --- Text string that crosses the bottleneck --------------------------
+    \fill[LanguageColor!22] (12.6,5.45) rectangle (18.4,6.35);
+    \node[draw=LanguageColor, line width=1.6pt, fill=white, rounded corners=5pt,
+      font=\normalsize\ttfamily, inner sep=8pt] (txt) at (15.7,5.9) {Nf3 (+0.3)};
+    \draw[arr] (txt.west) -- (12.6,5.9);
+    \end{scope}
   \end{tikzpicture}}
   \end{center}
 }
