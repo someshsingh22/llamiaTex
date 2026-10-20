@@ -1,0 +1,160 @@
+% =========================================================================
+% LLAMIA -- EMNLP conference poster (A0 landscape, tikzposter)
+% Build: latexmk -pdf poster.tex
+% =========================================================================
+\documentclass[25pt, a0paper, landscape, margin=0mm, innermargin=16mm,
+  blockverticalspace=16mm, colspace=18mm, subcolspace=10mm]{tikzposter}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{newpxtext,newpxmath}   % Palatino, as in the B-LLaVA poster
+\usepackage{graphicx}
+\usepackage{fontawesome5}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{qrcode}
+\usepackage[hidelinks]{hyperref}
+\usetikzlibrary{shadows}
+
+% TODO: replace with the final BITW paper page URL
+\newcommand{\paperurl}{https://behavior-in-the-wild.github.io/llamia}
+\newcommand{\venue}{EMNLP 2026}
+\newcommand{\email}{behavior-in-the-wild@googlegroups.com}
+
+% -------------------------------------------------------------------------
+% Palette: B-LLaVA slate + Adobe red accent
+% -------------------------------------------------------------------------
+\definecolor{slate}{RGB}{46,58,89}
+\definecolor{adobered}{HTML}{EB1000}
+\definecolor{inkdark}{HTML}{1F1F1F}
+\definecolor{inkgray}{HTML}{5A5A5A}
+\definecolor{rulegray}{HTML}{D9DCE3}
+
+\definecolorstyle{llamiaColors}{
+  \colorlet{colorOne}{slate}
+  \colorlet{colorTwo}{slate}
+  \colorlet{colorThree}{inkgray}
+}{
+  \colorlet{backgroundcolor}{white}
+  \colorlet{framecolor}{rulegray}
+  \colorlet{titlefgcolor}{inkdark}
+  \colorlet{titlebgcolor}{white}
+  \colorlet{blocktitlebgcolor}{slate}
+  \colorlet{blocktitlefgcolor}{white}
+  \colorlet{blockbodybgcolor}{white}
+  \colorlet{blockbodyfgcolor}{inkdark}
+  \colorlet{innerblocktitlebgcolor}{slate}
+  \colorlet{innerblocktitlefgcolor}{white}
+  \colorlet{innerblockbodybgcolor}{slate!5}
+  \colorlet{innerblockbodyfgcolor}{inkdark}
+  \colorlet{notefgcolor}{inkdark}
+  \colorlet{notebgcolor}{white}
+  \colorlet{notefrcolor}{slate}
+}
+\usecolorstyle{llamiaColors}
+
+% Rounded slate title bar + separate rounded white body, both with soft shadow
+\defineblockstyle{llamiaBlock}{
+  titlewidthscale=1, bodywidthscale=1, titleleft,
+  titleoffsetx=0pt, titleoffsety=0pt, bodyoffsetx=0mm, bodyoffsety=-8mm,
+  bodyverticalshift=8mm, roundedcorners=14, linewidth=1.5pt,
+  titleinnersep=9mm, bodyinnersep=1.1cm
+}{
+  \draw[color=framecolor, line width=\blocklinewidth, fill=blockbodybgcolor,
+    rounded corners=\blockroundedcorners,
+    drop shadow={shadow xshift=3mm, shadow yshift=-3mm, opacity=0.18}]
+    (blockbody.south west) rectangle (blockbody.north east);
+  \ifBlockHasTitle
+    \fill[blocktitlebgcolor, rounded corners=\blockroundedcorners,
+      drop shadow={shadow xshift=3mm, shadow yshift=-3mm, opacity=0.25}]
+      (blocktitle.south west) rectangle (blocktitle.north east);
+  \fi
+}
+\useblockstyle{llamiaBlock}
+\usebackgroundstyle{Default}
+
+% -------------------------------------------------------------------------
+% Header (white, single logo row | serif title | venue + QR)
+% -------------------------------------------------------------------------
+\definetitlestyle{llamiaTitle}{
+  width=\paperwidth, roundedcorners=0, linewidth=0pt, innersep=8mm,
+  titletotopverticalspace=0mm, titlegraphictotitledistance=0pt
+}{
+  \fill[white] (\titleposleft,\titleposbottom) rectangle (\titleposright,\titlepostop);
+  \fill[slate] (\titleposleft,\titleposbottom) rectangle
+    ([yshift=-4mm]\titleposright,\titleposbottom);
+}
+\usetitlestyle{llamiaTitle}
+
+\newcommand{\postertitle}{Exploring Collaboration between a Language and a Non-Language Agent}
+\title{\postertitle}
+\newcommand{\aff}[1]{\textsuperscript{#1}}
+\author{%
+  Harini~S~I\aff{1*}, Somesh~Singh\aff{1,2,3*}, Yaman~K~Singla\aff{1},
+  Rajiv~Ratn~Shah\aff{2}, David~Doermann\aff{3}, Balaji~Krishnamurthy\aff{1}}
+\institute{%
+  \aff{1}Adobe Media and Data Science Research \quad
+  \aff{2}IIIT-Delhi \quad \aff{3}SUNY at Buffalo \quad \aff{*}Equal contribution}
+
+\newcommand{\hlogo}[1]{$\vcenter{\hbox{\includegraphics[height=3.4cm]{#1}}}$}
+\settitle{%
+  \noindent\begin{minipage}[c]{19.8cm}\raggedright
+    \hlogo{images/adobe-logo.png}\hspace{1cm}%
+    \hlogo{images/iiitd-logo.png}\hspace{1cm}%
+    \hlogo{images/ub-logo-transparent.png}
+  \end{minipage}\hfill%
+  \begin{minipage}[c]{74cm}\centering\color{inkdark}
+    {\fontsize{62}{70}\selectfont\bfseries \postertitle\par}
+    \vspace{0.5cm}
+    {\fontsize{42}{48}\selectfont \@author\par}
+    \vspace{0.35cm}
+    {\fontsize{31}{36}\selectfont\color{inkgray} \@institute\par}
+  \end{minipage}\hfill%
+  \begin{minipage}[c]{21cm}\raggedleft
+    $\vcenter{\hbox{\includegraphics[width=14.2cm]{images/emnlp-2026-logo.png}}}$%
+    \hspace{0.7cm}%
+    $\vcenter{\hbox{\qrcode[height=6cm]{\paperurl}}}$%
+  \end{minipage}%
+}
+
+% Bullets as in B-LLaVA (triangles), in Adobe red
+\setlist[itemize]{leftmargin=1.2em, itemsep=6pt, topsep=6pt,
+  label={\color{slate}$\blacktriangleright$}}
+
+% Placeholder block body for layout prototyping
+\newcommand{\placeholder}[1]{%
+  \tikz\node[draw=rulegray, dashed, line width=2pt, fill=slate!3,
+    minimum width=\linewidth-2pt, minimum height=#1, align=center,
+    text=inkgray, font=\Large]{content};}
+
+\tikzposterlatexaffectionproofoff
+\begin{document}
+\maketitle[width=\paperwidth, titletoblockverticalspace=12mm]
+
+\begin{columns}
+\column{0.27}
+  \block{Motivation}{\placeholder{16cm}}
+  \block{Verbalization vs.\ Internalization}{\placeholder{17cm}}
+  \block{\textsc{Llamia-Bench}}{\placeholder{14cm}}
+
+\column{0.40}
+  \block{\textsc{Llamia}: Latent State Internalization}{\placeholder{29cm}}
+  \block{Main Results}{\placeholder{26cm}}
+
+\column{0.33}
+  \block{The Verbalization Debt}{\placeholder{15cm}}
+  \block{Ablations}{\placeholder{9cm}}
+  \block{Collaboration \& Human Study}{\placeholder{9cm}}
+  \block{Take-home}{\placeholder{5cm}}
+\end{columns}
+
+% Footer (as in B-LLaVA): website left, email right
+\fill[slate] (-0.5\paperwidth,-0.5\paperheight) rectangle
+  (0.5\paperwidth,-0.5\paperheight+3.2cm);
+\node[anchor=west, text=white, font=\large]
+  at (-0.5\paperwidth+16mm,-0.5\paperheight+1.6cm)
+  {\faGlobe\ \href{\paperurl}{\paperurl}};
+\node[anchor=east, text=white, font=\large]
+  at (0.5\paperwidth-16mm,-0.5\paperheight+1.6cm)
+  {\faEnvelope\ \href{mailto:\email}{\email}};
+\end{document}
