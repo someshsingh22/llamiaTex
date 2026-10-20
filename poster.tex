@@ -132,6 +132,39 @@
 \newcommand{\llamiaverb}{\textsc{Llamia-Verb}}
 \newcommand{\bench}{\textsc{Llamia-Bench}}
 
+% Schematic building blocks (verbalization figure)
+\usetikzlibrary{arrows.meta}
+\tikzset{
+  panel/.style={draw=slate, line width=1.8pt, rounded corners=14pt,
+    fill=slate!3, drop shadow={shadow xshift=1.5mm, shadow yshift=-1.5mm,
+    opacity=0.18}},
+  % Engine's latent state as a chessboard heatmap in state pink; #1 = square size
+  pics/state board/.style={code={
+    \pgfmathsetseed{7}
+    \foreach \i in {0,...,7} {\foreach \j in {0,...,7} {
+      \pgfmathsetmacro{\o}{min(0.95, 0.9*max(exp(-((\i-4.6)^2+(\j-3.2)^2)/3.5),
+        0.8*exp(-((\i-1.4)^2+(\j-5.8)^2)/2.5)) + 0.12*rnd)}
+      \pgfmathparse{int(mod(\i+\j,2))}
+      \ifnum\pgfmathresult=0 \fill[slate!14] (\i*#1,\j*#1) rectangle ++(#1,#1);
+      \else \fill[white] (\i*#1,\j*#1) rectangle ++(#1,#1); \fi
+      \fill[StateColor, fill opacity=\o] (\i*#1,\j*#1) rectangle ++(#1,#1);
+    }}
+    \foreach \x/\y/\p in {6/0/King,5/0/Rook,5/1/Pawn,6/1/Pawn,7/1/Pawn,5/2/Knight,
+        3/3/Queen,4/3/Pawn,2/2/Bishop,6/7/King,5/6/Pawn,6/6/Pawn,7/5/Pawn,
+        2/5/Bishop,3/4/Pawn,1/7/Rook} {
+      \node[text=inkdark, font=\small, inner sep=0pt]
+        at ({(\x+0.5)*#1},{(\y+0.5)*#1}) {\csname faChess\p\endcsname};
+    }
+    \draw[slate, line width=1.4pt] (0,0) rectangle (8*#1,8*#1);
+  }},
+  pics/policy bars/.style={code={
+    \foreach \h [count=\i] in {1.55,1.15,0.95,0.75,0.6,0.48,0.38,0.3,0.24,0.18,0.14,0.1} {
+      \fill[slate, fill opacity={1-0.06*\i}] ({(\i-1)*0.36},0) rectangle ++(0.27,\h);
+    }
+    \draw[inkgray, line width=1pt] (-0.1,0) -- (4.3,0);
+  }},
+}
+
 % Centered question / statement line
 \newcommand{\keyline}[1]{%
   \begin{center}\color{slate}\large\bfseries #1\end{center}}
@@ -198,7 +231,7 @@
   \begin{itemize}
     \item In many important domains such as robotics and game playing,
       the strongest available agents are \textbf{not language models}.
-      Their expertise lives in internal representations of policy and
+      Their expertise lives in rich internal representations of policy and
       value (e.g.\ AlphaZero, RT-1).
     \item Many useful tasks need both. In chess, an engine plays far
       better than any LLM but cannot explain a move; an LLM can explain,
@@ -214,46 +247,81 @@
 
 \block{Verbalization Is Lossy}{
   \begin{itemize}
-    \item Current methods ground the agent's inputs and outputs in
-      language: the agent is called as a tool and its output is
-      \textbf{verbalized} into text.
-    \item This keeps a short summary and discards the rest of the
-      agent's internal representation: the full move distribution, the
-      value of other lines, and positional features.
-    \item The loss repeats at every interaction step.
+    \item Current methods call the agent as a tool and \textbf{verbalize}
+      its output into text. Only a short summary survives; the rest of
+      its internal representation is lost, at every interaction step.
   \end{itemize}
   \vspace{0.2em}
   \begin{center}
   \resizebox{\linewidth}{!}{%
   \begin{tikzpicture}[
-      every node/.style={font=\normalsize, align=center},
-      box/.style={draw=slate, line width=1.5pt, rounded corners=6pt,
-        inner sep=8pt, fill=white},
-      arr/.style={-latex, line width=2pt, color=slate}]
-    % Verbalization
-    \node[anchor=west, font=\small\bfseries, text=inkgray] at (-0.6,5.3)
-      {Verbalization};
-    \node[box] (a1) at (1.4,3.4) {Agent\\(Lc0)};
-    \node[box, fill=LanguageColor!12, text width=10.5cm] (t1) at (9.8,3.4)
-      {\ttfamily Nc2: P=0.34, +0.12;\\ e4: P=0.21, +0.08; \ldots};
-    \node[box] (l1) at (18.2,3.4) {LLM};
-    \draw[arr] (a1) -- (t1);
-    \draw[arr] (t1) -- (l1);
-    % Internalization
-    \node[anchor=west, font=\small\bfseries, text=inkgray] at (-0.6,1.6)
-      {Internalization (ours)};
-    \node[box] (a2) at (1.4,-0.1) {Agent\\(Lc0)};
-    \node[box, fill=slate!8] (h2) at (6.0,-0.1) {internal\\state $\mathbf{h}_s$};
-    \node[box, fill=StateColor!10] (p2) at (10.6,-0.1) {projector};
-    \foreach \i in {0,...,3} {
-      \node[fill=StateColor, minimum size=0.7cm, inner sep=0pt]
-        at (13.6+\i*0.9,-0.1) {};
+      every node/.style={align=center},
+      arr/.style={-{Latex[length=6mm,width=5mm]}, line width=2.6pt, color=slate},
+      stepnum/.style={circle, fill=slate, text=white, font=\normalsize\bfseries,
+        inner sep=0pt, minimum size=1.05cm}]
+    % --- Language agent: question -> tool call ... answer ------------------
+    \draw[panel] (0,0) rectangle (14,13.6);
+    \node[font=\large\bfseries, text=slate] at (7,12.65) {Language Agent};
+    \node[font=\normalsize, text=inkgray] at (7,11.6) {\faComments\; LLM};
+    \node[stepnum] at (0.95,9.2) {1};
+    \node[draw=slate!60, line width=1.2pt, rounded corners=10pt, fill=slate!8,
+      font=\large, text=inkdark, inner sep=9pt, text width=10.9cm]
+      at (7.45,9.2) {\faUser\; Best move here, and why?};
+    \foreach \i/\o in {0/0.3,1/0.3,2/0.3,3/1,4/1,5/0.3,6/0.3} {
+      \fill[LanguageColor, fill opacity=\o, rounded corners=1.5pt]
+        (3.6+\i*1.0,6.3) rectangle ++(0.85,0.9);
     }
-    \node[box] (l2) at (18.2,-0.1) {LLM};
-    \draw[arr] (a2) -- (h2);
-    \draw[arr] (h2) -- (p2);
-    \draw[arr] (p2) -- (13.1,-0.1);
-    \draw[arr] (16.6,-0.1) -- (l2);
+    \node[font=\normalsize, text=inkgray] at (7,5.7) {receives only a few text tokens};
+    \node[stepnum] at (0.95,2.45) {4};
+    \node[draw=slate!60, line width=1.2pt, rounded corners=10pt,
+      fill=LanguageColor!8, font=\large, text=inkdark, inner sep=9pt,
+      text width=10.9cm] (ans) at (7.45,2.6)
+      {\hyphenpenalty=10000 Nf3: it develops a piece and controls the center.\par\vspace{0.55cm}};
+    \node[fill=adobered, text=white, font=\small\bfseries, rounded corners=4pt,
+      inner sep=5pt, anchor=east] at ([xshift=-0.4cm]ans.south east)
+      {\faExclamationTriangle\; generic, not the engine's reason};
+    % --- Tool call ----------------------------------------------------------
+    \draw[arr, rounded corners=18pt] (7,13.6) -- (7,15.3) -- (31.8,15.3) -- (31.8,13.6);
+    \node[fill=white, inner sep=6pt, font=\normalsize] at (19.4,15.3)
+      {\tikz[baseline=-0.6ex]\node[stepnum]{2};\; tool call \texttt{get\_policy(board)}
+       \quad \textcolor{adobered}{\faRedo\; lossy at every step}};
+    % --- Non-language agent with its rich internal state -------------------
+    \draw[panel] (26.3,0) rectangle (37.3,13.6);
+    \node[font=\large\bfseries, text=slate] at (31.8,12.65) {Non-Language Agent};
+    \node[font=\normalsize, text=inkgray] at (31.8,11.6) {\faChessKnight\; Lc0 chess engine};
+    \pic at (27.1,3.6) {state board=0.8};
+    \node[font=\small, text=inkgray] at (30.3,3.1) {latent state $\mathbf{h}_s$};
+    \shade[bottom color=slate!8, top color=slate!70,
+      rounded corners=2pt] (34.6,3.6) rectangle (35.5,10.0);
+    \draw[slate, line width=1.2pt, rounded corners=2pt] (34.6,3.6) rectangle (35.5,10.0);
+    \draw[inkdark, line width=2.6pt] (34.25,7.8) -- (35.85,7.8);
+    \node[font=\small, text=inkgray] at (35.05,3.1) {value};
+    \pic at (27.1,0.6) {policy bars};
+    \node[font=\small, text=inkgray, anchor=west, align=left] at (31.7,1.3)
+      {policy over\\ all moves};
+    % --- Verbalization bottleneck (engine -> LLM) ---------------------------
+    \shade[left color=LanguageColor!55, right color=StateColor!35]
+      (26.3,1.4) -- (21.3,6.3) -- (21.3,7.2) -- (26.3,11.5) -- cycle;
+    \foreach \x/\y/\o in {25.5/9.6/0.8, 25.4/3.0/0.7, 24.6/7.8/0.6,
+        24.1/4.6/0.5, 23.0/6.8/0.4, 22.0/6.5/0.3} {
+      \fill[StateColor, fill opacity=\o, rounded corners=1.5pt]
+        (\x,\y) rectangle ++(0.55,0.55);
+    }
+    \node[font=\large\bfseries, text=slate] at (21.2,11.4)
+      {\tikz[baseline=-0.6ex]\node[stepnum]{3};\; verbalization};
+    % Fragments of the state that fall out of the funnel
+    \foreach \x/\y/\o/\s in {23.8/2.6/0.7/0.6, 24.7/1.8/0.5/0.55,
+        24.1/0.9/0.35/0.5, 25.1/0.35/0.2/0.45} {
+      \fill[StateColor, fill opacity=\o, rounded corners=1.5pt,
+        rotate around={25*\x:(\x+0.25,\y+0.25)}] (\x,\y) rectangle ++(\s,\s);
+    }
+    \node[font=\normalsize, text=adobered, anchor=east, align=right]
+      at (23.5,2.0) {\faTimesCircle\; discarded: other\\ moves, other lines,\\ positional features};
+    % --- Text string that crosses the bottleneck --------------------------
+    \fill[LanguageColor!22] (14,6.3) rectangle (21.3,7.2);
+    \node[draw=LanguageColor, line width=1.8pt, fill=white, rounded corners=6pt,
+      font=\large\ttfamily\bfseries, inner sep=9pt] (txt) at (18.2,6.75) {Nf3 (+0.3)};
+    \draw[arr] (txt.west) -- (14,6.75);
   \end{tikzpicture}}
   \end{center}
 }
@@ -299,7 +367,7 @@
 }
 
 \block{Training}{
-  \begin{minipage}[t]{0.50\linewidth}
+  \begin{minipage}[c]{0.52\linewidth}
     \begin{itemize}
       \item \textbf{Stage 1: projector alignment.} Only the LatentBridge
         is trained, with the LLM frozen, on engine state--policy pairs
@@ -307,30 +375,36 @@
       \item \textbf{Stage 2: reinforcement learning.} The LLM and
         LatentBridge are trained jointly with \textbf{DAPO}. The reward is
         each task's metric. \state{State tokens} are masked from the
-        policy gradient.
-      \item The engine stays frozen throughout.
+        policy gradient. The engine stays frozen throughout.
       \item \textbf{Control:} \llamiaverb{} uses the same LLM, engine,
         data and RL recipe, but receives the engine's output only as
         text.
+      \item The method works at \textbf{4B, 8B and 14B}. At every size,
+        \llamia{} trains well above \llamiaverb{} (solid vs.\ dashed),
+        and the gap grows to \textbf{2--3$\times$}. \llamia-4B ends
+        above \llamiaverb-14B.
     \end{itemize}
   \end{minipage}\hfill
-  \begin{minipage}[t]{0.46\linewidth}
-    \vspace{0pt}\centering
-    \includegraphics[width=0.92\linewidth, trim=0 0 742 0, clip]
-      {plots/combined_training_bench_verb_vs_llamia.pdf}
-    \figcap{Aggregate reward during DAPO training at three LLM sizes.
-      Solid: \llamia{} (latent); dashed: \llamiaverb{} (text).}
+  \begin{minipage}[c]{0.45\linewidth}
+    \centering
+    % panel (a) only; white patch hides an axis label from panel (c)
+    \begin{tikzpicture}
+      \node[anchor=south west, inner sep=0] (img) {%
+        \includegraphics[width=\linewidth, height=18cm, trim=0 0 736 0, clip]
+          {plots/combined_training_bench_verb_vs_llamia.pdf}};
+      \begin{scope}[x={(img.south east)}, y={(img.north west)}]
+        \fill[white] (0.982,0.16) rectangle (1.001,0.47);
+      \end{scope}
+    \end{tikzpicture}
   \end{minipage}
-  \vspace{0.6em}
-  \begin{itemize}
-    \item The method works at \textbf{4B, 8B and 14B}; larger LLMs reach
-      higher reward.
-    \item At every size, \llamia{} trains well above \llamiaverb{}, and
-      the gap grows during training, reaching \textbf{2--3$\times$} at
-      the end.
-    \item Scaling the LLM does not close the gap: \llamia-4B ends above
-      \llamiaverb-14B.
-  \end{itemize}
+  \vspace{0.8em}
+
+  \includegraphics[width=\linewidth, height=8.5cm, trim=253 158 0 0, clip]
+    {plots/combined_training_bench_verb_vs_llamia.pdf}
+  \figcap{(a) Aggregate reward at three LLM sizes. (b) Per-task reward at
+    14B: \llamiaverb{} (dashed) gains some reward on behavior cloning and
+    difficulty, where the text has a useful proxy (top moves), but stays
+    nearly flat on interest and commentary.}
 }
 
 % =========================================================================
