@@ -230,16 +230,16 @@
 \keyline{How can an LLM effectively collaborate with\\
 non-language agents?}
 \begin{itemize}
-\item LLMs have become general purpose orchestrators that can solve complex domain specific tasks by coordinating with tools and domain expert subagents.
-\item However, in many important domains such as robotics and game playing, the strongest available agents are \textbf{non language models} neural networks (AlphaZero, RT-1).
-\item We study the collaboration of LLMs and Non Language Agents using \textbf{chess} as a controlled environment owing to strong open engines like Leela Chess, public datasets, and real world tasks.
+\item LLMs have become general-purpose orchestrators that solve complex, domain-specific tasks by coordinating with tools and domain-expert subagents.
+\item However, in many important domains such as robotics and game playing, the strongest available agents are \textbf{non-language} neural networks (e.g., AlphaZero, RT-1).
+\item We study the collaboration between LLMs and non-language agents using \textbf{chess} as a controlled environment, owing to strong open engines such as Leela Chess Zero, public datasets, and real-world tasks.
 \end{itemize}
 }
 
 \block{Verbalization Is Lossy}{
   \begin{itemize}
     \item Current methods call the agent as a tool and \textbf{verbalize}
-      its output into text. However, this collapses the rich internal representation, into a few text tokens.
+      its output into text. However, this collapses the rich internal representation into a few text tokens.
   \end{itemize}
   \vspace{0.2em}
   \begin{center}
@@ -318,10 +318,10 @@ non-language agents?}
 
 \block{Our Contributions}{
   \begin{itemize}
-    \item \textbf{Verbalization Debt:} We propose the first quantification of performance difference caused by verbalization.
-    \item \textbf{\bench:} We introduce a dataset and benchmark spanning six chess tasks that rigorously test collaboration between LLMs and non language agents.
-    \item \textbf{\llamia:} We introduce a novel method to enable latent collaboration between pretrained LLMs and non language agents. \llamia-14B outperforms verbalized baselines, and existing state of the art methods including GPT-5 on all tasks.
-     \item \textbf{Emergent collaboration strategies}, We also find that training with internalization enables novel multi agent collaboration strategies.
+    \item \textbf{Verbalization Debt:} We propose the first quantification of the performance gap caused by verbalization.
+    \item \textbf{\bench:} We introduce a dataset and benchmark spanning six chess tasks that rigorously test collaboration between LLMs and non-language agents.
+    \item \textbf{\llamia:} We introduce a novel method to enable latent collaboration between pretrained LLMs and non-language agents. \llamia-14B outperforms verbalized baselines and existing state-of-the-art methods, including GPT-5, on all tasks.
+     \item \textbf{Emergent collaboration strategies:} We also find that training with internalization enables novel multi-agent collaboration strategies.
   \end{itemize}
 }
 % =========================================================================
@@ -350,11 +350,11 @@ non-language agents?}
 \block{Training with Reinforcement Learning}{
   \begin{minipage}[c]{0.6\linewidth}
     \begin{itemize}
-      \item \textbf{Stage 1: projector alignment.} We follow LLaVA style two stage training, training only the LatentBridge on large scale synthetic state--value pairs.
+      \item \textbf{Stage 1: projector alignment.} We follow LLaVA-style two-stage training, training only the LatentBridge on large-scale synthetic state--value pairs.
       \item \textbf{Stage 2: reinforcement learning.} We post-train the LLM and
-        LatentBridge jointly with \textbf{DAPO} on six of LLAMIA-Bench tasks. \state{State tokens} are masked from the
+        LatentBridge jointly with \textbf{DAPO} on six \bench{} tasks. \state{State tokens} are masked from the
         policy gradient. The engine stays frozen in both stages. The resulting model, \textbf{\llamia}, reasons over \lang{language}, \action{action} and \state{state} tokens.
-      \item \textbf{Verbalization Baseline:} We also train \llamiaverb{} replacing the state tokens with verbalized summaries (best moves, evaluation, position)
+      \item \textbf{Verbalization Baseline:} We also train \llamiaverb{} by replacing the state tokens with verbalized summaries (best moves, evaluation, position).
     \end{itemize}
   \end{minipage}\hfill
   \begin{minipage}[c]{0.38\linewidth}
@@ -365,7 +365,7 @@ non-language agents?}
   {\large\bfseries\color{slate} Emergent collaboration strategies}\par\vspace{0.1em}
   \begin{minipage}[c]{0.44\linewidth}
     \begin{itemize}
-    \item We annotate the LLM and Subagent collaboration patterns using GPT-4o e.g. Follow, where the LLM simply follows the engine.
+    \item We annotate LLM--subagent collaboration patterns using GPT-4o, e.g., \emph{Follow}, where the LLM simply follows the engine.
       \item \llamia{} \textbf{adapts its strategy to the task}: engine-follow for
         gameplay, consult-then-override for behavior cloning,
         counterfactual queries for commentary.
@@ -385,8 +385,8 @@ non-language agents?}
 % =========================================================================
 \block{\bench}{
   \begin{itemize}
-    \item We introduce \textbf{LLAMIA-Bench} a compilation of six popular chess tasks including Behavior Cloning, Move/Game Commentary Generation, and Puzzle Understanding including three new datasets
-    \item None of these tasks can be solved by pretrained LLMs or Engines alone.
+    \item We introduce \textbf{\bench}, a compilation of six popular chess tasks spanning Behavior Cloning, Move/Game Commentary Generation, and Puzzle Understanding, including three new datasets.
+    \item None of these tasks can be solved by pretrained LLMs or engines alone.
 
   \end{itemize}
   \vspace{0.2em}
@@ -418,7 +418,7 @@ non-language agents?}
     \benchcard{(2*\benchcw+1.6,0)}{facetExplain}{Move Rationale}{}
       {\miniboard{(1.35,-1.9)}{1.75}{\faChessBishop}{facetExplain}
        \benchtag{(1.35,-3.18)}{facetExplain}{move \textcolor{ActionColor}{Bb5}}}
-      {Why did the player make this move}
+      {Why did the player make this move?}
       {90K annotated games}
     \benchcard{(2*\benchcw+1.6,-4.1)}{facetExplain}{Game Commentary}{\newbadge}
       {\miniboard{(0.97,-1.6)}{1.4}{}{facetExplain}
@@ -435,8 +435,8 @@ non-language agents?}
     \includegraphics[width=\linewidth]{plots/panel_c_no_verb.pdf}
   \end{center}
   \begin{itemize}
-    \item A single \llamia-14B model is best on all six tasks, across all tasks and sizes, ahead of
-      GPT-5 with the same engine as a tool, and even existing state of the art task-specific
+    \item A single \llamia-14B model is best on all six tasks, ahead of
+      GPT-5 with the same engine as a tool and even of state-of-the-art task-specific
       finetuned models.
     \item \textbf{Joint reasoning needs latent state.} On harder tasks that require reasoning
       jointly over human behavior and the position, such as Puzzle Interest, only \llamia{} scores
@@ -456,4 +456,13 @@ non-language agents?}
 }
 \end{columns}
 
+% Footer: website left, email right
+\fill[slate] (-0.5\paperwidth,-0.5\paperheight) rectangle
+  (0.5\paperwidth,-0.5\paperheight+3.2cm);
+\node[anchor=west, text=white, font=\large]
+  at (-0.5\paperwidth+16mm,-0.5\paperheight+1.6cm)
+  {\faGlobe\ \href{\paperurl}{\paperurl}};
+\node[anchor=east, text=white, font=\large]
+  at (0.5\paperwidth-16mm,-0.5\paperheight+1.6cm)
+  {\faEnvelope\ \href{mailto:\email}{\email}};
 \end{document}
