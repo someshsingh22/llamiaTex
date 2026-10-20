@@ -231,15 +231,15 @@
 non-language agents?}
 \begin{itemize}
 \item LLMs have become general purpose orchestrators that can solve complex domain specific tasks by coordinating with tools and domain expert subagents.
-\item However, in many important domains such as robotics and game playing, the strongest available agents are \textbf{not language models}. Their expertise lives in rich internal representations (e.g.\ AlphaZero, RT-1).
-\item We study this collaboration using \textbf{chess} as a controlled environment owing to strong open engines (Lc0), public datasets, and real world tasks.
+\item However, in many important domains such as robotics and game playing, the strongest available agents are \textbf{non language models} neural networks (AlphaZero, RT-1).
+\item We study the collaboration of LLMs and Non Language Agents using \textbf{chess} as a controlled environment owing to strong open engines like Leela Chess, public datasets, and real world tasks.
 \end{itemize}
 }
 
 \block{Verbalization Is Lossy}{
   \begin{itemize}
     \item Current methods call the agent as a tool and \textbf{verbalize}
-      its output into text. However, this collapses the rich internal representation, into a few text tokens. We show the first quantification of this \textbf{Verbalization Debt}.
+      its output into text. However, this collapses the rich internal representation, into a few text tokens.
   \end{itemize}
   \vspace{0.2em}
   \begin{center}
@@ -318,15 +318,10 @@ non-language agents?}
 
 \block{Our Contributions}{
   \begin{itemize}
-    \item \textbf{Verbalization Debt:} the first quantification of what is lost
-      when a non-language agent's knowledge is squeezed into text.
-    \item \textbf{\llamia:} a language agent that internalizes a frozen
-      non-language agent's latent state into its chain of thought, trained with RL.
-    \item \textbf{\bench:} six chess tasks over human behavior and positions,
-      including three new datasets.
-    \item A single \llamia-14B is \textbf{best on all six tasks} and is preferred by skilled human players.
-    \item Internalizing the state and training with RL leads \llamia{} to develop
-      \textbf{novel multi-agent collaboration strategies}, absent under verbalization.
+    \item \textbf{Verbalization Debt:} We propose the first quantification of performance difference caused by verbalization.
+    \item \textbf{\bench:} We introduce a dataset and benchmark spanning six chess tasks that rigorously test collaboration between LLMs and non language agents.
+    \item \textbf{\llamia:} We introduce a novel method to enable latent collaboration between pretrained LLMs and non language agents. \llamia-14B outperforms verbalized baselines, and existing state of the art methods including GPT-5 on all tasks.
+     \item \textbf{Emergent collaboration strategies}, We also find that training with internalization enables novel multi agent collaboration strategies.
   \end{itemize}
 }
 % =========================================================================
