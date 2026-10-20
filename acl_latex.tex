@@ -144,6 +144,18 @@
 \newcommand{\cmark}{\ding{51}}
 \newcommand{\xmark}{\ding{55}}
 
+% -----------------------------------------------------------------------
+% Institution logo macros
+% -----------------------------------------------------------------------
+\DeclareRobustCommand{\coauth}{$^*$}
+\DeclareRobustCommand{\adobelogo}{%
+  \raisebox{0.15\height}{\includegraphics[height=2ex]{images/adobe-logo.png}}}
+\DeclareRobustCommand{\iiitdlogo}{%
+  \raisebox{0.25\height}{\includegraphics[height=1.2ex]{images/iiitd-logo.png}}}
+\DeclareRobustCommand{\ublogo}{%
+  \raisebox{0.25\height}{\includegraphics[height=1.2ex]{images/ub-logo.png}}}
+\newcommand{\auth}[2]{\textbf{#1}~#2}
+
 % If the title and author information does not fit in the area allocated, uncomment the following
 %
 %\setlength\titlebox{<dim>}
@@ -168,21 +180,24 @@
 %         Author 2 \\ Address line \\ ... \\ Address line \And
 %         Author 3 \\ Address line \\ ... \\ Address line}
 
-\author{
-  \textbf{Harini S I}\textsuperscript{1,$*$},
-  \textbf{Somesh Singh}\textsuperscript{1,2,3,$*$},
-  \textbf{Yaman K Singla}\textsuperscript{1},
-\\
-  \textbf{Rajiv Ratn Shah}\textsuperscript{2},
-  \textbf{David Doermann}\textsuperscript{3},
-  \textbf{Balaji Krishnamurthy}\textsuperscript{1}
-\\
-\\
-  \textsuperscript{1}Adobe Media and Data Science Research (MDSR),\quad
-  \textsuperscript{2}IIIT-Delhi,\quad
-  \textsuperscript{3}SUNY at Buffalo
-\\
-  \small{$*$\,Equal contribution.\quad\textbf{Correspondence:} \href{mailto:behavior-in-the-wild@googlegroups.com}{behavior-in-the-wild@googlegroups.com}}
+\author{%
+\parbox{\textwidth}{\centering\vspace{4mm}
+\renewcommand{\arraystretch}{1.35}
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{@{}ccc@{}}
+  \auth{Harini S I\coauth}{\adobelogo} &
+  \auth{Somesh Singh\coauth}{\adobelogo~\iiitdlogo~\ublogo} &
+  \auth{Yaman K Singla}{\adobelogo} \\
+\end{tabular}\\[1.5mm]
+\begin{tabular}{@{}ccc@{}}
+  \auth{Rajiv Ratn Shah}{\iiitdlogo} &
+  \auth{David Doermann}{\ublogo} &
+  \auth{Balaji Krishnamurthy}{\adobelogo} \\[3mm]
+\end{tabular}\\
+{\adobelogo~Adobe Media and Data Science Research (MDSR)\\[0.5mm]
+ \iiitdlogo~IIIT-Delhi,\quad \ublogo~SUNY at Buffalo\\[1mm]}
+\small{$*$\,Equal contribution.\quad\textbf{Correspondence:} \href{mailto:behavior-in-the-wild@googlegroups.com}{behavior-in-the-wild@googlegroups.com}}
+}%
 }
 
 %\author{
@@ -268,11 +283,7 @@
 \input{pages/methodology}
 \input{pages/experiment}
 \input{pages/related}
-\vspace{-2mm}
-\section{Conclusion}
-\label{sec:conclusion}
-\vspace{-2mm}
-We introduced latent state internalization, an LLM--agent integration method that replaces verbalized communication with direct projection of the agent's continuous representations into the LLM's embedding space. A single LLAMIA-14B, trained via projector alignment followed by DAPO, matches or exceeds dedicated task finetunes across \textsc{LLAMIA-Bench}. The verbalization debt widens with \somesh{Need to check this}interaction depth and on signals that resist text serialization (e.g., puzzle interest), and does not close with LLM scale or RL budget in our evaluated range, establishing verbalization as a structural bottleneck for LLM--agent collaboration.
+% Conclusion is defined at the end of pages/related.tex (shared with iclr_2026.tex).
 
 % \paragraph{Future work.}
 % The framework requires three components: a subagent with extractable representations, a lightweight projector, and a differentiable reward signal for end-to-end RL. Robotics policies (RT-2, Octo), game-playing agents, and scientific simulation controllers satisfy these requirements and are natural next instantiations. Two open questions are whether internalization scales to multiple heterogeneous agents within a single reasoning trace, and whether the structured capability emergence observed in instruction-conditioned play (\cref{sec:results_skill_discovery}) replicates across domains.
