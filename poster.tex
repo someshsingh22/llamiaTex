@@ -372,12 +372,6 @@ non-language agents?}
   \vspace{0.8em}
 
   {\large\bfseries\color{slate} Emergent collaboration strategies}\par\vspace{0.4em}
-  \begin{minipage}[c]{0.6\linewidth}
-    \centering
-    \includegraphics[width=\linewidth]{pages/figures/agency_strategy_heatmaps.pdf}
-    \figcap{Strategy share (\%) over 500 episodes per task (GPT-4o judge,
-      $\kappa{=}0.78$). Left: \llamia{}. Right: \llamiaverb{}.}
-  \end{minipage}\hfill
   \begin{minipage}[c]{0.37\linewidth}
     \begin{itemize}
       \item \llamia{} \textbf{adapts its strategy to the task}: engine-follow for
@@ -386,6 +380,12 @@ non-language agents?}
       \item \llamiaverb{} \textbf{collapses to engine-follow} on every task (62--76\%).
       \item \textbf{Cost neutral:} fewer engine calls (1.9 vs.\ 2.9 per query).
     \end{itemize}
+  \end{minipage}\hfill
+  \begin{minipage}[c]{0.6\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{pages/figures/agency_strategy_heatmaps.pdf}
+    \figcap{Strategy share (\%) over 500 episodes per task (GPT-4o judge,
+      $\kappa{=}0.78$). Left: \llamia{}. Right: \llamiaverb{}.}
   \end{minipage}
 }
 
@@ -456,10 +456,11 @@ non-language agents?}
   \includegraphics[height=14.5cm]{pages/figures/llamia_human_gameplay_compact.pdf}\hfill
   \includegraphics[height=14.5cm]{pages/figures/llamia_survey_vert.pdf}\hfill
   \includegraphics[height=14.5cm]{pages/figures/llamia_human_commentary_compact.pdf}\hfill\null
-  \figcap{$n{=}12$ skilled players (all rated ${\geq}1700$).
-    Left: players spot \llamia{} as a bot in only 39\% of games (below chance;
-    \llamiaverb: 72\%). Middle: post-game ratings put \llamia{} on par with Maia*
-    for human-likeness. Right: 72\% of commentary judgments prefer \llamia.}
+  \begin{itemize}
+    \item \textbf{Human study} ($n{=}12$ players rated ${\geq}1700$): players spot \llamia{} as a bot
+      in only 39\% of games, below chance (\llamiaverb: 72\%); post-game ratings put \llamia{} on
+      par with Maia* for human-likeness; 72\% of commentary judgments prefer \llamia.
+  \end{itemize}
 }
 \end{columns}
 
