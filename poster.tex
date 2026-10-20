@@ -168,20 +168,20 @@
   \begin{scope}[shift={#1}]
     \draw[#2, line width=1.5pt, rounded corners=8pt, fill=white,
       drop shadow={shadow xshift=1.2mm, shadow yshift=-1.2mm, opacity=0.15}]
-      (0,0) rectangle (\benchcw,-5.0);
+      (0,0) rectangle (\benchcw,-4.55);
     \node[anchor=north west, font=\small\bfseries, text=#2, inner sep=0]
       at (0.3,-0.3) {#3};
     \node[anchor=north east, inner sep=0] at (\benchcw-0.25,-0.25) {#4};
     #5
-    \draw[-latex, #2, line width=2.5pt] (2.65,-2.3) -- (3.35,-2.3);
+    \draw[-latex, #2, line width=2.5pt] (2.65,-2.05) -- (3.35,-2.05);
     \node[anchor=west, fill=#2!8, rounded corners=6pt, inner sep=6pt,
       text width=6.85cm, align=left, font=\footnotesize,
-      execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}] at (3.5,-2.3) {#6};
-    \draw[#2!30, line width=1pt] (0.3,-4.15) -- (\benchcw-0.3,-4.15);
+      execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}] at (3.5,-2.05) {#6};
+    \draw[#2!30, line width=1pt] (0.3,-3.72) -- (\benchcw-0.3,-3.72);
     \node[anchor=west, font=\footnotesize\bfseries, text=#2, inner sep=0]
-      at (0.3,-4.58) {\faBullseye\ #7};
+      at (0.3,-4.14) {\faBullseye\ #7};
     \node[anchor=east, font=\scriptsize, text=inkgray, inner sep=0]
-      at (\benchcw-0.3,-4.58) {#8};
+      at (\benchcw-0.3,-4.14) {#8};
   \end{scope}}
 \newcommand{\benchtag}[3]{% (pos) color text
   \node[fill=#2!14, text=#2!70!black, rounded corners=4pt, inner sep=4pt,
@@ -338,54 +338,51 @@
 % =========================================================================
 \block{\bench}{
   \begin{itemize}
-    \item \textbf{Six tasks, three skills:}
-      \textcolor{facetImitate}{\textbf{imitate}} a specific human,
-      \textcolor{facetAssess}{\textbf{assess}} a position as humans see it,
-      \textcolor{facetExplain}{\textbf{explain}} the engine's insight in words.
-    \item \textbf{Needs both agents:} the engine has no words, the LLM no
-      chess sense.
-    \item \textbf{Verifiable at scale:} automatic RL rewards; 12M games,
-      4M puzzles.
-    \item \textbf{Three new targets} (\textcolor{adobered}{\textbf{NEW}}),
-      incl.\ Agadmator-2K: 1.9K narrated games.
+    \item The six chess tasks test three skills: imitating how a
+      particular human plays, judging a position as human players would, and
+      explaining the engine's analysis in words.
+    \item No task can be solved by either agent alone, because the engine
+      cannot produce language and the LLM has little understanding of chess.
+    \item Every task has an automatic metric that doubles as the RL reward.
+      Three tasks are new, including Agadmator-2K, 1.9K commented games.
   \end{itemize}
   \vspace{0.2em}
   \noindent\begin{tikzpicture}[x=1cm, y=1cm]
     \def\benchcw{11.0}
     % ---- Imitate ----
     \benchcard{(0,0)}{facetImitate}{Behavior Cloning}{}
-      {\miniboard{(1.35,-2.15)}{1.9}{\faChessKnight}{facetImitate}
-       \benchtag{(1.35,-3.55)}{facetImitate}{Elo 1500}}
+      {\miniboard{(1.35,-1.9)}{1.75}{\faChessKnight}{facetImitate}
+       \benchtag{(1.35,-3.18)}{facetImitate}{Elo 1500}}
       {Move a 1500-rated human would play: \action{Nf3}}
       {Move match}{12M games, 5 Elo bands}
-    \benchcard{(0,-5.45)}{facetImitate}{BC in the Wild}{\newbadge\,\oodbadge}
-      {\miniboard{(1.35,-2.15)}{1.9}{\faChessQueen}{facetImitate}
-       \benchtag{(1.35,-3.55)}{facetImitate}{+ context}}
-      {Move of a GM, a player low on time, or a big underdog: \action{Qxd5}}
+    \benchcard{(0,-4.95)}{facetImitate}{BC in the Wild}{\newbadge\,\oodbadge}
+      {\miniboard{(1.35,-1.9)}{1.75}{\faChessQueen}{facetImitate}
+       \benchtag{(1.35,-3.18)}{facetImitate}{+ context}}
+      {Same, for GMs, low clock, rating gaps: \action{Qxd5}}
       {Move match}{3 splits unseen in training}
     % ---- Assess ----
     \benchcard{(\benchcw+0.8,0)}{facetAssess}{Puzzle Difficulty}{}
-      {\miniboard{(1.35,-2.15)}{1.9}{\faChessRook}{facetAssess}
-       \benchtag{(1.35,-3.55)}{facetAssess}{+ solution}}
-      {How hard is it for humans?\\Rating \textbf{\color{facetAssess}1850}}
+      {\miniboard{(1.35,-1.9)}{1.75}{\faChessRook}{facetAssess}
+       \benchtag{(1.35,-3.18)}{facetAssess}{+ solution}}
+      {Difficulty for human solvers: \textbf{\color{facetAssess}1850}}
       {Spearman $\rho$}{4M Lichess puzzles}
-    \benchcard{(\benchcw+0.8,-5.45)}{facetAssess}{Puzzle Interest}{\newbadge}
-      {\miniboard{(1.35,-2.15)}{1.9}{\faChessBishop}{facetAssess}
-       \benchtag{(1.35,-3.55)}{facetAssess}{+ solution}}
-      {How much do players enjoy it?\\Votes \textbf{\color{facetAssess}+72}}
+    \benchcard{(\benchcw+0.8,-4.95)}{facetAssess}{Puzzle Interest}{\newbadge}
+      {\miniboard{(1.35,-1.9)}{1.75}{\faChessBishop}{facetAssess}
+       \benchtag{(1.35,-3.18)}{facetAssess}{+ solution}}
+      {How much players liked it: \textbf{\color{facetAssess}+72} votes}
       {Spearman $\rho$}{no text proxy exists}
     % ---- Explain ----
     \benchcard{(2*\benchcw+1.6,0)}{facetExplain}{Move Rationale}{}
-      {\miniboard{(1.35,-2.15)}{1.9}{\faChessBishop}{facetExplain}
-       \benchtag{(1.35,-3.55)}{facetExplain}{move \textcolor{ActionColor}{Bb5}}}
+      {\miniboard{(1.35,-1.9)}{1.75}{\faChessBishop}{facetExplain}
+       \benchtag{(1.35,-3.18)}{facetExplain}{move \textcolor{ActionColor}{Bb5}}}
       {\lang{``Pins the knight on c6 to the king.''}}
       {BLEU-2}{90K annotated games}
-    \benchcard{(2*\benchcw+1.6,-5.45)}{facetExplain}{Game Commentary}{\newbadge}
-      {\miniboard{(0.95,-1.8)}{1.55}{}{facetExplain}
-       \miniboard{(1.35,-2.15)}{1.55}{}{facetExplain}
-       \miniboard{(1.75,-2.5)}{1.55}{\faChessKing}{facetExplain}
-       \benchtag{(1.35,-3.62)}{facetExplain}{full game}}
-      {\lang{``White gives up the rook, and the attack on h7 decides it.''}}
+    \benchcard{(2*\benchcw+1.6,-4.95)}{facetExplain}{Game Commentary}{\newbadge}
+      {\miniboard{(0.97,-1.6)}{1.4}{}{facetExplain}
+       \miniboard{(1.35,-1.92)}{1.4}{}{facetExplain}
+       \miniboard{(1.73,-2.24)}{1.4}{\faChessKing}{facetExplain}
+       \benchtag{(1.35,-3.25)}{facetExplain}{full game}}
+      {\lang{``The rook sacrifice on h7 decides the game.''}}
       {G-Eval}{Agadmator-2K: 1.9K games}
   \end{tikzpicture}
 }
