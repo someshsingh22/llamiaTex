@@ -225,31 +225,22 @@
 
 \begin{columns}
 % =========================================================================
-\column{0.27}
+\column{0.26}
 % =========================================================================
 \block{Motivation}{
-  \begin{itemize}
-    \item In many important domains such as robotics and game playing,
-      the strongest available agents are \textbf{not language models}.
-      Their expertise lives in rich internal representations of policy and
-      value (e.g.\ AlphaZero, RT-1).
-    \item Many useful tasks need both. In chess, an engine plays far
-      better than any LLM but cannot explain a move; an LLM can explain,
-      but cannot play well.
-  \end{itemize}
-  \keyline{How can an LLM effectively collaborate with\\
-    a non-language agent?}
-  \begin{itemize}
-    \item We study this in \textbf{chess}: strong open engines (Lc0),
-      large public data, and tasks with established metrics.
-  \end{itemize}
+\keyline{How can an LLM effectively collaborate with\\
+non-language agents?}
+\begin{itemize}
+\item LLMs have become general purpose orchestrators that can solve complex domain specific tasks by coordinating with tools and domain expert subagents.
+\item However, in many important domains such as robotics and game playing, the strongest available agents are \textbf{not language models}. Their expertise lives in rich internal representations (e.g.\ AlphaZero, RT-1).
+\item We study this collaboration using \textbf{chess} as a controlled environment owing to strong open engines (Lc0), public datasets, and real world tasks.
+\end{itemize}
 }
 
 \block{Verbalization Is Lossy}{
   \begin{itemize}
     \item Current methods call the agent as a tool and \textbf{verbalize}
-      its output into text. Only a short summary survives; the rest of
-      its internal representation is lost, at every interaction step.
+      its output into text. However, this collapses the rich internal representation, into a few text tokens. We show the first quantification of this \textbf{Verbalization Debt}.
   \end{itemize}
   \vspace{0.2em}
   \begin{center}
@@ -329,16 +320,15 @@
 \block{Our Approach}{
   \begin{itemize}
     \item A \textbf{language agent} (Qwen3 LLM) collaborates with a
-      frozen \textbf{non-language agent} (Lc0-BT4 chess engine).
+      frozen \textbf{non-language agent} (Lc0-BT4 chess engine) and can update its state dynamically through verbalized \action{actions}.
     \item \textbf{Latent state internalization:} the engine's internal
-      state is projected into the LLM's input as continuous
-      \state{state tokens}, instead of being described in text.
+      state is directly projected and concatenated into the LLM's Chain of Thought as
+      \state{state tokens}, instead of being verbalized.
     \item The LLM is trained with \textbf{reinforcement learning} to
       reason over \lang{language}, \action{action} and \state{state}
       tokens. We call the resulting model \textbf{\llamia}.
   \end{itemize}
 }
-
 % =========================================================================
 \column{0.40}
 % =========================================================================
@@ -346,43 +336,30 @@
   \begin{center}
     \includegraphics[width=\linewidth]{plots/llamia-fig (12).pdf}
   \end{center}
-  \figcap{A single chain of thought. The LLM reasons in \lang{language},
-    calls the engine on the current board, plays an \action{action} that
-    changes the board, and calls the engine again on the new board.}
+  \figcap{Illustration of internalized CoT. The LLM reasons in \lang{language},
+    calls the engine on the current board state, plays an \action{action} that
+    changes the board. The LatentBridge projects Lc0 (subagent)'s internal board representations or \state{states} into the LLM's CoT at each invokation}
   \vspace{0.6em}
   \begin{itemize}
     \item \textbf{Projection.} Lc0's hidden state
-      $\mathbf{h}_s \in \mathbb{R}^{1024}$ (layer 14 of 15) is mapped by a
+      $\mathbf{h}_s$ (layer 14 of 15) is mapped by a
       3-layer MLP, the \textbf{LatentBridge}, to $k{=}32$ \state{state
       tokens} in the LLM's embedding space:
-      $\;\mathbf{z}_s = H_\varphi(\mathbf{h}_s) \in \mathbb{R}^{k\times e}$.
-    \item \textbf{Dynamic invocation.} Inside its chain of thought, the LLM
-      can play moves that update the board (including hypothetical
-      moves) and call \texttt{get\_policy} on any position. Each call
+      $\;\mathbf{z}_s = H_\varphi(\mathbf{h}_s)$.
+    \item \textbf{Dynamic invocation.} Inside its chain of thought, the LLM can repeatedly decide \textbf{when} to call the subagent and execute \action{actions} that update the board to counterfactual states, and call \texttt{get\_policy} on any position. Each call
       re-encodes the current state, so the LLM always reasons over the
       position it is analyzing.
-    \item The LLM decides \textbf{when} to call the engine; the call is part
-      of its action space.
   \end{itemize}
 }
 
-\block{Training}{
+\block{Training with Reinforcement Learning}{
   \begin{minipage}[c]{0.52\linewidth}
     \begin{itemize}
-      \item \textbf{Stage 1: projector alignment.} Only the LatentBridge
-        is trained, with the LLM frozen, on engine state--policy pairs
-        (predict the engine's move from the \state{state tokens}).
-      \item \textbf{Stage 2: reinforcement learning.} The LLM and
-        LatentBridge are trained jointly with \textbf{DAPO}. The reward is
-        each task's metric. \state{State tokens} are masked from the
-        policy gradient. The engine stays frozen throughout.
-      \item \textbf{Control:} \llamiaverb{} uses the same LLM, engine,
-        data and RL recipe, but receives the engine's output only as
-        text.
-      \item The method works at \textbf{4B, 8B and 14B}. At every size,
-        \llamia{} trains well above \llamiaverb{} (solid vs.\ dashed),
-        and the gap grows to \textbf{2--3$\times$}. \llamia-4B ends
-        above \llamiaverb-14B.
+      \item \textbf{Stage 1: projector alignment.} We follow LLaVA style two stage training, training only the LatentBridge on large scale synthetic state--value pairs.
+      \item \textbf{Stage 2: reinforcement learning.} We post-train the LLM and
+        LatentBridge jointly with \textbf{DAPO} on six of LLAMIA-Bench tasks. \state{State tokens} are masked from the
+        policy gradient. The engine stays frozen in both stages.
+      \item \textbf{Verbalization Baseline:} We also train \llamiaverb{} replacing the state tokens with verbalized summaries (best moves, evaluation, position)
     \end{itemize}
   \end{minipage}\hfill
   \begin{minipage}[c]{0.45\linewidth}
@@ -398,13 +375,6 @@
     \end{tikzpicture}
   \end{minipage}
   \vspace{0.8em}
-
-  \includegraphics[width=\linewidth, height=8.5cm, trim=253 158 0 0, clip]
-    {plots/combined_training_bench_verb_vs_llamia.pdf}
-  \figcap{(a) Aggregate reward at three LLM sizes. (b) Per-task reward at
-    14B: \llamiaverb{} (dashed) gains some reward on behavior cloning and
-    difficulty, where the text has a useful proxy (top moves), but stays
-    nearly flat on interest and commentary.}
 }
 
 % =========================================================================
@@ -412,13 +382,9 @@
 % =========================================================================
 \block{\bench}{
   \begin{itemize}
-    \item The six chess tasks test three skills: imitating how a
-      particular human plays, judging a position as human players would, and
-      explaining the engine's analysis in words.
-    \item No task can be solved by either agent alone, because the engine
-      cannot produce language and the LLM has little understanding of chess.
-    \item Every task has an automatic metric that doubles as the RL reward.
-      Three tasks are new, including Agadmator-2K, 1.9K commented games.
+    \item We introduce \textbf{LLAMIA-Bench} a compilation of six popular chess tasks including Behavior Cloning, Move/Game Commentary Generation, and Puzzle Understanding including three new datasets
+    \item None of these tasks can be solved by pretrained LLMs or Engines alone.
+
   \end{itemize}
   \vspace{0.2em}
   \noindent\begin{tikzpicture}[x=1cm, y=1cm]
@@ -449,14 +415,14 @@
     \benchcard{(2*\benchcw+1.6,0)}{facetExplain}{Move Rationale}{}
       {\miniboard{(1.35,-1.9)}{1.75}{\faChessBishop}{facetExplain}
        \benchtag{(1.35,-3.18)}{facetExplain}{move \textcolor{ActionColor}{Bb5}}}
-      {\lang{``Pins the knight on c6 to the king.''}}
+      {Why did the player make this move}
       {BLEU-2}{90K annotated games}
     \benchcard{(2*\benchcw+1.6,-4.95)}{facetExplain}{Game Commentary}{\newbadge}
       {\miniboard{(0.97,-1.6)}{1.4}{}{facetExplain}
        \miniboard{(1.35,-1.92)}{1.4}{}{facetExplain}
        \miniboard{(1.73,-2.24)}{1.4}{\faChessKing}{facetExplain}
        \benchtag{(1.35,-3.25)}{facetExplain}{full game}}
-      {\lang{``The rook sacrifice on h7 decides the game.''}}
+      {Commentate on this game}
       {G-Eval}{Agadmator-2K: 1.9K games}
   \end{tikzpicture}
 }
@@ -466,19 +432,10 @@
     \includegraphics[width=\linewidth]{plots/panel_c_no_verb.pdf}
   \end{center}
   \begin{itemize}
-    \item A single \llamia-14B model is best on all six tasks, ahead of
-      GPT-5 with the same engine as a tool and of task-specific
+    \item A single \llamia-14B model is best on all six tasks, across all tasks and sizes, ahead of
+      GPT-5 with the same engine as a tool, and even existing state of the art task-specific
       finetuned models.
-    \item On Puzzle Interest, every text-based system scores
-      ${\leq}\,12$; \llamia{} scores \textbf{52}.
-  \end{itemize}
-}
-
-\block{Further Findings}{
-  \begin{itemize}
-    \item \textbf{The gain comes from the engine's state.} A raw board
-      encoder or shuffled state tokens give no gain over text.
-    \item \textbf{How the engine is used.} \llamiaverb{} mostly copies the
+    \item \textbf{Emergent collaboration strategies} \llamiaverb{} mostly copies the
       engine's top move (62--76\%). \llamia{} uses different strategies
       per task, e.g.\ querying hypothetical moves for commentary.
     \item \textbf{Cost.} \llamia{} makes fewer engine calls (1.9 vs.\ 2.9
