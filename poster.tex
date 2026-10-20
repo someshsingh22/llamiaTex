@@ -316,16 +316,16 @@ non-language agents?}
   \end{center}
 }
 
-\block{Our Approach}{
+\block{Our Contributions}{
   \begin{itemize}
-    \item A \textbf{language agent} (Qwen3 LLM) collaborates with a
-      frozen \textbf{non-language agent} (Lc0-BT4 chess engine) and can update its state dynamically through verbalized \action{actions}.
-    \item \textbf{Latent state internalization:} the engine's internal
-      state is directly projected and concatenated into the LLM's Chain of Thought as
-      \state{state tokens}, instead of being verbalized.
-    \item The LLM is trained with \textbf{reinforcement learning} to
-      reason over \lang{language}, \action{action} and \state{state}
-      tokens. We call the resulting model \textbf{\llamia}.
+    \item \textbf{Verbalization Debt:} the first quantification of what is lost
+      when a non-language agent's knowledge is squeezed into text.
+    \item \textbf{\llamia:} a language agent that internalizes a frozen
+      non-language agent's latent state into its chain of thought, trained with RL.
+    \item \textbf{\bench:} six chess tasks over human behavior and positions,
+      including three new datasets.
+    \item A single \llamia-14B is \textbf{best on all six tasks}, learns
+      \textbf{task-adaptive collaboration strategies}, and is preferred by skilled human players.
   \end{itemize}
 }
 % =========================================================================
@@ -337,6 +337,9 @@ non-language agents?}
   \end{center}
   \vspace{0.2em}
   \begin{itemize}
+    \item \textbf{Setup.} A \textbf{language agent} (Qwen3 LLM) collaborates with a frozen
+      \textbf{non-language agent} (Lc0-BT4 chess engine); its internal state is projected into
+      the LLM's chain of thought instead of being verbalized.
     \item \textbf{Projection.} Lc0's hidden state
       $\mathbf{h}_s$ (layer 14 of 15) is mapped by a
       3-layer MLP, the \textbf{LatentBridge}, into the LLM's CoT at each invocation as $k{=}32$ \state{state
@@ -354,7 +357,7 @@ non-language agents?}
       \item \textbf{Stage 1: projector alignment.} We follow LLaVA style two stage training, training only the LatentBridge on large scale synthetic state--value pairs.
       \item \textbf{Stage 2: reinforcement learning.} We post-train the LLM and
         LatentBridge jointly with \textbf{DAPO} on six of LLAMIA-Bench tasks. \state{State tokens} are masked from the
-        policy gradient. The engine stays frozen in both stages.
+        policy gradient. The engine stays frozen in both stages. The resulting model, \textbf{\llamia}, reasons over \lang{language}, \action{action} and \state{state} tokens.
       \item \textbf{Verbalization Baseline:} We also train \llamiaverb{} replacing the state tokens with verbalized summaries (best moves, evaluation, position)
     \end{itemize}
   \end{minipage}\hfill
