@@ -421,12 +421,10 @@ non-language agents?}
     \includegraphics[width=\linewidth]{plots/panel_c_no_verb.pdf}
   \end{center}
   \begin{itemize}
-    \item A single \llamia-14B model is best on all six tasks, ahead of
-      GPT-5 with the same engine as a tool and even of state-of-the-art task-specific
-      finetuned models.
-    \item \textbf{Joint reasoning needs latent state.} On harder tasks that require reasoning
-      jointly over human behavior and the position, such as Puzzle Interest, only \llamia{} scores
-      well; verbalization catches up only on tasks a text summary can approximate, such as Puzzle Difficulty.
+    \item A single \llamia-14B model is best on all six tasks, ahead of GPT-5 with the same
+      engine as a tool, and even of task-specific finetuned models. This holds at 4B and 8B too.
+    \item \textbf{Verbalization debt persists.} \llamiaverb{} trails by ${\sim}23$ points on average
+      (up to 44 on Puzzle Interest); the gap widens during training and does not close with a larger backbone.
     \item \textbf{Beyond chess.} On Go with KataGo, the same method is
       ${\sim}10$ points above the text-based control.
   \end{itemize}
@@ -451,11 +449,12 @@ non-language agents?}
   \vspace{0.6em}
   \subhead{Human Study}
   \noindent\hfill
-  \includegraphics[height=12.5cm]{pages/figures/llamia_survey_vert.pdf}\hfill
-  \includegraphics[height=12.5cm]{pages/figures/llamia_human_commentary_compact.pdf}\hfill\null
+  \includegraphics[height=14cm]{pages/figures/llamia_survey_vert.pdf}\hfill
+  \includegraphics[height=14cm]{pages/figures/llamia_human_commentary_compact.pdf}\hfill\null
   \begin{itemize}
-    \item \textbf{Human study} ($n{=}12$ players rated ${\geq}1700$): post-game ratings put \llamia{} on
-      par with Maia* for human-likeness; 72\% of commentary judgments prefer \llamia.
+    \item \textbf{Human study} ($n{=}12$ players rated ${\geq}1700$): post-game ratings put
+      \llamia{} on par with Maia* for human-likeness; 72\% of commentary judgments prefer
+      \llamia, mainly for strategic insight.
   \end{itemize}
 }
 \end{columns}
