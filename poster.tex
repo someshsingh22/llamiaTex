@@ -13,6 +13,8 @@
 \usepackage{xcolor}
 \usepackage{enumitem}
 \usepackage{qrcode}
+\usepackage{booktabs}
+\usepackage{amsmath}
 \usepackage[hidelinks]{hyperref}
 \usetikzlibrary{shadows}
 
@@ -58,7 +60,7 @@
   titlewidthscale=1, bodywidthscale=1, titleleft,
   titleoffsetx=0pt, titleoffsety=0pt, bodyoffsetx=0mm, bodyoffsety=-8mm,
   bodyverticalshift=8mm, roundedcorners=14, linewidth=1.5pt,
-  titleinnersep=9mm, bodyinnersep=1.1cm
+  titleinnersep=9mm, bodyinnersep=0.8cm
 }{
   \draw[color=framecolor, line width=\blocklinewidth, fill=blockbodybgcolor,
     rounded corners=\blockroundedcorners,
@@ -118,43 +120,229 @@
 }
 
 % Bullets as in B-LLaVA (triangles), in Adobe red
-\setlist[itemize]{leftmargin=1.2em, itemsep=6pt, topsep=6pt,
+\setlist[itemize]{leftmargin=1.2em, itemsep=4pt, topsep=4pt,
   label={\color{slate}$\blacktriangleright$}}
 
-% Placeholder block body for layout prototyping
-\newcommand{\placeholder}[1]{%
-  \tikz\node[draw=rulegray, dashed, line width=2pt, fill=slate!3,
-    minimum width=\linewidth-2pt, minimum height=#1, align=center,
-    text=inkgray, font=\Large]{content};}
+% Token colors, as in the paper
+\definecolor{StateColor}{HTML}{F94892}
+\definecolor{LanguageColor}{HTML}{FF7F3F}
+\definecolor{ActionColor}{HTML}{02B9F1}
+\newcommand{\lang}[1]{\textcolor{LanguageColor}{\textbf{#1}}}
+\newcommand{\action}[1]{\textcolor{ActionColor}{\textbf{#1}}}
+\newcommand{\state}[1]{\textcolor{StateColor}{\textbf{#1}}}
+\newcommand{\llamia}{\textsc{Llamia}}
+\newcommand{\llamiaverb}{\textsc{Llamia-Verb}}
+\newcommand{\bench}{\textsc{Llamia-Bench}}
+
+% Centered question / statement line
+\newcommand{\keyline}[1]{%
+  \begin{center}\color{slate}\large\bfseries #1\end{center}}
+
+% Small figure caption
+\newcommand{\figcap}[1]{%
+  \par\vspace{0.3em}{\small\color{inkgray}#1\par}}
 
 \tikzposterlatexaffectionproofoff
 \begin{document}
 \maketitle[width=\paperwidth, titletoblockverticalspace=12mm]
 
 \begin{columns}
+% =========================================================================
 \column{0.27}
-  \block{Motivation}{\placeholder{16cm}}
-  \block{Verbalization vs.\ Internalization}{\placeholder{17cm}}
-  \block{\textsc{Llamia-Bench}}{\placeholder{14cm}}
+% =========================================================================
+\block{Motivation}{
+  \begin{itemize}
+    \item In many important domains such as robotics and game playing,
+      the strongest available agents are \textbf{not language models}.
+      Their expertise lives in internal representations of policy and
+      value (e.g.\ AlphaZero, RT-1).
+    \item Many useful tasks need both. In chess, an engine plays far
+      better than any LLM but cannot explain a move; an LLM can explain,
+      but cannot play well.
+  \end{itemize}
+  \keyline{How can an LLM effectively collaborate with\\
+    a non-language agent?}
+  \begin{itemize}
+    \item We study this in \textbf{chess}: strong open engines (Lc0),
+      large public data, and tasks with established metrics.
+  \end{itemize}
+}
 
+\block{Verbalization Is Lossy}{
+  \begin{itemize}
+    \item Current methods ground the agent's inputs and outputs in
+      language: the agent is called as a tool and its output is
+      \textbf{verbalized} into text.
+    \item This keeps a short summary and discards the rest of the
+      agent's internal representation: the full move distribution, the
+      value of other lines, and positional features.
+    \item The loss repeats at every interaction step.
+  \end{itemize}
+  \vspace{0.2em}
+  \begin{center}
+  \resizebox{\linewidth}{!}{%
+  \begin{tikzpicture}[
+      every node/.style={font=\normalsize, align=center},
+      box/.style={draw=slate, line width=1.5pt, rounded corners=6pt,
+        inner sep=8pt, fill=white},
+      arr/.style={-latex, line width=2pt, color=slate}]
+    % Verbalization
+    \node[anchor=west, font=\small\bfseries, text=inkgray] at (-0.6,5.3)
+      {Verbalization};
+    \node[box] (a1) at (1.4,3.4) {Agent\\(Lc0)};
+    \node[box, fill=LanguageColor!12, text width=10.5cm] (t1) at (9.8,3.4)
+      {\ttfamily Nc2: P=0.34, +0.12;\\ e4: P=0.21, +0.08; \ldots};
+    \node[box] (l1) at (18.2,3.4) {LLM};
+    \draw[arr] (a1) -- (t1);
+    \draw[arr] (t1) -- (l1);
+    % Internalization
+    \node[anchor=west, font=\small\bfseries, text=inkgray] at (-0.6,1.6)
+      {Internalization (ours)};
+    \node[box] (a2) at (1.4,-0.1) {Agent\\(Lc0)};
+    \node[box, fill=slate!8] (h2) at (6.0,-0.1) {internal\\state $\mathbf{h}_s$};
+    \node[box, fill=StateColor!10] (p2) at (10.6,-0.1) {projector};
+    \foreach \i in {0,...,3} {
+      \node[fill=StateColor, minimum size=0.7cm, inner sep=0pt]
+        at (13.6+\i*0.9,-0.1) {};
+    }
+    \node[box] (l2) at (18.2,-0.1) {LLM};
+    \draw[arr] (a2) -- (h2);
+    \draw[arr] (h2) -- (p2);
+    \draw[arr] (p2) -- (13.1,-0.1);
+    \draw[arr] (16.6,-0.1) -- (l2);
+  \end{tikzpicture}}
+  \end{center}
+}
+
+\block{Our Approach}{
+  \begin{itemize}
+    \item A \textbf{language agent} (Qwen3 LLM) collaborates with a
+      frozen \textbf{non-language agent} (Lc0-BT4 chess engine).
+    \item \textbf{Latent state internalization:} the engine's internal
+      state is projected into the LLM's input as continuous
+      \state{state tokens}, instead of being described in text.
+    \item The LLM is trained with \textbf{reinforcement learning} to
+      reason over \lang{language}, \action{action} and \state{state}
+      tokens. We call the resulting model \textbf{\llamia}.
+  \end{itemize}
+}
+
+% =========================================================================
 \column{0.40}
-  \block{\textsc{Llamia}: Latent State Internalization}{\placeholder{29cm}}
-  \block{Main Results}{\placeholder{26cm}}
+% =========================================================================
+\block{Latent State Internalization}{
+  \begin{center}
+    \includegraphics[width=\linewidth]{plots/llamia-fig (12).pdf}
+  \end{center}
+  \figcap{A single chain of thought. The LLM reasons in \lang{language},
+    calls the engine on the current board, plays an \action{action} that
+    changes the board, and calls the engine again on the new board.}
+  \vspace{0.6em}
+  \begin{itemize}
+    \item \textbf{Projection.} Lc0's hidden state
+      $\mathbf{h}_s \in \mathbb{R}^{1024}$ (layer 14 of 15) is mapped by a
+      3-layer MLP, the \textbf{LatentBridge}, to $k{=}32$ \state{state
+      tokens} in the LLM's embedding space:
+      $\;\mathbf{z}_s = H_\varphi(\mathbf{h}_s) \in \mathbb{R}^{k\times e}$.
+    \item \textbf{Dynamic invocation.} Inside its chain of thought, the LLM
+      can play moves that update the board (including hypothetical
+      moves) and call \texttt{get\_policy} on any position. Each call
+      re-encodes the current state, so the LLM always reasons over the
+      position it is analyzing.
+    \item The LLM decides \textbf{when} to call the engine; the call is part
+      of its action space.
+  \end{itemize}
+}
 
+\block{Training}{
+  \begin{minipage}[t]{0.50\linewidth}
+    \begin{itemize}
+      \item \textbf{Stage 1: projector alignment.} Only the LatentBridge
+        is trained, with the LLM frozen, on engine state--policy pairs
+        (predict the engine's move from the \state{state tokens}).
+      \item \textbf{Stage 2: reinforcement learning.} The LLM and
+        LatentBridge are trained jointly with \textbf{DAPO}. The reward is
+        each task's metric. \state{State tokens} are masked from the
+        policy gradient.
+      \item The engine stays frozen throughout.
+      \item \textbf{Control:} \llamiaverb{} uses the same LLM, engine,
+        data and RL recipe, but receives the engine's output only as
+        text.
+    \end{itemize}
+  \end{minipage}\hfill
+  \begin{minipage}[t]{0.46\linewidth}
+    \vspace{0pt}\centering
+    \includegraphics[width=0.92\linewidth, trim=0 0 742 0, clip]
+      {plots/combined_training_bench_verb_vs_llamia.pdf}
+    \figcap{Aggregate reward during DAPO training at three LLM sizes.
+      Solid: \llamia{} (latent); dashed: \llamiaverb{} (text).}
+  \end{minipage}
+  \vspace{0.6em}
+  \begin{itemize}
+    \item The method works at \textbf{4B, 8B and 14B}; larger LLMs reach
+      higher reward.
+    \item At every size, \llamia{} trains well above \llamiaverb{}, and
+      the gap grows during training, reaching \textbf{2--3$\times$} at
+      the end.
+    \item Scaling the LLM does not close the gap: \llamia-4B ends above
+      \llamiaverb-14B.
+  \end{itemize}
+}
+
+% =========================================================================
 \column{0.33}
-  \block{The Verbalization Debt}{\placeholder{15cm}}
-  \block{Ablations}{\placeholder{9cm}}
-  \block{Collaboration \& Human Study}{\placeholder{9cm}}
-  \block{Take-home}{\placeholder{5cm}}
+% =========================================================================
+\block{\bench}{
+  A suite of six collaborative chess tasks. None can be solved well by
+  the LLM or the engine alone.
+  \vspace{0.4em}
+  \begin{center}
+  \small
+  \renewcommand{\arraystretch}{1.15}
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    \textbf{Task} & \textbf{Goal} & \textbf{Metric} \\
+    \midrule
+    Behavior cloning (Maia) & Predict a human's move at a given rating & Move match \\
+    Behavior cloning (Wild) & Same, on GM, low-time, rating-gap games & Move match \\
+    Puzzle difficulty & Rank puzzles by difficulty & Spearman $\rho$ \\
+    Puzzle interest & Rank puzzles by how interesting they are & Spearman $\rho$ \\
+    Move rationale & Explain why a move was played & BLEU-2 \\
+    Game commentary & Narrate a full game (Agadmator-2K, new) & G-Eval \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+}
+
+\block{Results}{
+  \begin{center}
+    \includegraphics[width=\linewidth]{plots/panel_c_no_verb.pdf}
+  \end{center}
+  \begin{itemize}
+    \item A single \llamia-14B model is best on all six tasks, ahead of
+      GPT-5 with the same engine as a tool and of task-specific
+      finetuned models.
+    \item On Puzzle Interest, every text-based system scores
+      ${\leq}\,12$; \llamia{} scores \textbf{52}.
+  \end{itemize}
+}
+
+\block{Further Findings}{
+  \begin{itemize}
+    \item \textbf{The gain comes from the engine's state.} A raw board
+      encoder or shuffled state tokens give no gain over text.
+    \item \textbf{How the engine is used.} \llamiaverb{} mostly copies the
+      engine's top move (62--76\%). \llamia{} uses different strategies
+      per task, e.g.\ querying hypothetical moves for commentary.
+    \item \textbf{Cost.} \llamia{} makes fewer engine calls (1.9 vs.\ 2.9
+      per query); inference cost is about the same.
+    \item \textbf{Human study} ($n{=}12$, rated ${\geq}1700$). Players
+      spotted \llamia{} as a bot in 39\% of games (\llamiaverb: 72\%);
+      72\% of commentary judgments preferred \llamia.
+    \item \textbf{Beyond chess.} On Go with KataGo, the same method is
+      ${\sim}10$ points above the text-based control.
+  \end{itemize}
+}
 \end{columns}
 
-% Footer (as in B-LLaVA): website left, email right
-\fill[slate] (-0.5\paperwidth,-0.5\paperheight) rectangle
-  (0.5\paperwidth,-0.5\paperheight+3.2cm);
-\node[anchor=west, text=white, font=\large]
-  at (-0.5\paperwidth+16mm,-0.5\paperheight+1.6cm)
-  {\faGlobe\ \href{\paperurl}{\paperurl}};
-\node[anchor=east, text=white, font=\large]
-  at (0.5\paperwidth-16mm,-0.5\paperheight+1.6cm)
-  {\faEnvelope\ \href{mailto:\email}{\email}};
 \end{document}
