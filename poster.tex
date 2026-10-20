@@ -3,7 +3,7 @@
 % Build: latexmk -pdf poster.tex
 % =========================================================================
 \documentclass[25pt, a0paper, landscape, margin=0mm, innermargin=16mm,
-  blockverticalspace=16mm, colspace=18mm, subcolspace=10mm]{tikzposter}
+  blockverticalspace=10mm, colspace=14mm, subcolspace=10mm]{tikzposter}
 
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
@@ -325,7 +325,7 @@ non-language agents?}
   \end{itemize}
 }
 % =========================================================================
-\column{0.40}
+\column{0.385}
 % =========================================================================
 \block{Latent State Internalization}{
   \begin{center}
@@ -361,28 +361,9 @@ non-language agents?}
     \centering
     \includegraphics[width=\linewidth]{plots/poster_training_reward.pdf}
   \end{minipage}
-  \par\vspace{0.2em}
-  {\large\bfseries\color{slate} Emergent collaboration strategies}\par\vspace{0.1em}
-  \begin{minipage}[c]{0.44\linewidth}
-    \begin{itemize}
-    \item We annotate LLM--subagent collaboration patterns using GPT-4o, e.g., \emph{Follow}, where the LLM simply follows the engine.
-      \item \llamia{} \textbf{adapts its strategy to the task}: engine-follow for
-        gameplay, consult-then-override for behavior cloning,
-        counterfactual queries for commentary.
-      \item \llamiaverb{} \textbf{collapses to engine-follow} on every task (62--76\%).
-    \end{itemize}
-  \end{minipage}\hfill
-  \begin{minipage}[c]{0.54\linewidth}
-    \centering
-    \includegraphics[width=\linewidth]{pages/figures/agency_strategy_heatmaps.pdf}
-    \figcap{Strategy share (\%) over 500 episodes per task (GPT-4o judge,
-      $\kappa{=}0.78$). Left: \llamia{}. Right: \llamiaverb{}.}
-  \end{minipage}
+
 }
 
-% =========================================================================
-\column{0.33}
-% =========================================================================
 \block{\bench}{
   \begin{itemize}
     \item We introduce \textbf{\bench}, a compilation of six popular chess tasks spanning Behavior Cloning, Move/Game Commentary Generation, and Puzzle Understanding, including three new datasets.
@@ -390,7 +371,7 @@ non-language agents?}
 
   \end{itemize}
   \vspace{0.2em}
-  \noindent\begin{tikzpicture}[x=1cm, y=1cm]
+  \centering\begin{tikzpicture}[x=1cm, y=1cm]
     \def\benchcw{11.0}
     % ---- Imitate ----
     \benchcard{(0,0)}{facetImitate}{Behavior Cloning}{}
@@ -430,6 +411,28 @@ non-language agents?}
   \end{tikzpicture}
 }
 
+% =========================================================================
+\column{0.355}
+% =========================================================================
+\block{Emergent Collaboration Strategies}{
+  \begin{minipage}[c]{0.61\linewidth}
+    \begin{itemize}
+      \item We annotate LLM--subagent collaboration patterns using GPT-4o, e.g., \emph{Follow}, where the LLM simply follows the engine.
+      \item \llamia{} \textbf{adapts its strategy to the task}: engine-follow for
+        gameplay, consult-then-override for behavior cloning,
+        counterfactual queries for commentary.
+      \item \llamiaverb{} \textbf{collapses to engine-follow} on every task (62--76\%).
+    \end{itemize}
+  \end{minipage}\hfill
+  \begin{minipage}[c]{0.37\linewidth}
+    \centering
+    % left panel (LLAMIA) without x-ticks, then right panel (LLAMIA-Verb), grids aligned
+    \includegraphics[trim=0 25 156 0, clip, width=\linewidth]{pages/figures/agency_strategy_heatmaps.pdf}\\[0.2em]
+    \makebox[\linewidth][l]{\hspace{0.0727\linewidth}%
+      \includegraphics[trim=168 0 0 0, clip, width=0.9273\linewidth]{pages/figures/agency_strategy_heatmaps.pdf}}
+  \end{minipage}
+}
+
 \block{Results}{
   \begin{center}
     \includegraphics[width=\linewidth]{plots/panel_c_no_verb.pdf}
@@ -447,8 +450,8 @@ non-language agents?}
   \vspace{0.6em}
   {\large\bfseries\color{slate} Human study}\par\vspace{0.4em}
   \noindent\hfill
-  \includegraphics[height=18cm]{pages/figures/llamia_survey_vert.pdf}\hfill
-  \includegraphics[height=18cm]{pages/figures/llamia_human_commentary_compact.pdf}\hfill\null
+  \includegraphics[height=12.5cm]{pages/figures/llamia_survey_vert.pdf}\hfill
+  \includegraphics[height=12.5cm]{pages/figures/llamia_human_commentary_compact.pdf}\hfill\null
   \begin{itemize}
     \item \textbf{Human study} ($n{=}12$ players rated ${\geq}1700$): post-game ratings put \llamia{} on
       par with Maia* for human-likeness; 72\% of commentary judgments prefer \llamia.
@@ -458,11 +461,11 @@ non-language agents?}
 
 % Footer: website left, email right
 \fill[slate] (-0.5\paperwidth,-0.5\paperheight) rectangle
-  (0.5\paperwidth,-0.5\paperheight+3.2cm);
+  (0.5\paperwidth,-0.5\paperheight+2.6cm);
 \node[anchor=west, text=white, font=\large]
-  at (-0.5\paperwidth+16mm,-0.5\paperheight+1.6cm)
+  at (-0.5\paperwidth+16mm,-0.5\paperheight+1.3cm)
   {\faGlobe\ \href{\paperurl}{\paperurl}};
 \node[anchor=east, text=white, font=\large]
-  at (0.5\paperwidth-16mm,-0.5\paperheight+1.6cm)
+  at (0.5\paperwidth-16mm,-0.5\paperheight+1.3cm)
   {\faEnvelope\ \href{mailto:\email}{\email}};
 \end{document}
