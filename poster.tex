@@ -212,61 +212,71 @@
   \resizebox{\linewidth}{!}{%
   \begin{tikzpicture}[
       every node/.style={align=center},
-      arr/.style={-{Latex[length=6mm,width=5mm]}, line width=2.6pt, color=slate}]
+      arr/.style={-{Latex[length=6mm,width=5mm]}, line width=2.6pt, color=slate},
+      stepnum/.style={circle, fill=slate, text=white, font=\small\bfseries,
+        inner sep=0pt, minimum size=0.95cm}]
+    % --- Language agent: question -> tool call ... answer ------------------
+    \draw[panel] (0,0) rectangle (15,12);
+    \node[font=\large\bfseries, text=slate] at (7.5,11.0) {Language Agent};
+    \node[font=\normalsize, text=inkgray] at (7.5,9.95) {\faComments\; LLM};
+    \node[stepnum] at (1.0,8.0) {1};
+    \node[draw=slate!60, line width=1.2pt, rounded corners=10pt, fill=slate!8,
+      font=\small, text=inkdark, inner sep=8pt, text width=11.4cm]
+      at (8.05,8.0) {\faUser\; How should White continue here, and why?};
+    \foreach \i/\o in {0/0.3,1/0.3,2/0.3,3/1,4/1,5/0.3,6/0.3} {
+      \fill[LanguageColor, fill opacity=\o, rounded corners=1.5pt]
+        (3.75+\i*1.1,5.45) rectangle ++(0.9,0.9);
+    }
+    \node[font=\small, text=inkgray] at (7.5,4.75) {receives only a few text tokens};
+    \node[stepnum] at (1.0,2.2) {4};
+    \node[draw=inkgray, dashed, line width=1.2pt, rounded corners=14pt,
+      fill=white, font=\small\itshape, text=inkdark, inner sep=10pt,
+      text width=11.4cm] at (8.05,2.2)
+      {Play Nf3, because\ldots{} what else did the engine see? I have to guess the rest.};
+    % --- Tool call ----------------------------------------------------------
+    \draw[arr, rounded corners=18pt] (7.5,12) -- (7.5,13.8) -- (33.3,13.8) -- (33.3,12);
+    \node[fill=white, inner sep=6pt, font=\normalsize] at (20.4,13.8)
+      {\tikz[baseline=-0.6ex]\node[stepnum]{2};\; tool call \texttt{get\_policy(board)}};
+    \begin{scope}[xshift=2.4cm]
     % --- Non-language agent with its rich internal state -------------------
-    \draw[panel] (0,0) rectangle (12.6,12);
-    \node[font=\large\bfseries, text=slate] at (6.3,11.0) {Non-Language Agent};
-    \node[font=\normalsize, text=inkgray] at (6.3,9.95) {\faChessKnight\; Lc0 chess engine};
-    \pic at (1.2,3.3) {state board=0.75};
-    \node[font=\small, text=inkgray] at (4.2,2.8) {latent state $\mathbf{h}_s$};
+    \draw[panel] (24.6,0) rectangle (37.2,12);
+    \node[font=\large\bfseries, text=slate] at (30.9,11.0) {Non-Language Agent};
+    \node[font=\normalsize, text=inkgray] at (30.9,9.95) {\faChessKnight\; Lc0 chess engine};
+    \pic at (25.8,3.3) {state board=0.75};
+    \node[font=\small, text=inkgray] at (28.8,2.8) {latent state $\mathbf{h}_s$};
     \shade[bottom color=slate!8, top color=slate!70,
-      rounded corners=2pt] (9.4,3.3) rectangle (10.4,9.3);
-    \draw[slate, line width=1.2pt, rounded corners=2pt] (9.4,3.3) rectangle (10.4,9.3);
-    \draw[inkdark, line width=2.6pt] (9.05,7.1) -- (10.75,7.1);
-    \node[font=\small, text=inkgray] at (9.9,2.8) {value};
-    \pic at (1.2,0.6) {policy bars};
-    \node[font=\small, text=inkgray, anchor=west, align=left] at (6.2,1.25)
-      {policy over all moves};
-    % --- Verbalization bottleneck -------------------------------------------
-    \shade[left color=StateColor!35, right color=LanguageColor!55]
-      (12.6,1.8) -- (18.8,5.45) -- (18.8,6.35) -- (12.6,10.2) -- cycle;
-    \foreach \x/\y/\o in {13.05/8.3/0.8, 13.15/3.0/0.7, 14.1/6.9/0.6,
-        14.6/4.4/0.5, 15.8/6.1/0.4, 17.1/5.65/0.3} {
+      rounded corners=2pt] (34.0,3.3) rectangle (35.0,9.3);
+    \draw[slate, line width=1.2pt, rounded corners=2pt] (34.0,3.3) rectangle (35.0,9.3);
+    \draw[inkdark, line width=2.6pt] (33.65,7.1) -- (35.35,7.1);
+    \node[font=\small, text=inkgray] at (34.5,2.8) {value};
+    \pic at (25.8,0.6) {policy bars};
+    \node[font=\small, text=inkgray, anchor=west, align=left] at (30.9,1.25)
+      {policy over\\ all moves};
+    % --- Verbalization bottleneck (engine -> LLM) ---------------------------
+    \shade[left color=LanguageColor!55, right color=StateColor!35]
+      (24.6,1.8) -- (18.4,5.45) -- (18.4,6.35) -- (24.6,10.2) -- cycle;
+    \foreach \x/\y/\o in {23.6/8.3/0.8, 23.5/3.0/0.7, 22.55/6.9/0.6,
+        22.05/4.4/0.5, 20.85/6.1/0.4, 19.55/5.65/0.3} {
       \fill[StateColor, fill opacity=\o, rounded corners=1.5pt]
         (\x,\y) rectangle ++(0.55,0.55);
     }
-    \node[font=\large\bfseries, text=slate] at (16.6,10.6) {verbalization};
+    \node[font=\large\bfseries, text=slate] at (19.6,10.6)
+      {\tikz[baseline=-0.6ex]\node[stepnum]{3};\; verbalization};
     % Fragments of the state that never reach the LLM
-    \foreach \x/\y/\o/\s in {13.9/0.75/0.7/0.6, 15.0/0.05/0.55/0.55,
-        16.1/-0.45/0.4/0.5, 17.1/-0.8/0.28/0.45, 18.0/-1.0/0.16/0.4} {
+    \foreach \x/\y/\o/\s in {22.75/0.75/0.7/0.6, 21.65/0.05/0.55/0.55,
+        20.55/-0.45/0.4/0.5, 19.55/-0.8/0.28/0.45, 18.65/-1.0/0.16/0.4} {
       \fill[StateColor, fill opacity=\o, rounded corners=1.5pt,
         rotate around={18*\x:(\x+0.2,\y+0.2)}] (\x,\y) rectangle ++(\s,\s);
     }
-    \node[font=\normalsize, text=adobered, anchor=west, align=left]
-      at (18.7,-1.2) {\faTimesCircle\; discarded: other moves,\\ other lines, positional features};
+    \node[font=\normalsize, text=adobered, anchor=north, align=center]
+      at (21.5,-1.4) {\faTimesCircle\; discarded: other moves,\\ other lines, positional features
+      \quad \faRedo\; at every step};
     % --- Text string that crosses the bottleneck --------------------------
-    \fill[LanguageColor!22] (18.8,5.45) rectangle (24.6,6.35);
+    \fill[LanguageColor!22] (12.6,5.45) rectangle (18.4,6.35);
     \node[draw=LanguageColor, line width=1.6pt, fill=white, rounded corners=5pt,
-      font=\normalsize\ttfamily, inner sep=8pt] (txt) at (21.4,5.9) {Nf3 (+0.3)};
-    \draw[arr] (txt.east) -- (24.6,5.9);
-    % --- Language agent -----------------------------------------------------
-    \draw[panel] (24.6,0) rectangle (37.2,12);
-    \node[font=\large\bfseries, text=slate] at (30.9,11.0) {Language Agent};
-    \node[font=\normalsize, text=inkgray] at (30.9,9.95) {\faComments\; LLM};
-    \foreach \i/\o in {0/0.3,1/0.3,2/0.3,3/1,4/1,5/0.3,6/0.3} {
-      \fill[LanguageColor, fill opacity=\o, rounded corners=1.5pt]
-        (27.1+\i*1.1,7.5) rectangle ++(0.9,0.9);
-    }
-    \node[font=\normalsize, text=inkgray] at (30.9,6.75) {only a few text tokens};
-    \node[draw=inkgray, dashed, line width=1.2pt, rounded corners=14pt,
-      fill=white, font=\normalsize\itshape, text=inkdark, inner sep=10pt,
-      text width=9.6cm] at (30.9,3.2)
-      {Why Nf3? What else\\ did the engine see?\\ I have to guess the rest.};
-    % --- Interaction loop ---------------------------------------------------
-    \draw[arr, rounded corners=18pt] (30.9,12) -- (30.9,13.8) -- (6.3,13.8) -- (6.3,12);
-    \node[font=\normalsize, fill=white, inner sep=6pt] at (18.6,13.8)
-      {tool call \texttt{get\_policy(board)} \quad
-       \textcolor{adobered}{\faRedo\; lossy at every step}};
+      font=\normalsize\ttfamily, inner sep=8pt] (txt) at (15.7,5.9) {Nf3 (+0.3)};
+    \draw[arr] (txt.west) -- (12.6,5.9);
+    \end{scope}
   \end{tikzpicture}}
   \end{center}
 }
